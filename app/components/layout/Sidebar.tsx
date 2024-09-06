@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 const navItems = [
   { name: 'Dashboard', icon: Home, href: '/dashboard' },
   { name: 'Patients', icon: Users, href: '/patients' },
-  { name: 'Doctors', icon: Stethoscope, href: '/dashboard/doctors' },
+  { name: 'Doctors', icon: Stethoscope, href: '/doctors' },
   { name: 'Appointments', icon: Calendar, href: '/dashboard/appointments' },
   { name: 'Prescriptions', icon: PlusCircle, href: '/dashboard/prescriptions' },
 ]

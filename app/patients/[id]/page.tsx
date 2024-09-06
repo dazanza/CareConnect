@@ -5,6 +5,7 @@ import { useSupabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface Patient {
   id: number;
@@ -16,11 +17,19 @@ interface Patient {
   medical_history: string;
 }
 
+interface Doctor {
+  id: number;
+  name: string;
+  specialty: string;
+  image_url: string;
+}
+
 export default function PatientDetailsPage() {
   const { id } = useParams()
   const { supabase } = useSupabase()
   const [patient, setPatient] = useState<Patient | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [doctors, setDoctors] = useState<Doctor[]>([])
 
   useEffect(() => {
     async function fetchPatient() {
@@ -45,6 +54,26 @@ export default function PatientDetailsPage() {
 
     fetchPatient()
   }, [supabase, id])
+
+  useEffect(() => {
+    async function fetchDoctors() {
+      if (!supabase || !patient) return
+
+      try {
+        const { data, error } = await supabase
+          .from('patient_doctors')
+          .select('doctors(*)')
+          .eq('patient_id', patient.id)
+
+        if (error) throw error
+        setDoctors(data.map((item: any) => item.doctors))
+      } catch (error) {
+        console.error('Error fetching doctors:', error)
+      }
+    }
+
+    fetchDoctors()
+  }, [supabase, patient])
 
   if (isLoading) return <div>Loading...</div>
   if (!patient) return <div>Patient not found</div>
@@ -113,8 +142,24 @@ export default function PatientDetailsPage() {
           <CardTitle>Doctors</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Add doctors list here */}
-          <p>Doctor information to be added</p>
+          {doctors.length > 0 ? (
+            <ul className="space-y-4">
+              {doctors.map((doctor) => (
+                <li key={doctor.id} className="flex items-center space-x-4">
+                  <Avatar>
+                    <AvatarImage src={doctor.image_url} alt={doctor.name} />
+                    <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{doctor.name}</p>
+                    <p className="text-sm text-gray-500">{doctor.specialty}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No doctors assigned to this patient.</p>
+          )}
         </CardContent>
       </Card>
 
