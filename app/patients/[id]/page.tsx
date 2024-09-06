@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useSupabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
+import { format } from 'date-fns'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Patient {
   id: number;
@@ -47,38 +49,84 @@ export default function PatientDetailsPage() {
   if (isLoading) return <div>Loading...</div>
   if (!patient) return <div>Patient not found</div>
 
+  const formattedDateOfBirth = format(new Date(patient.date_of_birth), 'MMMM d, yyyy')
+
   return (
-    <div className="max-w-2xl mx-auto mt-8">
-      <h1 className="text-3xl font-bold mb-6">{patient.name}</h1>
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">Patient Information</h3>
-        </div>
-        <div className="border-t border-gray-200">
-          <dl>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Date of Birth</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{patient.date_of_birth}</dd>
-            </div>
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Gender</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{patient.gender}</dd>
-            </div>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Contact Number</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{patient.contact_number}</dd>
-            </div>
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Address</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{patient.address}</dd>
-            </div>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Medical History</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{patient.medical_history}</dd>
-            </div>
-          </dl>
-        </div>
+    <div className="space-y-4">
+      <h1 className="text-3xl font-bold">{patient.name}</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-2">
+              <div>
+                <dt className="font-medium">Date of Birth</dt>
+                <dd>{formattedDateOfBirth}</dd>
+              </div>
+              <div>
+                <dt className="font-medium">Contact</dt>
+                <dd>{patient.contact_number}</dd>
+              </div>
+              <div>
+                <dt className="font-medium">Address</dt>
+                <dd>{patient.address}</dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Medical History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{patient.medical_history}</p>
+          </CardContent>
+        </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Upcoming Appointments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Add upcoming appointments list here */}
+          <p>Upcoming appointments to be added</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Prescription Schedule</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Add prescription schedule here */}
+          <p>Prescription schedule to be added</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Doctors</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Add doctors list here */}
+          <p>Doctor information to be added</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Appointment History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Add appointment history list here */}
+          <p>Appointment history to be added</p>
+        </CardContent>
+      </Card>
     </div>
   )
 }
