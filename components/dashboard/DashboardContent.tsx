@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import QuickActions from '@/app/components/dashboard/QuickActions'
-import UpcomingAppointments from '@/app/components/dashboard/UpcomingAppointments'
-import PrescriptionReminders from '@/app/components/dashboard/PrescriptionReminders'
-import { useSupabase } from '@/app/lib/supabase'
+import QuickActions from '@/components/dashboard/QuickActions'
+import UpcomingAppointments from '@/components/dashboard/UpcomingAppointments'
+import PrescriptionReminders from '@/components/dashboard/PrescriptionReminders'
+import { useSupabase } from '@/hooks/useSupabase'
 
 export default function DashboardContent() {
   const { supabase } = useSupabase()

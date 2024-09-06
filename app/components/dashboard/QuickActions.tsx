@@ -1,21 +1,12 @@
-import { PlusCircle, Calendar, Stethoscope } from 'lucide-react'
-import { Button } from "@/components/ui/button"
+import Link from 'next/link'
 
 export default function QuickActions() {
   return (
-    <div className="flex gap-4">
-      <Button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white shadow-md rounded-md py-3">
-        <PlusCircle className="mr-2 h-5 w-5" />
+    <div className="grid grid-cols-2 gap-4">
+      <Link href="/patients/add" className="bg-blue-500 text-white p-4 rounded text-center">
         Add Patient
-      </Button>
-      <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white shadow-md rounded-md py-3">
-        <Calendar className="mr-2 h-5 w-5" />
-        Schedule
-      </Button>
-      <Button className="flex-1 bg-orange-500 hover:bg-orange-600 text-white shadow-md rounded-md py-3">
-        <Stethoscope className="mr-2 h-5 w-5" />
-        Record Vitals
-      </Button>
+      </Link>
+      {/* Add other quick actions here */}
     </div>
   )
 }
