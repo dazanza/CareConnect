@@ -1,5 +1,5 @@
-import Sidebar from '@/components/layout/Sidebar'
-import Header from '@/components/layout/Header'
+import Sidebar from '@/app/components/layout/Sidebar'
+import Header from '@/app/components/layout/Header'
 import { Suspense } from 'react'
 
 export default function DashboardLayout({
