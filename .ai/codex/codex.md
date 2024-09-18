@@ -73,3 +73,27 @@ L002:
 - Application: '/src' is root, '/src/auth' for authentication, '/src/database' for data access
 - Impact: Organized code structure, separation of concerns
 - Related: None
+
+L010:
+
+- Context: /hooks/useSupabase.ts
+- Insight: Implementation of useSupabase hook for Supabase client initialization
+- Application: Create a custom hook to manage Supabase client creation and state
+- Impact: Centralizes Supabase client management and improves reusability across components
+- Related: None
+
+L009:
+
+- Context: /app/components/dashboard/DashboardContent.tsx
+- Insight: Usage of useSupabase hook and data fetching from Supabase
+- Application: Implement data fetching logic using Supabase client in useEffect
+- Impact: Enables efficient data retrieval for dashboard components
+- Related: L010
+
+L011:
+
+- Context: /app/patients/[id]/page.tsx and /app/(dashboard)/patients/[id]/page.tsx
+- Insight: Next.js doesn't allow two pages with the same route
+- Application: Remove duplicate pages and ensure consistent routing structure
+- Impact: Prevents routing conflicts and maintains a clear project structure
+- Related: None

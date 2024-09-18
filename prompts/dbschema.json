@@ -1,0 +1,402 @@
+[
+    {
+      "table_name": "Event_Categories",
+      "column_name": "id",
+      "data_type": "bigint"
+    },
+    {
+      "table_name": "Event_Categories",
+      "column_name": "category",
+      "data_type": "text"
+    },
+    {
+      "table_name": "app_logins",
+      "column_name": "id",
+      "data_type": "bigint"
+    },
+    {
+      "table_name": "app_logins",
+      "column_name": "user",
+      "data_type": "bigint"
+    },
+    {
+      "table_name": "app_logins",
+      "column_name": "timestamp",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "patient_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "doctor_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "date",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "type",
+      "data_type": "text"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "location",
+      "data_type": "text"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "notes",
+      "data_type": "text"
+    },
+    {
+      "table_name": "appointments",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "id",
+      "data_type": "bigint"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "last_name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "first_name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "specialization",
+      "data_type": "text"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "contact_number",
+      "data_type": "text"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "email",
+      "data_type": "text"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "address",
+      "data_type": "text"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "doctors",
+      "column_name": "assistant",
+      "data_type": "text"
+    },
+    {
+      "table_name": "family_groups",
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "family_groups",
+      "column_name": "name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "family_groups",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "medical_files",
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "medical_files",
+      "column_name": "patient_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "medical_files",
+      "column_name": "file_name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "medical_files",
+      "column_name": "file_type",
+      "data_type": "text"
+    },
+    {
+      "table_name": "medical_files",
+      "column_name": "file_url",
+      "data_type": "text"
+    },
+    {
+      "table_name": "medical_files",
+      "column_name": "upload_date",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "medical_files",
+      "column_name": "notes",
+      "data_type": "text"
+    },
+    {
+      "table_name": "medical_files",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "notes",
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "notes",
+      "column_name": "patient_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "notes",
+      "column_name": "content",
+      "data_type": "text"
+    },
+    {
+      "table_name": "notes",
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "notes",
+      "column_name": "updated_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "notes",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "patient_family_group",
+      "column_name": "patient_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "patient_family_group",
+      "column_name": "family_group_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "patient_family_group",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "patients",
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "patients",
+      "column_name": "name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "patients",
+      "column_name": "date_of_birth",
+      "data_type": "date"
+    },
+    {
+      "table_name": "patients",
+      "column_name": "gender",
+      "data_type": "text"
+    },
+    {
+      "table_name": "patients",
+      "column_name": "contact_number",
+      "data_type": "text"
+    },
+    {
+      "table_name": "patients",
+      "column_name": "address",
+      "data_type": "text"
+    },
+    {
+      "table_name": "patients",
+      "column_name": "medical_history",
+      "data_type": "text"
+    },
+    {
+      "table_name": "patients",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "patient_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "medication",
+      "data_type": "text"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "dosage",
+      "data_type": "text"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "frequency",
+      "data_type": "text"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "start_date",
+      "data_type": "date"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "end_date",
+      "data_type": "date"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "next_dose",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "notes",
+      "data_type": "text"
+    },
+    {
+      "table_name": "prescriptions",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "user_family_group",
+      "column_name": "family_group_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "user_family_group",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "users",
+      "column_name": "email",
+      "data_type": "text"
+    },
+    {
+      "table_name": "users",
+      "column_name": "username",
+      "data_type": "text"
+    },
+    {
+      "table_name": "users",
+      "column_name": "clerk_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "users",
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "table_name": "users",
+      "column_name": "first_name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "users",
+      "column_name": "last_name",
+      "data_type": "text"
+    },
+    {
+      "table_name": "users",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "patient_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "date_time",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "blood_pressure",
+      "data_type": "text"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "heart_rate",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "temperature",
+      "data_type": "numeric"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "respiratory_rate",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "oxygen_saturation",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "notes",
+      "data_type": "text"
+    },
+    {
+      "table_name": "vitals",
+      "column_name": "user_id",
+      "data_type": "text"
+    }
+  ]

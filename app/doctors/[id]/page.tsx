@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSupabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Doctor } from '@/types'
 
 interface Doctor {
   id: number;

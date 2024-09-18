@@ -1,5 +1,5 @@
-import { DoctorsContent } from '@/app/components/doctors/DoctorsContent'
+import { DoctorList } from '@/components/doctors/DoctorList'
 
 export default function DoctorsPage() {
-  return <DoctorsContent />
+  return <DoctorList />
 }

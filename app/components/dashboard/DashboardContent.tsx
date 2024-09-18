@@ -1,67 +1,56 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import QuickActions from '@/app/components/dashboard/QuickActions'
-import UpcomingAppointments from '@/app/components/dashboard/UpcomingAppointments'
-import PrescriptionReminders from '@/app/components/dashboard/PrescriptionReminders'
-import { useSupabase } from '@/app/lib/supabase'
+import QuickActions from './QuickActions'
+import UpcomingAppointments from './UpcomingAppointments'
+import PrescriptionReminders from './PrescriptionReminders'
+import { useSupabase } from '@/hooks/useSupabase'  // Change this line
+import { Appointment, Prescription } from '@/types'
 
 export default function DashboardContent() {
   const { supabase } = useSupabase()
-  const [appointments, setAppointments] = useState([])
-  const [prescriptions, setPrescriptions] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
 
   useEffect(() => {
-    async function fetchData() {
-      if (!supabase) return;
+    async function fetchDashboardData() {
+      if (!supabase) return
 
-      setIsLoading(true);
       try {
-        // Fetch appointments
         const { data: appointmentsData, error: appointmentsError } = await supabase
           .from('appointments')
           .select('*')
           .order('date', { ascending: true })
           .limit(5)
 
-        if (appointmentsError) {
-          console.error('Error fetching appointments:', appointmentsError)
-        } else {
-          setAppointments(appointmentsData)
-        }
+        if (appointmentsError) throw appointmentsError
+        setAppointments(appointmentsData)
 
-        // Fetch prescriptions
         const { data: prescriptionsData, error: prescriptionsError } = await supabase
           .from('prescriptions')
           .select('*')
           .order('next_dose', { ascending: true })
           .limit(5)
 
-        if (prescriptionsError) {
-          console.error('Error fetching prescriptions:', prescriptionsError)
-        } else {
-          setPrescriptions(prescriptionsData)
-        }
+        if (prescriptionsError) throw prescriptionsError
+        setPrescriptions(prescriptionsData)
+
       } catch (error) {
-        console.error('Error fetching data:', error)
-      } finally {
-        setIsLoading(false)
+        console.error('Error fetching dashboard data:', error)
       }
     }
 
-    fetchData()
+    fetchDashboardData()
   }, [supabase])
-
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
 
   return (
     <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Dashboard</h1>
       <QuickActions />
-      <UpcomingAppointments appointments={appointments} />
-      <PrescriptionReminders prescriptions={prescriptions} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <UpcomingAppointments appointments={appointments} />
+        <PrescriptionReminders prescriptions={prescriptions} />
+      </div>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Patient } from '@/types'
 
 interface Patient {
   id: number;

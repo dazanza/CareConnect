@@ -1,12 +1,15 @@
 import Link from 'next/link'
+import { Button } from "@/components/ui/button"
 
 export default function QuickActions() {
   return (
     <div className="grid grid-cols-2 gap-4">
-      <Link href="/patients/add" className="bg-blue-500 text-white p-4 rounded text-center">
-        Add Patient
+      <Link href="/patients/add">
+        <Button className="w-full">Add Patient</Button>
       </Link>
-      {/* Add other quick actions here */}
+      <Link href="/appointments/add">
+        <Button className="w-full">Schedule Appointment</Button>
+      </Link>
     </div>
   )
 }

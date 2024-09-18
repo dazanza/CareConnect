@@ -1,4 +1,4 @@
-import AddPatientForm from '@/app/components/patients/AddPatientForm'
+import AddPatientForm from '@/app/components/AddPatientForm'
 import Link from 'next/link'
 
 export default function AddPatientPage() {
