@@ -6,9 +6,11 @@ import { useParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Patient } from '@/types'
+import { Doctor } from '@/types'
+// Remove this import: import { Patient } from '@/types'
 
-interface Patient {
+// Rename this interface to avoid conflict
+interface PatientDetails {
   id: number;
   name: string;
   date_of_birth: string;
@@ -18,17 +20,10 @@ interface Patient {
   medical_history: string;
 }
 
-interface Doctor {
-  id: number;
-  name: string;
-  specialty: string;
-  image_url: string;
-}
-
 export default function PatientDetailsPage() {
   const { id } = useParams()
   const { supabase } = useSupabase()
-  const [patient, setPatient] = useState<Patient | null>(null)
+  const [patient, setPatient] = useState<PatientDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [doctors, setDoctors] = useState<Doctor[]>([])
 

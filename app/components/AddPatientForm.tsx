@@ -1,11 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { useSupabase } from '@/app/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@clerk/nextjs'
+import { useSupabase } from '@/app/lib/supabase'
 
-export default function AddPatientForm() {
+interface AddPatientFormProps {
+  onSuccess?: () => void
+}
+
+export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
+  const { supabase } = useSupabase()
   const [formData, setFormData] = useState({
     name: '',
     date_of_birth: '',
@@ -15,9 +19,8 @@ export default function AddPatientForm() {
     medical_history: ''
   })
   const [isLoading, setIsLoading] = useState(false)
-  const { supabase } = useSupabase()
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const { userId } = useAuth()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -26,28 +29,30 @@ export default function AddPatientForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supabase || !userId) return
-
     setIsLoading(true)
+    setError(null)
     try {
-      const patientData = {
-        ...formData,
-        user_id: userId
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
       }
 
       const { data, error } = await supabase
         .from('patients')
-        .insert(patientData)
+        .insert(formData)
+        .select()
 
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
-      }
+      if (error) throw error
 
       console.log('Patient added successfully:', data)
-      router.push('/patients')
+
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        router.push('/patients')
+      }
     } catch (error) {
       console.error('Error adding patient:', error)
+      setError(error instanceof Error ? error.message : 'An unknown error occurred')
     } finally {
       setIsLoading(false)
     }
@@ -55,6 +60,12 @@ export default function AddPatientForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
       <div>
         <label htmlFor="name" className="block mb-1">Name</label>
         <input
