@@ -11,15 +11,9 @@ export interface Patient {
 
 export interface Doctor {
   id: number;
-  created_at: string;
-  last_name: string;
-  first_name: string;
-  specialization: string;
-  contact_number: string;
-  email: string;
-  address: string;
-  user_id: string;
-  assistant: string | null;
+  name: string;
+  image_url?: string;
+  specialty: string;
 }
 
 export interface Appointment {

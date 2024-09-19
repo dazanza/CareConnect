@@ -2,21 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import { useSupabase } from '@/app/lib/supabase'
-import PatientList from '@/app/components/patients/PatientList'
-import PatientSearch from '@/app/components/patients/PatientSearch'
+import { Input } from "@/components/ui/input"
+import Link from 'next/link'
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import AddPatientForm from '@/app/components/AddPatientForm'
 
-export default function PatientsContent() {
-  const { supabase, isLoading: isSupabaseLoading } = useSupabase()
+interface PatientsContentProps {
+  onAddPatient?: () => void;
+}
+
+export default function PatientsContent({ onAddPatient }: PatientsContentProps) {
+  const { supabase } = useSupabase()
   const [patients, setPatients] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [isAddPatientOpen, setIsAddPatientOpen] = useState(false)
 
   const fetchPatients = async () => {
-    if (isSupabaseLoading || !supabase) return
+    if (!supabase) return
 
     setIsLoading(true)
     try {
@@ -26,7 +27,7 @@ export default function PatientsContent() {
         query = query.ilike('name', `%${searchTerm}%`)
       }
       
-      const { data, error } = await query.order('name')
+      const { data, error } = await query.order('name').limit(10)
 
       if (error) {
         console.error('Error fetching patients:', error)
@@ -41,53 +42,41 @@ export default function PatientsContent() {
   }
 
   useEffect(() => {
-    if (!isSupabaseLoading) {
-      fetchPatients()
-    }
-  }, [supabase, searchTerm, isSupabaseLoading])
-
-  const handleAddPatientSuccess = () => {
-    setIsAddPatientOpen(false)
     fetchPatients()
-  }
+  }, [supabase, searchTerm])
 
-  if (isSupabaseLoading || isLoading) {
-    return <div>Loading patients...</div>
+  if (isLoading) {
+    return <div className="p-4">Loading patients...</div>
   }
 
   return (
-    <div>
-      <PatientSearch onSearch={setSearchTerm} />
+    <div className="p-4">
+      <Input
+        type="text"
+        placeholder="Search patients..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="mb-4"
+      />
       {patients.length === 0 ? (
         <div className="text-center mt-8">
-          <p className="mb-4">No patients found. Would you like to add a new patient?</p>
-          <Dialog open={isAddPatientOpen} onOpenChange={setIsAddPatientOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-500 text-white p-2 rounded">Add New Patient</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New Patient</DialogTitle>
-              </DialogHeader>
-              <AddPatientForm onSuccess={handleAddPatientSuccess} />
-            </DialogContent>
-          </Dialog>
+          <p className="mb-4">No patients found.</p>
         </div>
       ) : (
-        <>
-          <PatientList patients={patients} />
-          <Dialog open={isAddPatientOpen} onOpenChange={setIsAddPatientOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-green-500 text-white p-2 rounded mt-4">Add New Patient</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New Patient</DialogTitle>
-              </DialogHeader>
-              <AddPatientForm onSuccess={handleAddPatientSuccess} />
-            </DialogContent>
-          </Dialog>
-        </>
+        <ul className="space-y-2">
+          {patients.map((patient: any) => (
+            <li key={patient.id}>
+              <Link href={`/patients/${patient.id}`}>
+                <Button variant="ghost" className="w-full justify-start">
+                  {patient.name}
+                </Button>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {onAddPatient && (
+        <Button onClick={onAddPatient} className="w-full mb-4">Add New Patient</Button>
       )}
     </div>
   )

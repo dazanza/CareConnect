@@ -97,3 +97,35 @@ L011:
 - Application: Remove duplicate pages and ensure consistent routing structure
 - Impact: Prevents routing conflicts and maintains a clear project structure
 - Related: None
+
+L012:
+
+- Context: /app/layout.tsx and /app/components/AddPatientForm.tsx
+- Insight: Integration of react-hot-toast for notifications
+- Application: Use Toaster component in layout and toast function for success/error notifications
+- Impact: Provides consistent and easy-to-use notification system across the application
+- Related: None
+
+L013:
+
+- Context: Project structure and UI components
+- Insight: Removal of QuickActions from dashboard and patient pages
+- Application: Keep quick action buttons only in the Sidebar for consistency
+- Impact: Streamlines user interface and improves navigation consistency
+- Related: None
+
+L014:
+
+- Context: /app/components/patients/PatientsContent.tsx
+- Insight: Addition of onAddPatient prop for flexibility
+- Application: Allow parent components to control the "Add Patient" functionality
+- Impact: Improves component reusability and control flow
+- Related: None
+
+L015:
+
+- Context: /components/ui/use-toast.ts and /hooks/use-toast.ts
+- Insight: Unnecessary toast-related files when using react-hot-toast
+- Application: Remove these files when switching to react-hot-toast
+- Impact: Reduces confusion and potential conflicts in toast implementation
+- Related: L012

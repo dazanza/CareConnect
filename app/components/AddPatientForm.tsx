@@ -3,6 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/app/lib/supabase'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import toast from 'react-hot-toast'
 
 interface AddPatientFormProps {
   onSuccess?: () => void
@@ -10,22 +15,15 @@ interface AddPatientFormProps {
 
 export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   const { supabase } = useSupabase()
-  const [formData, setFormData] = useState({
-    name: '',
-    date_of_birth: '',
-    gender: '',
-    contact_number: '',
-    address: '',
-    medical_history: ''
-  })
+  const [name, setName] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [gender, setGender] = useState('')
+  const [contactNumber, setContactNumber] = useState('')
+  const [address, setAddress] = useState('')
+  const [medicalHistory, setMedicalHistory] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,12 +36,21 @@ export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
 
       const { data, error } = await supabase
         .from('patients')
-        .insert(formData)
+        .insert({
+          name,
+          date_of_birth: dateOfBirth,
+          gender,
+          contact_number: contactNumber,
+          address,
+          medical_history: medicalHistory || null // Allow null if empty
+        })
         .select()
 
       if (error) throw error
 
       console.log('Patient added successfully:', data)
+
+      toast.success("Patient added successfully")
 
       if (onSuccess) {
         onSuccess()
@@ -53,101 +60,81 @@ export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
     } catch (error) {
       console.error('Error adding patient:', error)
       setError(error instanceof Error ? error.message : 'An unknown error occurred')
+      toast.error("Failed to add patient. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
+    <form onSubmit={handleSubmit}>
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </div>
-      )}
-      <div>
-        <label htmlFor="name" className="block mb-1">Name</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
+        <div>
+          <Label htmlFor="dateOfBirth">Date of Birth</Label>
+          <Input
+            id="dateOfBirth"
+            type="date"
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="gender">Gender</Label>
+          <select
+            id="gender"
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            required
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <Label htmlFor="contactNumber">Contact Number</Label>
+          <Input
+            id="contactNumber"
+            value={contactNumber}
+            onChange={(e) => setContactNumber(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="address">Address</Label>
+          <Input
+            id="address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="medicalHistory">Medical History (Optional)</Label>
+          <Textarea
+            id="medicalHistory"
+            value={medicalHistory}
+            onChange={(e) => setMedicalHistory(e.target.value)}
+            rows={4}
+          />
+        </div>
+        {error && <p className="text-red-500">{error}</p>}
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? 'Adding...' : 'Add Patient'}
+        </Button>
       </div>
-      <div>
-        <label htmlFor="date_of_birth" className="block mb-1">Date of Birth</label>
-        <input
-          type="date"
-          id="date_of_birth"
-          name="date_of_birth"
-          value={formData.date_of_birth}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="gender" className="block mb-1">Gender</label>
-        <select
-          id="gender"
-          name="gender"
-          value={formData.gender}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        >
-          <option value="">Select gender</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      <div>
-        <label htmlFor="contact_number" className="block mb-1">Contact Number</label>
-        <input
-          type="tel"
-          id="contact_number"
-          name="contact_number"
-          value={formData.contact_number}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="address" className="block mb-1">Address</label>
-        <input
-          type="text"
-          id="address"
-          name="address"
-          value={formData.address}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="medical_history" className="block mb-1">Medical History</label>
-        <textarea
-          id="medical_history"
-          name="medical_history"
-          value={formData.medical_history}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          rows={4}
-        ></textarea>
-      </div>
-      <button 
-        type="submit" 
-        className="bg-green-500 text-white p-2 rounded w-full"
-        disabled={isLoading}
-      >
-        {isLoading ? 'Adding...' : 'Add Patient'}
-      </button>
     </form>
   )
 }

@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import QuickActions from './QuickActions'
 import UpcomingAppointments from './UpcomingAppointments'
 import PrescriptionReminders from './PrescriptionReminders'
-import { useSupabase } from '@/hooks/useSupabase'  // Change this line
+import { useSupabase } from '@/hooks/useSupabase'
 import { Appointment, Prescription } from '@/types'
 
 export default function DashboardContent() {
@@ -46,7 +45,6 @@ export default function DashboardContent() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Dashboard</h1>
-      <QuickActions />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <UpcomingAppointments appointments={appointments} />
         <PrescriptionReminders prescriptions={prescriptions} />
