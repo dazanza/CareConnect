@@ -7,7 +7,9 @@ import { Home, Users, Stethoscope, Calendar, PlusCircle, UserPlus, FileText } fr
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import PatientsContent from '@/app/components/patients/PatientsContent'
+import DoctorsContent from '@/app/components/doctors/DoctorsContent'
 import AddPatientForm from '@/app/components/AddPatientForm'
+import AddDoctorForm from '@/app/components/AddDoctorForm'
 
 const navItems = [
   { name: 'Dashboard', icon: Home, href: '/dashboard' },
@@ -81,8 +83,7 @@ export default function Sidebar() {
                 <DialogHeader>
                   <DialogTitle>Add New Doctor</DialogTitle>
                 </DialogHeader>
-                {/* Add Doctor form component here */}
-                <p>Add Doctor form to be implemented</p>
+                <AddDoctorForm onSuccess={() => setIsAddDoctorOpen(false)} />
               </DialogContent>
             </Dialog>
 
@@ -111,6 +112,15 @@ export default function Sidebar() {
           onMouseLeave={handleMouseLeave}
         >
           <PatientsContent onAddPatient={() => setIsAddPatientOpen(true)} />
+        </div>
+      )}
+      {activePanel === 'Doctors' && (
+        <div 
+          className="w-64 border-r bg-white shadow-lg"
+          onMouseEnter={() => handleMouseEnter('Doctors')}
+          onMouseLeave={handleMouseLeave}
+        >
+          <DoctorsContent onAddDoctor={() => setIsAddDoctorOpen(true)} />
         </div>
       )}
     </div>
