@@ -14,10 +14,16 @@ export default function UpcomingAppointments({ appointments }: UpcomingAppointme
       </CardHeader>
       <CardContent>
         {appointments.length > 0 ? (
-          <ul>
+          <ul className="space-y-4">
             {appointments.map((appointment) => (
-              <li key={appointment.id} className="mb-2">
-                {format(new Date(appointment.date), 'MMMM d, yyyy h:mm a')} - {appointment.type}
+              <li key={appointment.id} className="border-b pb-2">
+                <p className="font-semibold">
+                  {format(new Date(appointment.date), 'MMMM d, yyyy h:mm a')}
+                </p>
+                <p>Patient: {appointment.patients?.name}</p>
+                <p>Doctor: Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name}</p>
+                <p>Type: {appointment.type}</p>
+                <p>Location: {appointment.location}</p>
               </li>
             ))}
           </ul>

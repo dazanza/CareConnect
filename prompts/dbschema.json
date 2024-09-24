@@ -200,6 +200,31 @@
       "data_type": "text"
     },
     {
+      "table_name": "patient_doctors",
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "patient_doctors",
+      "column_name": "patient_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "patient_doctors",
+      "column_name": "doctor_id",
+      "data_type": "integer"
+    },
+    {
+      "table_name": "patient_doctors",
+      "column_name": "user_id",
+      "data_type": "text"
+    },
+    {
+      "table_name": "patient_doctors",
+      "column_name": "created_at",
+      "data_type": "timestamp without time zone"
+    },
+    {
       "table_name": "patient_family_group",
       "column_name": "patient_id",
       "data_type": "integer"

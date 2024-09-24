@@ -1,0 +1,1 @@
+@https://timeapi.io/api/time/current/zone?timeZone=UTC

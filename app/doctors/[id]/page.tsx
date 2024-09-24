@@ -6,6 +6,10 @@ import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Doctor } from '@/types'
 import Sidebar from '@/app/components/layout/Sidebar'
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import AddAppointmentForm from '@/app/components/AddAppointmentForm'
+import { Calendar } from 'lucide-react'
 
 interface Doctor {
   id: number;
@@ -23,6 +27,7 @@ export default function DoctorDetailsPage() {
   const { supabase } = useSupabase()
   const [doctor, setDoctor] = useState<Doctor | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false)
 
   useEffect(() => {
     async function fetchDoctor() {
@@ -52,65 +57,93 @@ export default function DoctorDetailsPage() {
   if (!doctor) return <div>Doctor not found</div>
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 p-8">
-        <div className="space-y-4">
-          <h1 className="text-3xl font-bold">Dr. {doctor.first_name} {doctor.last_name}</h1>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Doctor Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="space-y-2">
-                <div>
-                  <dt className="font-medium">Specialization</dt>
-                  <dd>{doctor.specialization}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium">Contact</dt>
-                  <dd>{doctor.contact_number}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium">Email</dt>
-                  <dd>{doctor.email || 'N/A'}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium">Address</dt>
-                  <dd>{doctor.address}</dd>
-                </div>
-                {doctor.assistant && (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Doctor Details</h1>
+        <Dialog open={isAddAppointmentOpen} onOpenChange={setIsAddAppointmentOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Calendar className="mr-2 h-4 w-4" />
+              Add Appointment
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New Appointment</DialogTitle>
+            </DialogHeader>
+            {doctor && (
+              <AddAppointmentForm 
+                doctorId={doctor.id} 
+                onSuccess={() => {
+                  setIsAddAppointmentOpen(false)
+                  // Optionally, refresh the appointments list here
+                }} 
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 p-8">
+          <div className="space-y-4">
+            <h1 className="text-3xl font-bold">Dr. {doctor.first_name} {doctor.last_name}</h1>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Doctor Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="space-y-2">
                   <div>
-                    <dt className="font-medium">Assistant</dt>
-                    <dd>{doctor.assistant}</dd>
+                    <dt className="font-medium">Specialization</dt>
+                    <dd>{doctor.specialization}</dd>
                   </div>
-                )}
-              </dl>
-            </CardContent>
-          </Card>
+                  <div>
+                    <dt className="font-medium">Contact</dt>
+                    <dd>{doctor.contact_number}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium">Email</dt>
+                    <dd>{doctor.email || 'N/A'}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium">Address</dt>
+                    <dd>{doctor.address}</dd>
+                  </div>
+                  {doctor.assistant && (
+                    <div>
+                      <dt className="font-medium">Assistant</dt>
+                      <dd>{doctor.assistant}</dd>
+                    </div>
+                  )}
+                </dl>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Upcoming Appointments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Add upcoming appointments list here */}
-              <p>Upcoming appointments to be added</p>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Appointments</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Add upcoming appointments list here */}
+                <p>Upcoming appointments to be added</p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Patients</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Add patients list here */}
-              <p>Patients list to be added</p>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Patients</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Add patients list here */}
+                <p>Patients list to be added</p>
+              </CardContent>
+            </Card>
 
-          {/* Add more cards for other doctor-related information as needed */}
+            {/* Add more cards for other doctor-related information as needed */}
+          </div>
         </div>
       </div>
     </div>

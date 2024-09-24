@@ -32,6 +32,13 @@ E002:
 - Prevention: Verify `"type": "module"` in '/package.json' or '.mjs' extension
 - Related: L002
 
+E0005
+- Context: /app/api/patient-doctors/route.ts
+- Error: Incorrect type for `getAuth` function parameter
+- Correction: Use `NextRequest` from 'next/server' instead of standard `Request`
+- Prevention: Import and use `NextRequest` type for API route handlers
+- Related: L0019
+
 ## Learnings
 
 L007:
@@ -129,3 +136,66 @@ L015:
 - Application: Remove these files when switching to react-hot-toast
 - Impact: Reduces confusion and potential conflicts in toast implementation
 - Related: L012
+
+L016:
+
+- Context: /app/doctors/[id]/page.tsx
+- Insight: Duplicate Doctor interface declaration causing linter errors
+- Application: Remove local Doctor interface and use the one imported from '@/types'
+- Impact: Resolves linter errors and maintains consistent type definitions across the application
+- Related: None
+
+L017:
+
+- Context: Clerk authentication in client-side components
+- Insight: Sign-out process causing server-side errors in client context
+- Application: Implement client-side sign-out handling using Clerk's useClerk hook
+- Impact: Prevents errors during sign-out and improves user experience
+- Related: None
+
+L018:
+
+- Context: /app/components/layout/Header.tsx
+- Insight: Need for custom sign-out handling to avoid server-side errors
+- Application: Use Clerk's useClerk hook for sign-out functionality
+- Impact: Resolves sign-out errors and provides smoother authentication flow
+- Related: L017
+
+L0019
+- Context: Authentication in Next.js API routes with Clerk
+- Insight: Clerk's `getAuth` function requires a `NextRequest` object in API routes
+- Application: Import `NextRequest` from 'next/server' and use it as the parameter type for API route handlers
+- Impact: Ensures proper authentication handling in Next.js API routes when using Clerk
+- Related: E0005
+
+L020:
+
+- Context: Layout structure and Sidebar component
+- Insight: The Sidebar component is causing layout issues when used in multiple layouts
+- Application: Refactor the layout structure to use a single, consistent layout for authenticated pages
+- Impact: Improves UI consistency and prevents layout conflicts
+- Related: None
+
+L021:
+
+- Context: /app/dashboard/layout.tsx and /app/layout.tsx
+- Insight: Duplicate layout components causing potential conflicts
+- Application: Consolidate layouts into a single, hierarchical structure
+- Impact: Reduces redundancy and improves maintainability of the layout system
+- Related: L020
+
+L022:
+
+- Context: /app/components/layout/Sidebar.tsx
+- Insight: Sliding panel functionality may be interfering with overall layout
+- Application: Consider alternative UI patterns for displaying additional content, such as modals or expandable sections
+- Impact: Improves user experience and reduces layout complexity
+- Related: L020
+
+L023:
+
+- Context: Authentication flow in layout components
+- Insight: Authentication components are duplicated across different layouts
+- Application: Centralize authentication handling in a single, high-level component
+- Impact: Improves consistency of authentication UI and reduces code duplication
+- Related: L021

@@ -31,6 +31,13 @@ export interface Appointment {
   location: string;
   notes: string;
   user_id: string;
+  patients?: {
+    name: string;
+  };
+  doctors?: {
+    first_name: string;
+    last_name: string;
+  };
 }
 
 export interface Prescription {
@@ -57,4 +64,16 @@ export interface Vital {
   oxygen_saturation: number;
   notes: string;
   user_id: string;
+}
+
+export interface PatientDetails extends Patient {
+  // Add any additional fields specific to the patient details view
+}
+
+export interface PatientDoctor {
+  id: number;
+  patient_id: number;
+  doctor_id: number;
+  user_id: string;
+  created_at: string;
 }

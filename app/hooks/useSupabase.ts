@@ -25,10 +25,10 @@ export function useSupabase() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
           global: {
-            fetch: async (url, options = {}) => {
+            fetch: async (url, options: RequestInit = {}) => {
               const clerkToken = await getToken({ template: 'supabase' });
               
-              const headers = new Headers(options?.headers);
+              const headers = new Headers(options.headers);
               headers.set('Authorization', `Bearer ${clerkToken}`);
               
               return fetch(url, {

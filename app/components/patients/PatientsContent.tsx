@@ -5,6 +5,7 @@ import { useSupabase } from '@/app/lib/supabase'
 import { Input } from "@/components/ui/input"
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
+import { Calendar } from 'lucide-react'
 
 interface PatientsContentProps {
   onAddPatient?: () => void;

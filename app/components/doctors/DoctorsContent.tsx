@@ -70,7 +70,7 @@ export default function DoctorsContent({ onAddDoctor }: DoctorsContentProps) {
             <li key={doctor.id}>
               <Link href={`/doctors/${doctor.id}`}>
                 <Button variant="ghost" className="w-full justify-start">
-                  Dr. {doctor.first_name} {doctor.last_name} - {doctor.specialization}
+                  Dr. {doctor.first_name} {doctor.last_name}
                 </Button>
               </Link>
             </li>
