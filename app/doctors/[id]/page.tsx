@@ -4,53 +4,67 @@ import { useEffect, useState } from 'react'
 import { useSupabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Doctor } from '@/types'
+import { Doctor, Patient } from '@/types'
 import Sidebar from '@/app/components/layout/Sidebar'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import AddAppointmentForm from '@/app/components/AddAppointmentForm'
 import { Calendar } from 'lucide-react'
-
-interface Doctor {
-  id: number;
-  first_name: string;
-  last_name: string;
-  specialization: string;
-  contact_number: string;
-  email: string;
-  address: string;
-  assistant?: string;
-}
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Link from 'next/link'
 
 export default function DoctorDetailsPage() {
   const { id } = useParams()
   const { supabase } = useSupabase()
   const [doctor, setDoctor] = useState<Doctor | null>(null)
+  const [assignedPatients, setAssignedPatients] = useState<Patient[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false)
 
   useEffect(() => {
-    async function fetchDoctor() {
+    async function fetchData() {
       if (!supabase) return
 
       setIsLoading(true)
       try {
-        const { data, error } = await supabase
+        // Fetch doctor details
+        const { data: doctorData, error: doctorError } = await supabase
           .from('doctors')
           .select('*')
           .eq('id', id)
           .single()
 
-        if (error) throw error
-        setDoctor(data)
+        if (doctorError) throw doctorError
+        setDoctor(doctorData)
+
+        // Fetch assigned patients
+        const { data: patientDoctorsData, error: patientDoctorsError } = await supabase
+          .from('patient_doctors')
+          .select('patient_id')
+          .eq('doctor_id', id)
+
+        if (patientDoctorsError) throw patientDoctorsError
+
+        const patientIds = patientDoctorsData.map(pd => pd.patient_id)
+
+        if (patientIds.length > 0) {
+          const { data: patientsData, error: patientsError } = await supabase
+            .from('patients')
+            .select('*')
+            .in('id', patientIds)
+
+          if (patientsError) throw patientsError
+          setAssignedPatients(patientsData)
+        }
+
       } catch (error) {
-        console.error('Error fetching doctor data:', error)
+        console.error('Error fetching data:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchDoctor()
+    fetchData()
   }, [supabase, id])
 
   if (isLoading) return <div>Loading...</div>
@@ -134,11 +148,28 @@ export default function DoctorDetailsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Patients</CardTitle>
+                <CardTitle>Assigned Patients</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Add patients list here */}
-                <p>Patients list to be added</p>
+                {assignedPatients.length > 0 ? (
+                  <ul className="space-y-4">
+                    {assignedPatients.map((patient) => (
+                      <li key={patient.id} className="flex items-center space-x-4">
+                        <Avatar>
+                          <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <Link href={`/patients/${patient.id}`} className="font-medium hover:underline">
+                            {patient.name}
+                          </Link>
+                          <p className="text-sm text-gray-500">{patient.contact_number}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No patients assigned to this doctor.</p>
+                )}
               </CardContent>
             </Card>
 
