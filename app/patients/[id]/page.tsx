@@ -89,7 +89,10 @@ export default function PatientDetailsPage() {
         headers: { 
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ patientId: id, doctorId: selectedDoctor }),
+        body: JSON.stringify({ 
+          patientId: parseInt(id as string, 10), 
+          doctorId: parseInt(selectedDoctor, 10) 
+        }),
       })
 
       if (!response.ok) {
@@ -102,9 +105,14 @@ export default function PatientDetailsPage() {
 
       const newAssignment: PatientDoctor = await response.json()
 
-      const newDoctor = doctors.find(d => d.id.toString() === newAssignment.doctor_id.toString())
+      const newDoctor = doctors.find(d => d.id === newAssignment.doctor_id)
       if (newDoctor) {
-        setAssignedDoctors([...assignedDoctors, newDoctor])
+        setAssignedDoctors(prevDoctors => {
+          if (!prevDoctors.some(d => d.id === newDoctor.id)) {
+            return [...prevDoctors, newDoctor]
+          }
+          return prevDoctors
+        })
       }
 
       toast.success('Doctor assigned successfully')
