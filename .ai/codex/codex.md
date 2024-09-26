@@ -199,3 +199,51 @@ L023:
 - Application: Centralize authentication handling in a single, high-level component
 - Impact: Improves consistency of authentication UI and reduces code duplication
 - Related: L021
+
+L024:
+
+- Context: /app/components/AddLogForm.tsx
+- Insight: Implementation of a reusable form component for adding logs
+- Application: Use this component in various parts of the application where log entries need to be added
+- Impact: Improves consistency in log entry creation and reduces code duplication
+- Related: L013
+
+L025:
+
+- Context: /app/lib/dataFetching.ts
+- Insight: Centralized function for fetching appointments with various filtering options
+- Application: Use this function across the application for consistent appointment data retrieval
+- Impact: Improves code maintainability and ensures consistent data fetching logic
+- Related: L009, L010
+
+L026:
+
+- Context: /app/components/dashboard/UpcomingAppointments.tsx
+- Insight: Reusable component for displaying upcoming appointments
+- Application: Use this component in dashboard and other relevant pages to show appointment information
+- Impact: Ensures consistent display of appointment data across the application
+- Related: L025
+
+L027:
+
+- Context: /app/patients/[id]/page.tsx and /app/doctors/[id]/page.tsx
+- Insight: Similar structure for displaying patient and doctor details, including assigned relationships and appointments
+- Application: Consider creating shared components for common elements like appointment lists and assigned doctors/patients
+- Impact: Reduces code duplication and improves maintainability
+- Related: L025, L026
+
+L028:
+
+- Context: /types/index.ts
+- Insight: Comprehensive type definitions for various entities in the application
+- Application: Use these types consistently across the application to ensure type safety
+- Impact: Improves code quality, reduces runtime errors, and enhances developer experience
+- Related: None
+
+L029:
+
+- Context: Overall application structure
+- Insight: Consistent use of Shadcn UI components and Tailwind CSS for styling
+- Application: Continue using these tools for new components and pages to maintain design consistency
+- Impact: Ensures a cohesive user interface and speeds up development process
+- Related: None

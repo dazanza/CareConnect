@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import toast from 'react-hot-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import AddAppointmentForm from '@/app/components/AddAppointmentForm'
-import { Calendar } from 'lucide-react'
 import { fetchAppointments } from '@/app/lib/dataFetching'
+import Link from 'next/link'
+import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon } from 'lucide-react'
 
 export default function PatientDetailsPage() {
   const { id } = useParams()
@@ -142,7 +143,7 @@ export default function PatientDetailsPage() {
           <Dialog open={isAddAppointmentOpen} onOpenChange={setIsAddAppointmentOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Calendar className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-2 h-4 w-4" />
                 Add Appointment
               </Button>
             </DialogTrigger>
@@ -203,12 +204,32 @@ export default function PatientDetailsPage() {
                 <ul className="space-y-4">
                   {appointments.map((appointment) => (
                     <li key={appointment.id} className="border-b pb-2">
-                      <p className="font-semibold">
-                        {format(new Date(appointment.date), 'MMMM d, yyyy h:mm a')}
-                      </p>
-                      <p>Doctor: Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name}</p>
-                      <p>Type: {appointment.type}</p>
-                      <p>Location: {appointment.location}</p>
+                      <Link href={`/appointments/${appointment.id}`} className="block hover:bg-gray-50 p-2 rounded">
+                        <div className="flex items-center space-x-2">
+                          <CalendarIcon className="w-4 h-4" />
+                          <p className="font-semibold">
+                            {format(new Date(appointment.date), 'MMMM d, yyyy')}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <ClockIcon className="w-4 h-4" />
+                          <p>{format(new Date(appointment.date), 'h:mm a')}</p>
+                        </div>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <MapPinIcon className="w-4 h-4" />
+                          <p>{appointment.location}</p>
+                        </div>
+                        <p className="mt-2">
+                          Doctor: {appointment.doctors?.id ? (
+                            <Link href={`/doctors/${appointment.doctors.id}`} className="text-blue-600 hover:underline">
+                              Dr. {appointment.doctors?.first_name || 'N/A'} {appointment.doctors?.last_name || ''}
+                            </Link>
+                          ) : (
+                            `Dr. ${appointment.doctors?.first_name || 'N/A'} ${appointment.doctors?.last_name || ''}`
+                          )}
+                        </p>
+                        <p>Type: {appointment.type}</p>
+                      </Link>
                     </li>
                   ))}
                 </ul>

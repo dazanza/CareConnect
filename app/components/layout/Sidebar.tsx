@@ -18,7 +18,7 @@ const navItems = [
   { name: 'Dashboard', icon: Home, href: '/dashboard' },
   { name: 'Patients', icon: Users, href: '/patients' },
   { name: 'Doctors', icon: Stethoscope, href: '/doctors' },
-  { name: 'Appointments', icon: Calendar, href: '/dashboard/appointments' },
+  { name: 'Appointments', icon: Calendar, href: '/appointments' },
   { name: 'Prescriptions', icon: PlusCircle, href: '/dashboard/prescriptions' },
 ]
 
