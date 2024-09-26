@@ -29,12 +29,13 @@ export interface Appointment {
   date: string;
   type: string;
   location: string;
-  notes: string;
-  user_id: string;
-  patients?: {
+  notes?: string;
+  patients: {
+    id: number;
     name: string;
   };
-  doctors?: {
+  doctors: {
+    id: number;
     first_name: string;
     last_name: string;
   };

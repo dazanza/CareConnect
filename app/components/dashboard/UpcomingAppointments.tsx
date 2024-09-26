@@ -20,8 +20,8 @@ export default function UpcomingAppointments({ appointments }: UpcomingAppointme
                 <p className="font-semibold">
                   {format(new Date(appointment.date), 'MMMM d, yyyy h:mm a')}
                 </p>
-                <p>Patient: {appointment.patients?.name}</p>
-                <p>Doctor: Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name}</p>
+                <p>Patient: {appointment.patients?.name || 'N/A'}</p>
+                <p>Doctor: Dr. {appointment.doctors?.first_name || 'N/A'} {appointment.doctors?.last_name || ''}</p>
                 <p>Type: {appointment.type}</p>
                 <p>Location: {appointment.location}</p>
               </li>

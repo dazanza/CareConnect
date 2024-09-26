@@ -11,6 +11,7 @@ import DoctorsContent from '@/app/components/doctors/DoctorsContent'
 import AddPatientForm from '@/app/components/AddPatientForm'
 import AddDoctorForm from '@/app/components/AddDoctorForm'
 import AddAppointmentForm from '@/app/components/AddAppointmentForm'
+import AddLogForm from '@/app/components/AddLogForm'
 
 // Define navigation items for the sidebar
 const navItems = [
@@ -96,7 +97,7 @@ export default function Sidebar() {
               </DialogContent>
             </Dialog>
 
-            {/* Add Log Dialog (placeholder) */}
+            {/* Add Log Dialog */}
             <Dialog open={isAddLogOpen} onOpenChange={setIsAddLogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full justify-start px-4 py-2 text-sm">
@@ -108,8 +109,7 @@ export default function Sidebar() {
                 <DialogHeader>
                   <DialogTitle>Add New Log</DialogTitle>
                 </DialogHeader>
-                {/* TODO: Implement Add Log form component */}
-                <p>Add Log form to be implemented</p>
+                <AddLogForm onSuccess={() => setIsAddLogOpen(false)} />
               </DialogContent>
             </Dialog>
           </div>

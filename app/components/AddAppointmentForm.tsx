@@ -13,164 +13,125 @@ import toast from 'react-hot-toast'
 import { Appointment, Doctor, Patient } from '@/types'
 import AddDoctorForm from './AddDoctorForm'
 
-// Define props interface for the AddAppointmentForm component
 interface AddAppointmentFormProps {
   onSuccess?: () => void
   patientId?: number
   doctorId?: number
 }
 
-// Main component for adding a new appointment
 export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: AddAppointmentFormProps) {
-  // Initialize Supabase client and router
   const { supabase } = useSupabase()
   const router = useRouter()
 
-  // State variables for form fields and UI control
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [type, setType] = useState('')
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
-  const [selectedPatient, setSelectedPatient] = useState<number | null>(patientId || null)
-  const [selectedDoctor, setSelectedDoctor] = useState<number | null>(doctorId || null)
+  const [selectedPatient, setSelectedPatient] = useState<string>(patientId?.toString() || '')
+  const [selectedDoctor, setSelectedDoctor] = useState<string>(doctorId?.toString() || '')
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isAddDoctorOpen, setIsAddDoctorOpen] = useState(false)
 
-  // Fetch doctors and patients data on component mount
   useEffect(() => {
-    console.log('AddAppointmentForm mounted, fetching data...')
-    console.log('Initial doctorId:', doctorId)
-    console.log('Initial patientId:', patientId)
     fetchDoctors()
-    if (!patientId) {
-      fetchPatients()
-    }
-  }, [patientId, doctorId])  // Add doctorId to the dependency array
+    fetchPatients()
+  }, [supabase])
 
-  // Set selected doctor and location when doctorId prop changes
-  useEffect(() => {
-    if (doctorId) {
-      console.log('Setting selected doctor:', doctorId)
-      setSelectedDoctor(doctorId)
-      const selectedDoctor = doctors.find(d => d.id === doctorId)
-      if (selectedDoctor) {
-        setLocation(selectedDoctor.address)
-      } else {
-        console.log('Selected doctor not found in the doctors list')
-      }
-    }
-  }, [doctorId, doctors])
-
-  // Function to fetch doctors from the database
   const fetchDoctors = async () => {
-    if (!supabase) {
-      console.error('Supabase client not initialized')
-      return
-    }
-    console.log('Fetching doctors...')
-    const { data, error } = await supabase.from('doctors').select('*')
-    if (error) {
-      console.error('Error fetching doctors:', error)
-    } else {
-      console.log('Fetched doctors:', data)
-      setDoctors(data)
+    if (!supabase) return
+
+    try {
+      console.log('Fetching doctors...')
+      const { data, error } = await supabase.from('doctors').select('*').order('last_name').limit(10)
+
+      if (error) {
+        console.error('Error fetching doctors:', error)
+      } else {
+        console.log('Fetched doctors:', data)
+        setDoctors(data)
+      }
+    } catch (error) {
+      console.error('Error in fetchDoctors:', error)
     }
   }
 
-  // Function to fetch patients from the database
   const fetchPatients = async () => {
     if (!supabase) return
-    const { data, error } = await supabase.from('patients').select('*')
-    if (error) {
+
+    try {
+      const { data, error } = await supabase.from('patients').select('*').order('name').limit(10)
+
+      if (error) {
+        console.error('Error fetching patients:', error)
+      } else {
+        setPatients(data)
+      }
+    } catch (error) {
       console.error('Error fetching patients:', error)
-    } else {
-      console.log('Fetched patients:', data)
-      setPatients(data)
     }
   }
 
-  // Handler for doctor selection change
   const handleDoctorChange = (doctorId: string) => {
-    console.log('Doctor selected:', doctorId)
     if (doctorId === 'add_new') {
       setIsAddDoctorOpen(true)
     } else {
+      setSelectedDoctor(doctorId)
       const doctor = doctors.find(d => d.id.toString() === doctorId)
-      setSelectedDoctor(Number(doctorId))
       if (doctor) {
         setLocation(doctor.address)
       }
     }
   }
 
-  // Handler for patient selection change
-  const handlePatientChange = (patientId: string) => {
-    console.log('Patient selected:', patientId)
-    setSelectedPatient(Number(patientId))
-  }
-
-  // Function to handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!supabase) return
+
     setIsLoading(true)
     setError(null)
+
     try {
-      if (!supabase) {
-        throw new Error('Supabase client not initialized')
-      }
+      // Combine date and time into a single timestamp
+      const dateTime = new Date(`${date}T${time}`)
 
-      if (!selectedPatient) {
-        throw new Error('Please select a patient')
-      }
-
-      // Prepare appointment data for insertion
-      const appointmentData: Partial<Appointment> = {
-        patient_id: selectedPatient,
-        doctor_id: selectedDoctor,
-        date: `${date}T${time}:00`,
-        type,
-        location,
-        notes,
-      }
-
-      // Insert new appointment into the database
       const { data, error } = await supabase
         .from('appointments')
-        .insert(appointmentData)
+        .insert([
+          {
+            patient_id: parseInt(selectedPatient),
+            doctor_id: parseInt(selectedDoctor),
+            date: dateTime.toISOString(), // Use the combined date and time
+            type,
+            location,
+            notes
+          }
+        ])
         .select()
 
       if (error) throw error
 
-      console.log('Appointment added successfully:', data)
-      toast.success("Appointment added successfully")
-
-      // Call onSuccess callback or redirect to appointments page
-      if (onSuccess) {
-        onSuccess()
-      } else {
-        router.push('/appointments')
-      }
+      toast.success('Appointment added successfully')
+      if (onSuccess) onSuccess()
+      router.refresh()
     } catch (error) {
       console.error('Error adding appointment:', error)
-      setError(error instanceof Error ? error.message : 'An unknown error occurred')
-      toast.error("Failed to add appointment. Please try again.")
+      setError('Failed to add appointment. Please try again.')
+      toast.error('Failed to add appointment')
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Render the form
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Patient selection dropdown */}
       {!patientId && (
         <div>
           <Label htmlFor="patient">Patient</Label>
-          <Select onValueChange={handlePatientChange} value={selectedPatient?.toString()}>
+          <Select onValueChange={setSelectedPatient} value={selectedPatient}>
             <SelectTrigger>
               <SelectValue placeholder="Select a patient" />
             </SelectTrigger>
@@ -184,30 +145,28 @@ export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: A
           </Select>
         </div>
       )}
-      {/* Doctor selection dropdown */}
-      <div>
-        <Label htmlFor="doctor">Doctor</Label>
-        <Select onValueChange={handleDoctorChange} value={selectedDoctor?.toString()}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a doctor" />
-          </SelectTrigger>
-          <SelectContent>
-            {doctors.length > 0 ? (
-              doctors.map((doctor) => (
+
+      {!doctorId && (
+        <div>
+          <Label htmlFor="doctor">Doctor</Label>
+          <Select onValueChange={handleDoctorChange} value={selectedDoctor}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a doctor" />
+            </SelectTrigger>
+            <SelectContent>
+              {doctors.map((doctor) => (
                 <SelectItem key={doctor.id} value={doctor.id.toString()}>
                   Dr. {doctor.first_name} {doctor.last_name}
                 </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="no_doctors" disabled>No doctors available</SelectItem>
-            )}
-            <SelectItem value="add_new">
-              <span className="text-blue-500">+ Add New Doctor</span>
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      {/* Date input */}
+              ))}
+              <SelectItem value="add_new">
+                <span className="text-blue-500">+ Add New Doctor</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div>
         <Label htmlFor="date">Date</Label>
         <Input
@@ -218,7 +177,7 @@ export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: A
           required
         />
       </div>
-      {/* Time input */}
+
       <div>
         <Label htmlFor="time">Time</Label>
         <Input
@@ -229,10 +188,10 @@ export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: A
           required
         />
       </div>
-      {/* Appointment type selection */}
+
       <div>
         <Label htmlFor="type">Type</Label>
-        <Select onValueChange={setType} required>
+        <Select onValueChange={setType} value={type}>
           <SelectTrigger>
             <SelectValue placeholder="Select appointment type" />
           </SelectTrigger>
@@ -244,7 +203,7 @@ export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: A
           </SelectContent>
         </Select>
       </div>
-      {/* Location input */}
+
       <div>
         <Label htmlFor="location">Location</Label>
         <Input
@@ -254,7 +213,7 @@ export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: A
           required
         />
       </div>
-      {/* Notes textarea */}
+
       <div>
         <Label htmlFor="notes">Notes</Label>
         <Textarea
@@ -263,14 +222,13 @@ export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: A
           onChange={(e) => setNotes(e.target.value)}
         />
       </div>
-      {/* Error message display */}
+
       {error && <p className="text-red-500">{error}</p>}
-      {/* Submit button */}
+
       <Button type="submit" disabled={isLoading}>
         {isLoading ? 'Adding...' : 'Add Appointment'}
       </Button>
 
-      {/* Dialog for adding a new doctor */}
       <Dialog open={isAddDoctorOpen} onOpenChange={setIsAddDoctorOpen}>
         <DialogContent>
           <DialogHeader>

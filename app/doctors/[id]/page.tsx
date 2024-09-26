@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useSupabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
+import { format } from 'date-fns' // Add this import
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Doctor, Patient } from '@/types'
+import { Doctor, Patient, Appointment } from '@/types' // Add Appointment to the import
 import Sidebar from '@/app/components/layout/Sidebar'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -12,6 +13,7 @@ import AddAppointmentForm from '@/app/components/AddAppointmentForm'
 import { Calendar } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from 'next/link'
+import { fetchAppointments } from '@/app/lib/dataFetching'
 
 export default function DoctorDetailsPage() {
   const { id } = useParams()
@@ -20,10 +22,11 @@ export default function DoctorDetailsPage() {
   const [assignedPatients, setAssignedPatients] = useState<Patient[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false)
+  const [appointments, setAppointments] = useState<Appointment[]>([])
 
   useEffect(() => {
     async function fetchData() {
-      if (!supabase) return
+      if (!supabase || !id) return
 
       setIsLoading(true)
       try {
@@ -56,6 +59,10 @@ export default function DoctorDetailsPage() {
           if (patientsError) throw patientsError
           setAssignedPatients(patientsData)
         }
+
+        // Fetch doctor's appointments
+        const appointmentsData = await fetchAppointments(supabase, { doctorId: id.toString(), upcoming: true })
+        setAppointments(appointmentsData)
 
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -141,8 +148,22 @@ export default function DoctorDetailsPage() {
                 <CardTitle>Upcoming Appointments</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Add upcoming appointments list here */}
-                <p>Upcoming appointments to be added</p>
+                {appointments.length > 0 ? (
+                  <ul className="space-y-4">
+                    {appointments.map((appointment) => (
+                      <li key={appointment.id} className="border-b pb-2">
+                        <p className="font-semibold">
+                          {format(new Date(appointment.date), 'MMMM d, yyyy h:mm a')}
+                        </p>
+                        <p>Patient: {appointment.patients?.name}</p>
+                        <p>Type: {appointment.type}</p>
+                        <p>Location: {appointment.location}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No upcoming appointments</p>
+                )}
               </CardContent>
             </Card>
 

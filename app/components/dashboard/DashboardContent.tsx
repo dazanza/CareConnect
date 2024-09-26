@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import UpcomingAppointments from './UpcomingAppointments'
-import PrescriptionReminders from './PrescriptionReminders'
-import { useSupabase } from '@/hooks/useSupabase'
+import { useSupabase } from '@/app/hooks/useSupabase'
 import { Appointment, Prescription } from '@/types'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import UpcomingAppointments from './UpcomingAppointments'
+import PrescriptionReminders from './PrescriptionReminders'
 import AddAppointmentForm from '@/app/components/AddAppointmentForm'
+import { fetchAppointments } from '@/app/lib/dataFetching'
 
 export default function DashboardContent() {
   const { supabase } = useSupabase()
@@ -20,13 +21,8 @@ export default function DashboardContent() {
       if (!supabase) return
 
       try {
-        const { data: appointmentsData, error: appointmentsError } = await supabase
-          .from('appointments')
-          .select('*, patients(name), doctors(first_name, last_name)')
-          .order('date', { ascending: true })
-          .limit(5)
-
-        if (appointmentsError) throw appointmentsError
+        const appointmentsData = await fetchAppointments(supabase, { limit: 5, upcoming: true })
+        console.log('Fetched appointments:', appointmentsData) // Add this line for debugging
         setAppointments(appointmentsData)
 
         const { data: prescriptionsData, error: prescriptionsError } = await supabase
