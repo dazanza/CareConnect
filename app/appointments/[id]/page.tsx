@@ -14,6 +14,9 @@ import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon, Pap
 import { format } from 'date-fns'
 import Link from 'next/link'
 import { v4 as uuidv4 } from 'uuid'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import AddAppointmentForm from '@/app/components/AddAppointmentForm'
+import { rescheduleAppointment, cancelAppointment } from "@/app/lib/appointments"
 
 export default function AppointmentDetailsPage() {
   const { id } = useParams()
@@ -27,6 +30,9 @@ export default function AppointmentDetailsPage() {
   const [isRecording, setIsRecording] = useState(false)
   const [medicalFiles, setMedicalFiles] = useState<{ id: number; file_name: string; file_url: string; file_type: string | null; notes: string | null }[]>([])
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const [isSetNextAppointmentOpen, setIsSetNextAppointmentOpen] = useState(false)
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 
   useEffect(() => {
     async function fetchAppointmentDetails() {
@@ -114,13 +120,33 @@ export default function AppointmentDetailsPage() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
       recognitionRef.current = new SpeechRecognition()
       recognitionRef.current.continuous = true
-      recognitionRef.current.interimResults = true
+      recognitionRef.current.interimResults = false
+      recognitionRef.current.lang = 'en-US'
+
+      let finalTranscript = ''
 
       recognitionRef.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
-          .join('')
-        setNotes(prevNotes => prevNotes + ' ' + transcript)
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' '
+          }
+        }
+
+        setNotes(prevNotes => {
+          const newNotes = prevNotes.trim() + ' ' + finalTranscript.trim()
+          return newNotes.trim()
+        })
+
+        finalTranscript = ''
+      }
+
+      recognitionRef.current.onerror = (event) => {
+        console.error('Speech recognition error', event.error)
+        setIsRecording(false)
+      }
+
+      recognitionRef.current.onend = () => {
+        setIsRecording(false)
       }
     }
 
@@ -237,12 +263,53 @@ export default function AppointmentDetailsPage() {
     setIsRecording(!isRecording)
   }
 
+  const handleSetNextAppointment = () => {
+    setIsSetNextAppointmentOpen(true)
+  }
+
+  const closeRescheduleDialog = () => {
+    setIsRescheduleDialogOpen(false)
+  }
+
+  const closeCancelDialog = () => {
+    setIsCancelDialogOpen(false)
+  }
+
+  const handleRescheduleSuccess = () => {
+    closeRescheduleDialog()
+    // Optionally, refresh the appointment data here
+  }
+
+  const handleCancelAppointment = async () => {
+    if (!supabase || !appointment) return
+
+    try {
+      await cancelAppointment(supabase, appointment.id)
+      closeCancelDialog()
+      // Redirect to appointments list or show success message
+      // For example: router.push('/appointments')
+    } catch (error) {
+      console.error('Error cancelling appointment:', error)
+      // Handle error (e.g., show error message to user)
+    }
+  }
+
   if (isLoading) return <div>Loading...</div>
   if (!appointment) return <div>Appointment not found</div>
 
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Appointment Details</h1>
+          <div className="space-x-2">
+            <Button onClick={handleSetNextAppointment} className="bg-green-500 hover:bg-green-600 text-white">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              Set Next Appointment
+            </Button>
+          </div>
+        </div>
+
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Appointment Details</CardTitle>
@@ -376,6 +443,61 @@ export default function AppointmentDetailsPage() {
             </CardContent>
           </Card>
         )}
+
+        <Dialog open={isSetNextAppointmentOpen} onOpenChange={setIsSetNextAppointmentOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Set Next Appointment</DialogTitle>
+            </DialogHeader>
+            <AddAppointmentForm
+              patientId={appointment.patient_id}
+              doctorId={appointment.doctor_id}
+              onSuccess={() => {
+                setIsSetNextAppointmentOpen(false)
+                // Optionally, refresh the appointments list or add other logic here
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <div className="mt-4 space-x-2">
+          <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">Reschedule</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reschedule Appointment</DialogTitle>
+                <DialogDescription>
+                  Please select a new date and time for this appointment.
+                </DialogDescription>
+              </DialogHeader>
+              <AddAppointmentForm 
+                initialData={appointment} 
+                mode="reschedule"
+                onSuccess={handleRescheduleSuccess}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="destructive">Cancel Appointment</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cancel Appointment</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to cancel this appointment? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeCancelDialog}>No, keep appointment</Button>
+                <Button variant="destructive" onClick={handleCancelAppointment}>Yes, cancel appointment</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     </DashboardLayout>
   )

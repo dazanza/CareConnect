@@ -247,3 +247,11 @@ L029:
 - Application: Continue using these tools for new components and pages to maintain design consistency
 - Impact: Ensures a cohesive user interface and speeds up development process
 - Related: None
+
+L030:
+
+- Context: /app/appointments/[id]/page.tsx
+- Insight: Implementation of "Set Next Appointment" button with green styling
+- Application: Use Tailwind CSS classes for styling buttons and implement dialog for scheduling next appointment
+- Impact: Improves user experience by providing a quick way to schedule follow-up appointments
+- Related: L029, L026

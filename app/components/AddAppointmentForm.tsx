@@ -14,12 +14,12 @@ import { Appointment, Doctor, Patient } from '@/types'
 import AddDoctorForm from './AddDoctorForm'
 
 interface AddAppointmentFormProps {
-  onSuccess?: () => void
-  patientId?: number
-  doctorId?: number
+  initialData?: Appointment
+  mode?: 'create' | 'reschedule'
+  onSuccess: () => void
 }
 
-export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: AddAppointmentFormProps) {
+export function AddAppointmentForm({ initialData, mode = 'create', onSuccess }: AddAppointmentFormProps) {
   const { supabase } = useSupabase()
   const router = useRouter()
 
@@ -28,8 +28,8 @@ export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: A
   const [type, setType] = useState('')
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
-  const [selectedPatient, setSelectedPatient] = useState<string>(patientId?.toString() || '')
-  const [selectedDoctor, setSelectedDoctor] = useState<string>(doctorId?.toString() || '')
+  const [selectedPatient, setSelectedPatient] = useState<string>(initialData?.patient_id?.toString() || '')
+  const [selectedDoctor, setSelectedDoctor] = useState<string>(initialData?.doctor_id?.toString() || '')
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -87,48 +87,22 @@ export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: A
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!supabase) return
-
-    setIsLoading(true)
-    setError(null)
-
+  const handleSubmit = async (data: AppointmentFormData) => {
     try {
-      // Combine date and time into a single timestamp
-      const dateTime = new Date(`${date}T${time}`)
-
-      const { data, error } = await supabase
-        .from('appointments')
-        .insert([
-          {
-            patient_id: parseInt(selectedPatient),
-            doctor_id: parseInt(selectedDoctor),
-            date: dateTime.toISOString(), // Use the combined date and time
-            type,
-            location,
-            notes
-          }
-        ])
-        .select()
-
-      if (error) throw error
-
-      toast.success('Appointment added successfully')
-      if (onSuccess) onSuccess()
-      router.refresh()
+      if (mode === 'reschedule') {
+        await rescheduleAppointment(initialData.id, data)
+      } else {
+        await createAppointment(data)
+      }
+      onSuccess()
     } catch (error) {
-      console.error('Error adding appointment:', error)
-      setError('Failed to add appointment. Please try again.')
-      toast.error('Failed to add appointment')
-    } finally {
-      setIsLoading(false)
+      // Handle error
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {!patientId && (
+      {!initialData && (
         <div>
           <Label htmlFor="patient">Patient</Label>
           <Select onValueChange={setSelectedPatient} value={selectedPatient}>
@@ -146,7 +120,7 @@ export default function AddAppointmentForm({ onSuccess, patientId, doctorId }: A
         </div>
       )}
 
-      {!doctorId && (
+      {!initialData && (
         <div>
           <Label htmlFor="doctor">Doctor</Label>
           <Select onValueChange={handleDoctorChange} value={selectedDoctor}>
