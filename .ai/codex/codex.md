@@ -255,3 +255,14 @@ L030:
 - Application: Use Tailwind CSS classes for styling buttons and implement dialog for scheduling next appointment
 - Impact: Improves user experience by providing a quick way to schedule follow-up appointments
 - Related: L029, L026
+
+L032:
+
+Context: app/patients/[id]/page.tsx
+Insight: Correct field names for patient data in the database
+Application: Updated patient information display to use correct field names:
+- 'date_of_birth' instead of 'birthdate'
+- 'contact_number' instead of 'phone'
+- 'name' as a single field instead of separate 'first_name' and 'last_name'
+Impact: Ensures accurate data retrieval and display of patient information
+Related: None
