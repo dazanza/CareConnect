@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { useParams, useRouter } from 'next/navigation'
-import { format, differenceInYears } from 'date-fns'
+import { format, differenceInYears, startOfDay, endOfDay, isToday } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import DashboardLayout from '@/app/components/layout/DashboardLayout'
@@ -16,11 +16,20 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import toast from 'react-hot-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import AddAppointmentForm from '@/app/components/AddAppointmentForm'
+import { AddAppointmentForm } from '@/app/components/AddAppointmentForm'
 import { fetchAppointments } from '@/app/lib/dataFetching'
 import Link from 'next/link'
 import { Calendar } from "@/components/ui/calendar"
 import { AlertTriangle, Calendar as CalendarIcon, ChevronLeft, MapPin, PlusCircle, RefreshCw, X, FileText, Paperclip, FileUp, Phone, Mail, ArrowRight, UserMinus, Cake, Thermometer, Droplet, Heart, Wind, Pill, Edit, Trash, Clock as ClockIcon, MapPin as MapPinIcon } from "lucide-react"
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { convertUTCToLocal, convertLocalToUTC, formatLocalDate } from '@/app/lib/dateUtils';
+import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointmentDialog'
+import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
+import { useAuth } from '@clerk/nextjs'
+import AppTodoList from '@/app/components/AppTodoList'
 
 const moodEmojis = [
   { emoji: '😄', label: 'Happy', color: 'bg-[#32CD32]' },
@@ -30,9 +39,23 @@ const moodEmojis = [
   { emoji: '😡', label: 'Angry', color: 'bg-[#FF4500]' },
 ]
 
+// Add this schema for vitals form validation
+const vitalsSchema = z.object({
+  blood_pressure: z.string().optional(),
+  blood_sugar: z.number().int().min(0).max(1000).optional(),
+  heart_rate: z.number().int().min(0).max(300).optional(),
+  temperature: z.number().min(30).max(45).optional(),
+  mood: z.string().optional(),
+  oxygen_saturation: z.number().int().min(0).max(100).optional(),
+  notes: z.string().optional(),
+});
+
+type VitalsFormValues = z.infer<typeof vitalsSchema>;
+
 export default function PatientDetailsPage() {
   const { id } = useParams()
   const { supabase } = useSupabase()
+  const { userId } = useAuth()
   const router = useRouter()
   const [patient, setPatient] = useState<PatientDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -41,20 +64,16 @@ export default function PatientDetailsPage() {
   const [selectedDoctor, setSelectedDoctor] = useState<string>('')
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false)
   const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [currentMood, setCurrentMood] = useState(moodEmojis[2])
+  const [currentMood, setCurrentMood] = useState(moodEmojis.find(mood => mood.label === 'Neutral') || moodEmojis[2])
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false)
   const [sortBy, setSortBy] = useState<'specialty' | 'lastName'>('specialty')
-  const [todos, setTodos] = useState([
-    { id: 1, text: 'Schedule follow-up blood test as recommended by Dr. Lee', completed: false },
-    { id: 2, text: 'Fill new prescription for blood pressure medication', completed: false },
-    { id: 3, text: 'Record daily blood pressure readings for next cardiology appointment', completed: false },
-  ])
-  const [newTodo, setNewTodo] = useState('')
-  const [prescriptions, setPrescriptions] = useState([
-    { id: 1, name: 'Lisinopril 10mg', dosage: '1 pill daily' },
-    { id: 2, name: 'Metformin 500mg', dosage: '2 pills twice daily' },
-    { id: 3, name: 'Atorvastatin 20mg', dosage: '1 pill at bedtime' },
-  ])
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [latestVitals, setLatestVitals] = useState<any>(null)
+  const [showVitalsReadings, setShowVitalsReadings] = useState(false)
+  const [latestVitalsTime, setLatestVitalsTime] = useState<Date | null>(null)
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 
   const recentDocuments = [
     { id: 1, name: 'Blood Test Results.pdf', url: '#', uploadDate: 'May 15, 2023' },
@@ -90,9 +109,73 @@ export default function PatientDetailsPage() {
     bloodOxygen: parseInt(vitals.bloodOxygen) < 95,
   }
 
+  const vitalsForm = useForm<VitalsFormValues>({
+    resolver: zodResolver(vitalsSchema),
+    defaultValues: {
+      blood_pressure: '',
+      heart_rate: undefined,
+      temperature: undefined,
+      mood: currentMood.label, // Set the default mood to the current mood
+      oxygen_saturation: undefined,
+      notes: '',
+    },
+  });
+
+  // Update the form when currentMood changes
+  useEffect(() => {
+    vitalsForm.setValue('mood', currentMood.label);
+  }, [currentMood, vitalsForm]);
+
+  const fetchLatestVitals = async (patientId: string) => {
+    const today = new Date()
+    const startOfToday = startOfDay(today)
+    const endOfToday = endOfDay(today)
+
+    const { data, error } = await supabase
+      .from('vitals')
+      .select('*')
+      .eq('patient_id', patientId)
+      .gte('date_time', convertLocalToUTC(startOfToday))
+      .lte('date_time', convertLocalToUTC(endOfToday))
+      .order('date_time', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error('Error fetching latest vitals:', error);
+      setLatestVitals(null);
+      setShowVitalsReadings(false);
+      setLatestVitalsTime(null);
+      setCurrentMood(moodEmojis.find(mood => mood.label === 'Neutral') || moodEmojis[2]);
+      return null;
+    }
+
+    if (data) {
+      const localDateTime = convertUTCToLocal(data.date_time);
+      setLatestVitals({ ...data, date_time: localDateTime });
+      setShowVitalsReadings(true);
+      setLatestVitalsTime(localDateTime);
+
+      // Update currentMood based on fetched data
+      if (data.mood) {
+        const matchedMood = moodEmojis.find(mood => mood.label === data.mood);
+        if (matchedMood) {
+          setCurrentMood(matchedMood);
+        }
+      }
+    } else {
+      setLatestVitals(null);
+      setShowVitalsReadings(false);
+      setLatestVitalsTime(null);
+      setCurrentMood(moodEmojis.find(mood => mood.label === 'Neutral') || moodEmojis[2]);
+    }
+
+    return data;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
-      if (!supabase || !id) return
+      if (!supabase || !id || !userId) return
 
       setIsLoading(true)
       try {
@@ -130,9 +213,18 @@ export default function PatientDetailsPage() {
         setAssignedDoctors(fullAssignedDoctors)
 
         // Fetch appointments
-        const appointmentsData = await fetchAppointments(supabase, id)
+        const appointmentsData = await fetchAppointments(supabase, userId, { 
+          patientId: id as string, 
+          limit: 5, 
+          upcoming: true 
+        })
         setAppointments(appointmentsData)
 
+        // Fetch latest vitals
+        const latestVitalsData = await fetchLatestVitals(id as string);
+        setLatestVitals(latestVitalsData);
+
+        console.log('Vitals after fetching:', latestVitalsData); // Add this line
       } catch (error) {
         console.error('Error fetching data:', error)
         toast.error('Failed to load patient data')
@@ -142,7 +234,17 @@ export default function PatientDetailsPage() {
     }
 
     fetchData()
-  }, [supabase, id])
+  }, [supabase, id, userId])
+
+  useEffect(() => {
+    if (supabase && id) {
+      fetchAppointments(supabase, userId, { 
+        patientId: id as string, 
+        limit: 5, 
+        upcoming: true 
+      }).then(setAppointments);
+    }
+  }, [supabase, id]);
 
   const handleAssignDoctor = async () => {
     if (!selectedDoctor || !patient) return
@@ -191,33 +293,71 @@ export default function PatientDetailsPage() {
     return format(date, 'MMMM d, yyyy')
   }
 
-  const addTodo = () => {
-    if (newTodo.trim()) {
-      setTodos([...todos, { id: Date.now(), text: newTodo, completed: false }])
-      setNewTodo('')
+  const calculateAge = (dateOfBirth: Date) => {
+    return differenceInYears(new Date(), dateOfBirth)
+  }
+
+  const onVitalsSubmit = async (values: VitalsFormValues) => {
+    if (!patient) return;
+
+    const utcDateTime = convertLocalToUTC(new Date());
+
+    const { data, error } = await supabase
+      .from('vitals')
+      .insert({
+        patient_id: patient.id,
+        date_time: utcDateTime,
+        ...values,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding vitals:', error);
+      toast.error('Failed to add vitals');
+    } else {
+      toast.success('Vitals added successfully');
+      setShowVitalsModal(false);
+      fetchLatestVitals(patient.id.toString());
+    }
+  };
+
+  const handleRescheduleSuccess = async (newDate: Date) => {
+    if (selectedAppointment && userId) {
+      try {
+        await rescheduleAppointment(supabase, selectedAppointment.id, newDate)
+        toast.success('Appointment rescheduled successfully')
+        const updatedAppointments = await fetchAppointments(supabase, userId, { 
+          patientId: id as string, 
+          limit: 5, 
+          upcoming: true 
+        })
+        setAppointments(updatedAppointments)
+      } catch (error) {
+        console.error('Error rescheduling appointment:', error)
+        toast.error('Failed to reschedule appointment')
+      }
+      setIsRescheduleDialogOpen(false)
     }
   }
 
-  const toggleTodo = (id: number) => {
-    setTodos(todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ))
-  }
-
-  const removeTodo = (id: number) => {
-    setTodos(todos.filter(todo => todo.id !== id))
-  }
-
-  const addPrescription = (name: string, dosage: string) => {
-    setPrescriptions([...prescriptions, { id: Date.now(), name, dosage }])
-  }
-
-  const removePrescription = (id: number) => {
-    setPrescriptions(prescriptions.filter(prescription => prescription.id !== id))
-  }
-
-  const calculateAge = (dateOfBirth: Date) => {
-    return differenceInYears(new Date(), dateOfBirth)
+  const handleCancel = async () => {
+    if (selectedAppointment && userId) {
+      try {
+        await cancelAppointment(supabase, selectedAppointment.id)
+        toast.success('Appointment cancelled successfully')
+        const updatedAppointments = await fetchAppointments(supabase, userId, { 
+          patientId: id as string, 
+          limit: 5, 
+          upcoming: true 
+        })
+        setAppointments(updatedAppointments)
+      } catch (error) {
+        console.error('Error cancelling appointment:', error)
+        toast.error('Failed to cancel appointment')
+      }
+      setIsCancelDialogOpen(false)
+    }
   }
 
   if (isLoading || !patient) {
@@ -267,20 +407,28 @@ export default function PatientDetailsPage() {
       </div>
 
       <div className="container mx-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className={`md:col-span-2 bg-white shadow-md ${currentMood.color}`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Vitals & Mood Card */}
+          <Card className={`bg-white shadow-md ${currentMood.color}`}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-semibold text-blue-800">Vitals & Mood</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl font-semibold text-blue-800">Vitals & Mood</CardTitle>
+                {latestVitalsTime && (
+                  <span className="text-sm text-gray-500">
+                    as of {formatLocalDate(latestVitalsTime, 'h:mm a')}
+                  </span>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="pt-2">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 <div className="flex items-center">
                   <Heart className="w-5 h-5 mr-2 text-black" />
                   <div>
                     <p className="text-sm text-gray-500">Blood Pressure</p>
-                    <p className="font-medium">{vitals.bloodPressure}</p>
+                    <p className="font-medium">{showVitalsReadings ? latestVitals?.blood_pressure : '--'}</p>
                   </div>
-                  {vitalWarnings.bloodPressure && (
+                  {showVitalsReadings && latestVitals?.blood_pressure && parseInt(latestVitals.blood_pressure.split('/')[0]) > 130 && (
                     <AlertTriangle className="w-5 h-5 ml-2 text-red-500" />
                   )}
                 </div>
@@ -288,9 +436,9 @@ export default function PatientDetailsPage() {
                   <Droplet className="w-5 h-5 mr-2 text-black" />
                   <div>
                     <p className="text-sm text-gray-500">Blood Sugar</p>
-                    <p className="font-medium">{vitals.bloodSugar}</p>
+                    <p className="font-medium">{showVitalsReadings && latestVitals?.blood_sugar ? `${latestVitals.blood_sugar} mg/dL` : '--'}</p>
                   </div>
-                  {vitalWarnings.bloodSugar && (
+                  {showVitalsReadings && latestVitals?.blood_sugar && latestVitals.blood_sugar > 125 && (
                     <AlertTriangle className="w-5 h-5 ml-2 text-red-500" />
                   )}
                 </div>
@@ -298,131 +446,160 @@ export default function PatientDetailsPage() {
                   <Thermometer className="w-5 h-5 mr-2 text-black" />
                   <div>
                     <p className="text-sm text-gray-500">Temperature</p>
-                    <p className="font-medium">{vitals.temperature}</p>
+                    <p className="font-medium">{showVitalsReadings && latestVitals?.temperature ? `${latestVitals.temperature}°C` : '--'}</p>
                   </div>
-                  {vitalWarnings.temperature && (
+                  {showVitalsReadings && latestVitals?.temperature && latestVitals.temperature > 37.5 && (
                     <AlertTriangle className="w-5 h-5 ml-2 text-red-500" />
                   )}
                 </div>
                 <div className="flex items-center">
                   <Wind className="w-5 h-5 mr-2 text-black" />
                   <div>
-                    <p className="text-sm text-gray-500">Blood Oxygen</p>
-                    <p className="font-medium">{vitals.bloodOxygen}</p>
+                    <p className="text-sm text-gray-500">Oxygen Saturation</p>
+                    <p className="font-medium">{showVitalsReadings && latestVitals?.oxygen_saturation ? `${latestVitals.oxygen_saturation}%` : '--'}</p>
                   </div>
-                  {vitalWarnings.bloodOxygen && (
+                  {showVitalsReadings && latestVitals?.oxygen_saturation && latestVitals.oxygen_saturation < 95 && (
                     <AlertTriangle className="w-5 h-5 ml-2 text-red-500" />
                   )}
                 </div>
               </div>
-              <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">Today's Mood</p>
-                  <div className="flex justify-between">
-                    {moodEmojis.map((mood) => (
-                      <button
-                        key={mood.label}
-                        onClick={() => setCurrentMood(mood)}
-                        className={`text-3xl ${currentMood.label === mood.label ? 'opacity-100' : 'opacity-50'}`}
-                      >
-                        {mood.emoji}
-                      </button>
-                    ))}
-                  </div>
-                
+              <div className="mb-2">
+                <p className="text-sm text-gray-500 mb-1">Today's Mood</p>
+                <div className="flex justify-between">
+                  {moodEmojis.map((mood) => (
+                    <button
+                      key={mood.label}
+                      onClick={() => {
+                        setCurrentMood(mood);
+                        vitalsForm.setValue('mood', mood.label);
+                      }}
+                      className={`text-2xl ${currentMood.label === mood.label ? 'opacity-100' : 'opacity-50'}`}
+                    >
+                      {mood.emoji}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex space-x-2 mt-4">
-                <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">Add Readings</Button>
-                <Link href="/patient/vitals-tracking" passHref>
-                  <Button variant="outline" className="flex-1">Track Over Time</Button>
+              <div className="flex space-x-2">
+                <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm" onClick={() => setShowVitalsModal(true)}>
+                  {showVitalsReadings ? 'Update' : 'Add'} Readings
+                </Button>
+                <Link href={`/patients/${id}/vitals`} passHref>
+                  <Button variant="outline" className="flex-1 text-sm">Vitals History</Button>
                 </Link>
               </div>
             </CardContent>
           </Card>
 
+          {/* Todo List */}
           <Card className="bg-white shadow-md">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl font-semibold text-blue-800">To-Do List</CardTitle>
-                <Button variant="ghost" onClick={() => setShowPrescriptionModal(true)}>
-                  <Pill className="w-4 h-4 mr-2" />
-                  Prescriptions
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <div className="space-y-4">
-                <div className="flex">
-                  <Input
-                    type="text"
-                    placeholder="Add a new todo"
-                    value={newTodo}
-                    onChange={(e) => setNewTodo(e.target.value)}
-                    className="flex-grow mr-2"
-                  />
-                  <Button onClick={addTodo}>Add</Button>
-                </div>
-                <ul className="space-y-2">
-                  {todos.map(todo => (
-                    <li key={todo.id} className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={todo.completed}
-                          onChange={() => toggleTodo(todo.id)}
-                          className="mr-2"
-                        />
-                        <span className={todo.completed ? 'line-through text-gray-400' : 'text-gray-800'}>{todo.text}</span>
-                      </div>
-                      <Button variant="ghost" onClick={() => removeTodo(todo.id)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <CardContent className="p-0 h-full">
+              <AppTodoList patientId={id as string} userId={userId} />
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2 bg-white shadow-md">
+          {/* Appointments Card */}
+          <Card className="md:col-span-2 bg-white shadow-md w-full max-w-none">
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-xl font-semibold text-blue-800">Appointments</CardTitle>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <PlusCircle className="w-4 h-4 mr-1" />
-                  Schedule Appointment
-                </Button>
+                <Dialog open={isAddAppointmentOpen} onOpenChange={setIsAddAppointmentOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <PlusCircle className="w-4 h-4 mr-1" />
+                      Schedule Appointment
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Schedule New Appointment</DialogTitle>
+                    </DialogHeader>
+                    <AddAppointmentForm 
+                      onSuccess={() => {
+                        setIsAddAppointmentOpen(false);
+                        fetchAppointments(supabase, userId, { 
+                          patientId: id as string, 
+                          limit: 5, 
+                          upcoming: true 
+                        }).then(setAppointments);
+                      }} 
+                      patientId={patient?.id.toString()}
+                    />
+                  </DialogContent>
+                </Dialog>
               </div>
             </CardHeader>
             <CardContent className="pt-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
                   <Calendar
                     mode="multiple"
                     selected={appointments.map(apt => new Date(apt.date))}
                     className="w-full"
                   />
                 </div>
-                <div className="pl-0 md:pl-4">
-                  <ul className="space-y-4">
-                    {appointments.map(appointment => (
-                      <li key={appointment.id} className="flex justify-between items-center hover:bg-gray-100 p-2 rounded-md transition-colors duration-200">
-                        <Link href={`/appointments/${appointment.id}`} className="flex-grow">
-                          <div>
-                            <p className="font-medium">{`${appointment.type.charAt(0).toUpperCase() + appointment.type.slice(1)} with Dr. ${appointment.doctors?.last_name || 'N/A'}`}</p>
-                            <p className="text-sm text-muted-foreground">{`${formatAppointmentDate(new Date(appointment.date))} at ${format(new Date(appointment.date), 'h:mm a')}`}</p>
+                <div className="md:col-span-2 space-y-4">
+                  {appointments.length > 0 ? (
+                    appointments.map((appointment) => (
+                      <Link 
+                        key={appointment.id} 
+                        href={`/appointments/${appointment.id}`} 
+                        className="block w-full"
+                      >
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                          <div className="flex-grow">
+                            <h3 className="font-semibold text-lg mb-2">
+                              {appointment.type.charAt(0).toUpperCase() + appointment.type.slice(1)} with Dr. {appointment.doctors?.last_name}
+                            </h3>
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                <CalendarIcon className="w-4 h-4" />
+                                <p>{formatLocalDate(convertUTCToLocal(appointment.date), 'MMMM d, yyyy')}</p>
+                              </div>
+                              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                <ClockIcon className="w-4 h-4" />
+                                <p>{formatLocalDate(convertUTCToLocal(appointment.date), 'h:mm a')}</p>
+                              </div>
+                              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                <MapPinIcon className="w-4 h-4" />
+                                <p>{appointment.location}</p>
+                              </div>
+                            </div>
                           </div>
-                        </Link>
-                        <div className="flex space-x-2">
-                          <Button size="icon" variant="outline" className="h-8 w-8 bg-white hover:bg-gray-100 text-blue-600 border-blue-600">
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="outline" className="h-8 w-8 bg-white hover:bg-gray-100 text-red-600 border-red-600">
-                            <X className="h-4 w-4" />
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setSelectedAppointment(appointment);
+                                setIsRescheduleDialogOpen(true);
+                              }}
+                              className="flex items-center"
+                            >
+                              <RefreshCw className="w-4 h-4 mr-1" />
+                              Reschedule
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setSelectedAppointment(appointment);
+                                setIsCancelDialogOpen(true);
+                              }}
+                              className="flex items-center"
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
+                      </Link>
+                    ))
+                  ) : (
+                    <p>No upcoming appointments.</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -580,41 +757,157 @@ export default function PatientDetailsPage() {
         </div>
       </div>
 
-      <Dialog open={showPrescriptionModal} onOpenChange={setShowPrescriptionModal}>
+      {/* Add Vitals Modal */}
+      <Dialog open={showVitalsModal} onOpenChange={setShowVitalsModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Prescription Schedule</DialogTitle>
+            <DialogTitle>Add Vitals</DialogTitle>
             <DialogDescription>
-              Manage your prescriptions and dosages.
+              Enter the patient's current vital signs.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            {prescriptions.map(prescription => (
-              <div key={prescription.id} className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{prescription.name}</p>
-                  <p className="text-sm text-gray-500">{prescription.dosage}</p>
-                </div>
-                <div className="flex space-x-2">
-                  <Button size="sm" variant="outline">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => removePrescription(prescription.id)}>
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => {
-              addPrescription("New Medication", "1 pill daily")
-            }}>
-              Add Prescription
-            </Button>
-          </DialogFooter>
+          <Form {...vitalsForm}>
+            <form onSubmit={vitalsForm.handleSubmit(onVitalsSubmit)} className="space-y-4">
+              <FormField
+                control={vitalsForm.control}
+                name="blood_pressure"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Blood Pressure</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g. 120/80" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={vitalsForm.control}
+                name="heart_rate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Heart Rate (bpm)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="number" 
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={vitalsForm.control}
+                name="temperature"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Temperature (°C)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="number" 
+                        step="0.1" 
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={vitalsForm.control}
+                name="mood"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mood</FormLabel>
+                    <FormControl>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select mood" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {moodEmojis.map((mood) => (
+                            <SelectItem key={mood.label} value={mood.label}>
+                              {mood.emoji} {mood.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={vitalsForm.control}
+                name="oxygen_saturation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Oxygen Saturation (%)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="number" 
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={vitalsForm.control}
+                name="blood_sugar"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Blood Sugar (mg/dL)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="number" 
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={vitalsForm.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Add Vitals</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
+
+      <RescheduleAppointmentDialog
+        isOpen={isRescheduleDialogOpen}
+        onOpenChange={setIsRescheduleDialogOpen}
+        appointmentId={selectedAppointment?.id || 0}
+        onSuccess={handleRescheduleSuccess}
+      />
+
+      <CancelAppointmentDialog
+        isOpen={isCancelDialogOpen}
+        onOpenChange={setIsCancelDialogOpen}
+        appointment={selectedAppointment}
+        onCancel={handleCancel}
+      />
     </DashboardLayout>
   )
 }

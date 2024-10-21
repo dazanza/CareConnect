@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { Appointment } from '@/types'
+import { Appointment, Todo } from '@/types'
 import DashboardLayout from '@/app/components/layout/DashboardLayout'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,16 +15,19 @@ import { format } from 'date-fns'
 import Link from 'next/link'
 import { v4 as uuidv4 } from 'uuid'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import AddAppointmentForm from '@/app/components/AddAppointmentForm'
+import { AddAppointmentForm } from '@/app/components/AddAppointmentForm'
 import { rescheduleAppointment, cancelAppointment } from "@/app/lib/appointments"
+import { convertUTCToLocal, convertLocalToUTC, formatLocalDate } from '@/app/lib/dateUtils';
+import { toast } from 'react-hot-toast'
 
 export default function AppointmentDetailsPage() {
   const { id } = useParams()
   const { supabase } = useSupabase()
   const [appointment, setAppointment] = useState<Appointment | null>(null)
   const [notes, setNotes] = useState('')
-  const [todos, setTodos] = useState<{ id: number; text: string; completed: boolean }[]>([])
+  const [todos, setTodos] = useState<Todo[]>([])
   const [newTodo, setNewTodo] = useState('')
+  const [newTodoDueDate, setNewTodoDueDate] = useState<string | null>(null)
   const [prevAppointment, setPrevAppointment] = useState<Appointment | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
@@ -52,28 +55,29 @@ export default function AppointmentDetailsPage() {
 
         if (error) throw error
 
-        setAppointment(data)
-        setNotes(data.notes || '')
+        if (data) {
+          // Convert UTC date to local date
+          const localDate = convertUTCToLocal(data.date);
+          setAppointment({ ...data, date: localDate });
 
-        // Fetch previous appointment
-        const { data: prevData } = await supabase
-          .from('appointments')
-          .select('*')
-          .eq('doctor_id', data.doctor_id)
-          .lt('date', data.date)
-          .order('date', { ascending: false })
-          .limit(1)
-          .single()
+          // Fetch previous appointment
+          const { data: prevData, error: prevError } = await supabase
+            .from('appointments')
+            .select('*')
+            .eq('patient_id', data.patient_id)
+            .lt('date', data.date)
+            .order('date', { ascending: false })
+            .limit(1)
+            .single()
 
-        setPrevAppointment(prevData)
+          if (prevError && prevError.code !== 'PGRST116') throw prevError
 
-        // Fetch todos
-        const { data: todosData } = await supabase
-          .from('todos')
-          .select('*')
-          .eq('appointment_id', id)
-
-        setTodos(todosData || [])
+          if (prevData) {
+            // Convert UTC date to local date for previous appointment
+            const prevLocalDate = convertUTCToLocal(prevData.date);
+            setPrevAppointment({ ...prevData, date: prevLocalDate });
+          }
+        }
       } catch (error) {
         console.error('Error fetching appointment details:', error)
       } finally {
@@ -157,6 +161,29 @@ export default function AppointmentDetailsPage() {
     }
   }, [])
 
+  useEffect(() => {
+    if (appointment) {
+      fetchTodos()
+    }
+  }, [appointment])
+
+  const fetchTodos = async () => {
+    if (!supabase || !appointment) return
+
+    const { data, error } = await supabase
+      .from('todos')
+      .select('*')
+      .eq('appointment_id', appointment.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching todos:', error)
+      toast.error('Failed to load todos')
+    } else {
+      setTodos(data)
+    }
+  }
+
   const handleSaveNotes = async () => {
     if (!supabase || !appointment) return
 
@@ -177,38 +204,48 @@ export default function AppointmentDetailsPage() {
   const handleAddTodo = async () => {
     if (!supabase || !appointment || !newTodo.trim()) return
 
-    try {
-      const { data, error } = await supabase
-        .from('todos')
-        .insert({ appointment_id: appointment.id, text: newTodo, completed: false })
-        .select()
-        .single()
+    const newTodoItem: Partial<Todo> = {
+      text: newTodo.trim(),
+      completed: false,
+      appointment_id: appointment.id,
+      patient_id: appointment.patient_id,
+      due_date: newTodoDueDate,
+      user_id: appointment.user_id // Assuming the appointment has a user_id field
+    }
 
-      if (error) throw error
-      setTodos([...todos, data])
-      setNewTodo('')
-    } catch (error) {
+    const { data, error } = await supabase
+      .from('todos')
+      .insert(newTodoItem)
+      .select()
+
+    if (error) {
       console.error('Error adding todo:', error)
+      toast.error('Failed to add todo')
+    } else {
+      setTodos([data[0], ...todos])
+      setNewTodo('')
+      setNewTodoDueDate(null)
+      toast.success('Todo added successfully')
     }
   }
 
-  const handleToggleTodo = async (todoId: number) => {
-    if (!supabase) return
+  const handleToggleTodo = async (id: number) => {
+    const todoToUpdate = todos.find(todo => todo.id === id)
+    if (!todoToUpdate) return
 
-    const updatedTodos = todos.map(todo =>
-      todo.id === todoId ? { ...todo, completed: !todo.completed } : todo
-    )
+    const { error } = await supabase
+      .from('todos')
+      .update({ completed: !todoToUpdate.completed })
+      .eq('id', id)
 
-    try {
-      const { error } = await supabase
-        .from('todos')
-        .update({ completed: !todos.find(t => t.id === todoId)?.completed })
-        .eq('id', todoId)
-
-      if (error) throw error
-      setTodos(updatedTodos)
-    } catch (error) {
-      console.error('Error toggling todo:', error)
+    if (error) {
+      console.error('Error updating todo:', error)
+      toast.error('Failed to update todo')
+    } else {
+      setTodos(todos.map(todo => 
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      ))
+      toast.success('Todo updated successfully')
     }
   }
 
@@ -275,10 +312,13 @@ export default function AppointmentDetailsPage() {
     setIsCancelDialogOpen(false)
   }
 
-  const handleRescheduleSuccess = () => {
-    closeRescheduleDialog()
-    // Optionally, refresh the appointment data here
-  }
+  const handleRescheduleSuccess = (updatedAppointment: Appointment) => {
+    // Convert UTC date to local date
+    const localDate = convertUTCToLocal(updatedAppointment.date);
+    setAppointment({ ...updatedAppointment, date: localDate });
+    setIsRescheduleDialogOpen(false);
+    // Add a toast or some other notification here
+  };
 
   const handleCancelAppointment = async () => {
     if (!supabase || !appointment) return
@@ -321,11 +361,11 @@ export default function AppointmentDetailsPage() {
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <CalendarIcon className="w-5 h-5" />
-                    <p>{format(new Date(appointment.date), 'MMMM d, yyyy')}</p>
+                    <p>{formatLocalDate(appointment.date, 'MMMM d, yyyy')}</p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <ClockIcon className="w-5 h-5" />
-                    <p>{format(new Date(appointment.date), 'h:mm a')}</p>
+                    <p>{formatLocalDate(appointment.date, 'h:mm a')}</p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <MapPinIcon className="w-5 h-5" />
@@ -357,6 +397,11 @@ export default function AppointmentDetailsPage() {
                         onCheckedChange={() => handleToggleTodo(todo.id)}
                       />
                       <span className={todo.completed ? 'line-through' : ''}>{todo.text}</span>
+                      {todo.due_date && (
+                        <span className="text-sm text-gray-500">
+                          Due: {format(new Date(todo.due_date), 'MMM d, yyyy')}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -365,6 +410,11 @@ export default function AppointmentDetailsPage() {
                     value={newTodo}
                     onChange={(e) => setNewTodo(e.target.value)}
                     placeholder="New todo item"
+                  />
+                  <Input
+                    type="date"
+                    value={newTodoDueDate || ''}
+                    onChange={(e) => setNewTodoDueDate(e.target.value)}
                   />
                   <Button onClick={handleAddTodo}>Add</Button>
                 </div>
@@ -438,7 +488,7 @@ export default function AppointmentDetailsPage() {
             </CardHeader>
             <CardContent>
               <Link href={`/appointments/${prevAppointment.id}`} className="text-blue-600 hover:underline">
-                {format(new Date(prevAppointment.date), 'MMMM d, yyyy h:mm a')}
+                {formatLocalDate(prevAppointment.date, 'MMMM d, yyyy h:mm a')}
               </Link>
             </CardContent>
           </Card>

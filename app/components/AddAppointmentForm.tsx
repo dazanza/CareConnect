@@ -12,14 +12,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import toast from 'react-hot-toast'
 import { Appointment, Doctor, Patient } from '@/types'
 import AddDoctorForm from './AddDoctorForm'
+import { convertLocalToUTC, convertUTCToLocal, formatLocalDate } from '@/app/lib/dateUtils';
 
 interface AddAppointmentFormProps {
-  initialData?: Appointment
-  mode?: 'create' | 'reschedule'
-  onSuccess: () => void
+  onSuccess: (newDate?: Date) => void;
+  patientId?: string;
+  doctorId?: string;
+  initialData?: Appointment | null;
+  mode?: 'add' | 'reschedule';
+  disablePatientDoctor?: boolean;
 }
 
-export function AddAppointmentForm({ initialData, mode = 'create', onSuccess }: AddAppointmentFormProps) {
+export function AddAppointmentForm({ 
+  onSuccess, 
+  patientId, 
+  doctorId, 
+  initialData, 
+  mode = 'add',
+  disablePatientDoctor = false
+}: AddAppointmentFormProps) {
   const { supabase } = useSupabase()
   const router = useRouter()
 
@@ -28,8 +39,8 @@ export function AddAppointmentForm({ initialData, mode = 'create', onSuccess }: 
   const [type, setType] = useState('')
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
-  const [selectedPatient, setSelectedPatient] = useState<string>(initialData?.patient_id?.toString() || '')
-  const [selectedDoctor, setSelectedDoctor] = useState<string>(initialData?.doctor_id?.toString() || '')
+  const [selectedPatient, setSelectedPatient] = useState<string>('')
+  const [selectedDoctor, setSelectedDoctor] = useState<string>('')
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -41,21 +52,37 @@ export function AddAppointmentForm({ initialData, mode = 'create', onSuccess }: 
     fetchPatients()
   }, [supabase])
 
+  useEffect(() => {
+    if (initialData && mode === 'reschedule') {
+      setDate(formatLocalDate(initialData.date, 'yyyy-MM-dd'))
+      setTime(formatLocalDate(initialData.date, 'HH:mm'))
+      setType(initialData.type)
+      setLocation(initialData.location)
+      setNotes(initialData.notes || '')
+      setSelectedPatient(initialData.patient_id.toString())
+      setSelectedDoctor(initialData.doctor_id.toString())
+      
+      if (initialData.patient) {
+        setPatients([initialData.patient])
+      }
+      if (initialData.doctor) {
+        setDoctors([initialData.doctor])
+      }
+    } else {
+      if (patientId) setSelectedPatient(patientId)
+      if (doctorId) setSelectedDoctor(doctorId)
+    }
+  }, [initialData, mode, patientId, doctorId])
+
   const fetchDoctors = async () => {
     if (!supabase) return
 
     try {
-      console.log('Fetching doctors...')
-      const { data, error } = await supabase.from('doctors').select('*').order('last_name').limit(10)
-
-      if (error) {
-        console.error('Error fetching doctors:', error)
-      } else {
-        console.log('Fetched doctors:', data)
-        setDoctors(data)
-      }
+      const { data, error } = await supabase.from('doctors').select('*').order('last_name')
+      if (error) throw error
+      setDoctors(data)
     } catch (error) {
-      console.error('Error in fetchDoctors:', error)
+      console.error('Error fetching doctors:', error)
     }
   }
 
@@ -63,13 +90,9 @@ export function AddAppointmentForm({ initialData, mode = 'create', onSuccess }: 
     if (!supabase) return
 
     try {
-      const { data, error } = await supabase.from('patients').select('*').order('name').limit(10)
-
-      if (error) {
-        console.error('Error fetching patients:', error)
-      } else {
-        setPatients(data)
-      }
+      const { data, error } = await supabase.from('patients').select('*').order('name')
+      if (error) throw error
+      setPatients(data)
     } catch (error) {
       console.error('Error fetching patients:', error)
     }
@@ -87,59 +110,99 @@ export function AddAppointmentForm({ initialData, mode = 'create', onSuccess }: 
     }
   }
 
-  const handleSubmit = async (data: AppointmentFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
+
+    if (!supabase) {
+      setError('Supabase client not available')
+      setIsLoading(false)
+      return
+    }
+
+    const appointmentDate = new Date(`${date}T${time}`)
+    const utcDate = convertLocalToUTC(appointmentDate)
+
+    const appointmentData = {
+      patient_id: parseInt(selectedPatient),
+      doctor_id: parseInt(selectedDoctor),
+      date: utcDate,
+      type,
+      location,
+      notes
+    }
+
     try {
-      if (mode === 'reschedule') {
-        await rescheduleAppointment(initialData.id, data)
+      let result
+      if (mode === 'reschedule' && initialData) {
+        const { data, error } = await supabase
+          .from('appointments')
+          .update(appointmentData)
+          .eq('id', initialData.id)
+          .select()
+        if (error) throw error
+        result = data[0]
       } else {
-        await createAppointment(data)
+        const { data, error } = await supabase
+          .from('appointments')
+          .insert([appointmentData])
+          .select()
+        if (error) throw error
+        result = data[0]
       }
-      onSuccess()
+
+      toast.success(mode === 'reschedule' ? 'Appointment rescheduled successfully' : 'Appointment added successfully')
+      onSuccess(new Date(result.date))
     } catch (error) {
-      // Handle error
+      console.error('Error saving appointment:', error)
+      setError('Failed to save appointment')
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {!initialData && (
-        <div>
-          <Label htmlFor="patient">Patient</Label>
-          <Select onValueChange={setSelectedPatient} value={selectedPatient}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a patient" />
-            </SelectTrigger>
-            <SelectContent>
-              {patients.map((patient) => (
-                <SelectItem key={patient.id} value={patient.id.toString()}>
-                  {patient.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {!initialData && (
-        <div>
-          <Label htmlFor="doctor">Doctor</Label>
-          <Select onValueChange={handleDoctorChange} value={selectedDoctor}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a doctor" />
-            </SelectTrigger>
-            <SelectContent>
-              {doctors.map((doctor) => (
-                <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                  Dr. {doctor.first_name} {doctor.last_name}
-                </SelectItem>
-              ))}
-              <SelectItem value="add_new">
-                <span className="text-blue-500">+ Add New Doctor</span>
+      <div>
+        <Label htmlFor="patient">Patient</Label>
+        <Select 
+          onValueChange={setSelectedPatient} 
+          value={selectedPatient}
+          disabled={disablePatientDoctor || !!patientId}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a patient" />
+          </SelectTrigger>
+          <SelectContent>
+            {patients.map((patient) => (
+              <SelectItem key={patient.id} value={patient.id.toString()}>
+                {patient.name}
               </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="doctor">Doctor</Label>
+        <Select 
+          onValueChange={handleDoctorChange} 
+          value={selectedDoctor}
+          disabled={disablePatientDoctor}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a doctor" />
+          </SelectTrigger>
+          <SelectContent>
+            {doctors.map((doctor) => (
+              <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                Dr. {doctor.first_name} {doctor.last_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div>
         <Label htmlFor="date">Date</Label>
@@ -200,7 +263,7 @@ export function AddAppointmentForm({ initialData, mode = 'create', onSuccess }: 
       {error && <p className="text-red-500">{error}</p>}
 
       <Button type="submit" disabled={isLoading}>
-        {isLoading ? 'Adding...' : 'Add Appointment'}
+        {isLoading ? 'Saving...' : mode === 'add' ? 'Add Appointment' : 'Reschedule Appointment'}
       </Button>
 
       <Dialog open={isAddDoctorOpen} onOpenChange={setIsAddDoctorOpen}>

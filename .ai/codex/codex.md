@@ -266,3 +266,91 @@ Application: Updated patient information display to use correct field names:
 - 'name' as a single field instead of separate 'first_name' and 'last_name'
 Impact: Ensures accurate data retrieval and display of patient information
 Related: None
+
+L033:
+
+- Context: app/patients/[id]/page.tsx
+- Insight: Implementation of vitals form with Zod schema validation
+- Application: Use Zod for form validation and React Hook Form for form state management
+- Impact: Improves data integrity and user experience when adding patient vitals
+- Related: L029
+
+L034:
+
+- Context: app/components/AddAppointmentForm.tsx
+- Insight: Removal of initialData references and implementation of dynamic doctor selection
+- Application: Use state to manage form fields and implement conditional rendering for adding new doctors
+- Impact: Enhances flexibility of the appointment form and allows for adding new doctors on the fly
+- Related: L025, L026
+
+L035:
+
+- Context: app/lib/dataFetching.ts
+- Insight: Centralized function for fetching appointments with doctor information
+- Application: Use this function to retrieve appointments with associated doctor details across the application
+- Impact: Ensures consistent data fetching and reduces duplication of database queries
+- Related: L025, L026, L027
+
+L036:
+
+- Context: /app/components/AppTodoList.tsx
+- Insight: Efficient handling of related data (patients) in Supabase queries for todo list
+- Application: Use nested selects in Supabase queries to fetch related data in a single query
+- Impact: Improves data retrieval efficiency and reduces the need for additional queries
+- Related: L010, L025
+
+L037:
+- Context: app/lib/dataFetching.ts
+- Insight: Unified appointment fetching function with flexible options
+- Application: Use this function for fetching appointments across different components
+- Impact: Improves code reusability and consistency in appointment data retrieval
+- Related: L025, L026, L035
+
+L038:
+- Context: app/components/dashboard/DashboardContent.tsx, app/patients/[id]/page.tsx, app/doctors/[id]/page.tsx
+- Insight: Consistent implementation of appointment fetching and display
+- Application: Use the fetchAppointments function with appropriate options for each context
+- Impact: Ensures uniform appointment handling across different pages
+- Related: L037, L025, L026
+
+L039:
+- Context: app/patients/[id]/page.tsx, app/doctors/[id]/page.tsx
+- Insight: Implementation of rescheduling and cancellation functionality
+- Application: Use handleRescheduleSuccess and handleCancel functions for appointment management
+- Impact: Provides consistent user experience for appointment modifications
+- Related: L037, L038
+
+L040:
+- Context: app/doctors/[id]/page.tsx
+- Insight: Integration of doctor-specific information and assigned patients
+- Application: Fetch and display doctor details and assigned patients alongside appointments
+- Impact: Offers a comprehensive view of a doctor's profile and responsibilities
+- Related: L038, L039
+
+L041:
+- Context: app/components/dashboard/DashboardContent.tsx, app/doctors/[id]/page.tsx
+- Insight: Unified appointment display and interaction across different views
+- Application: Use consistent UI components for appointments in both dashboard and doctor-specific pages
+- Impact: Improves user experience with a standardized interface for appointment management
+- Related: L037, L038, L040
+
+L042:
+- Context: app/components/dashboard/DashboardContent.tsx, app/doctors/[id]/page.tsx
+- Insight: Implementation of icon-based action buttons for appointments
+- Application: Use icon buttons for reschedule and cancel actions to save space and improve visual clarity
+- Impact: Enhances UI density and provides clear visual cues for appointment actions
+- Related: L041
+
+L043:
+- Context: app/components/dashboard/DashboardContent.tsx, app/doctors/[id]/page.tsx
+- Insight: Integration of calendar view with appointment list
+- Application: Display a calendar alongside the appointment list to provide date context and selection
+- Impact: Improves date-based navigation and visualization of appointment schedules
+- Related: L041, L042
+
+L044:
+- Context: app/doctors/[id]/page.tsx
+- Insight: Display of assigned patients in doctor's profile
+- Application: Show a list of patients assigned to a doctor to provide an overview of their patient load
+- Impact: Facilitates better patient management and quick access to patient information from the doctor's view
+- Related: L040, L041

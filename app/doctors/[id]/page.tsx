@@ -2,31 +2,42 @@
 
 import { useEffect, useState } from 'react'
 import { useSupabase } from '@/app/lib/supabase'
-import { useParams } from 'next/navigation'
-import { format } from 'date-fns' // Add this import
+import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Doctor, Patient, Appointment } from '@/types' // Add Appointment to the import
-import Sidebar from '@/app/components/layout/Sidebar'
+import { Doctor, Patient, Appointment } from '@/types'
+import DashboardLayout from '@/app/components/layout/DashboardLayout'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import AddAppointmentForm from '@/app/components/AddAppointmentForm'
-import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon } from 'lucide-react'
+import { AddAppointmentForm } from '@/app/components/AddAppointmentForm'
+import { Calendar } from "@/components/ui/calendar"
 import Link from 'next/link'
 import { fetchAppointments } from '@/app/lib/dataFetching'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from '@clerk/nextjs'
+import { convertUTCToLocal, formatLocalDate } from '@/app/lib/dateUtils'
+import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointmentDialog'
+import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
+import { ChevronLeft, MapPin, PlusCircle, RefreshCw, Trash2, Phone, Mail, CalendarIcon, ClockIcon, MapPinIcon } from "lucide-react"
+import toast from 'react-hot-toast'
 
 export default function DoctorDetailsPage() {
   const { id } = useParams()
   const { supabase } = useSupabase()
+  const { userId } = useAuth()
+  const router = useRouter()
   const [doctor, setDoctor] = useState<Doctor | null>(null)
   const [assignedPatients, setAssignedPatients] = useState<Patient[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false)
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [date, setDate] = useState<Date | undefined>(new Date())
 
   useEffect(() => {
     async function fetchData() {
-      if (!supabase || !id) return
+      if (!supabase || !id || !userId) return
 
       setIsLoading(true)
       try {
@@ -60,164 +71,278 @@ export default function DoctorDetailsPage() {
           setAssignedPatients(patientsData)
         }
 
-        // Fetch doctor's appointments
-        const appointmentsData = await fetchAppointments(supabase, { doctorId: id.toString(), upcoming: true })
+        console.log('Fetching appointments for doctor:', id, 'and user:', userId)
+        const appointmentsData = await fetchAppointments(supabase, userId, { 
+          doctorId: id as string,  // Use doctorId instead of patientId
+          limit: 5, 
+          upcoming: true 
+        })
+        console.log('Fetched appointments:', appointmentsData)
         setAppointments(appointmentsData)
 
       } catch (error) {
         console.error('Error fetching data:', error)
+        toast.error('Failed to load doctor data')
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchData()
-  }, [supabase, id])
+  }, [supabase, id, userId])
 
-  if (isLoading) return <div>Loading...</div>
-  if (!doctor) return <div>Doctor not found</div>
+  const handleReschedule = (appointment: Appointment) => {
+    setSelectedAppointment(appointment)
+    setIsRescheduleDialogOpen(true)
+  }
+
+  const handleCancel = (appointment: Appointment) => {
+    setSelectedAppointment(appointment)
+    setIsCancelDialogOpen(true)
+  }
+
+  const handleRescheduleSuccess = async (newDate: Date) => {
+    if (selectedAppointment && userId) {
+      try {
+        await rescheduleAppointment(supabase, selectedAppointment.id, newDate)
+        toast.success('Appointment rescheduled successfully')
+        const updatedAppointments = await fetchAppointments(supabase, userId, { 
+          doctorId: id as string,  // Change this from patientId to doctorId
+          limit: 5, 
+          upcoming: true 
+        })
+        setAppointments(updatedAppointments)
+      } catch (error) {
+        console.error('Error rescheduling appointment:', error)
+        toast.error('Failed to reschedule appointment')
+      }
+      setIsRescheduleDialogOpen(false)
+    }
+  }
+
+  const handleCancelSuccess = async () => {
+    if (selectedAppointment && userId) {
+      try {
+        await cancelAppointment(supabase, selectedAppointment.id)
+        toast.success('Appointment cancelled successfully')
+        const updatedAppointments = await fetchAppointments(supabase, userId, { 
+          doctorId: id as string,  // Change this from patientId to doctorId
+          limit: 5, 
+          upcoming: true 
+        })
+        setAppointments(updatedAppointments)
+      } catch (error) {
+        console.error('Error cancelling appointment:', error)
+        toast.error('Failed to cancel appointment')
+      }
+      setIsCancelDialogOpen(false)
+    }
+  }
+
+  if (isLoading || !doctor) {
+    return <div>Loading...</div>
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Doctor Details</h1>
-        <Dialog open={isAddAppointmentOpen} onOpenChange={setIsAddAppointmentOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              Add Appointment
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Add New Appointment</DialogTitle>
-            </DialogHeader>
-            {doctor && (
-              <AddAppointmentForm 
-                doctorId={doctor.id} 
-                onSuccess={() => {
-                  setIsAddAppointmentOpen(false)
-                  // Optionally, refresh the appointments list here
-                }} 
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1 p-8">
-          <div className="space-y-4">
-            <h1 className="text-3xl font-bold">Dr. {doctor.first_name} {doctor.last_name}</h1>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Doctor Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-2">
-                  <div>
-                    <dt className="font-medium">Specialization</dt>
-                    <dd>{doctor.specialization}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium">Contact</dt>
-                    <dd>{doctor.contact_number}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium">Email</dt>
-                    <dd>{doctor.email || 'N/A'}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium">Address</dt>
-                    <dd>{doctor.address}</dd>
-                  </div>
-                  {doctor.assistant && (
-                    <div>
-                      <dt className="font-medium">Assistant</dt>
-                      <dd>{doctor.assistant}</dd>
-                    </div>
-                  )}
-                </dl>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {appointments.length > 0 ? (
-                  <ul className="space-y-4">
-                    {appointments.map((appointment) => (
-                      <li key={appointment.id} className="border-b pb-2">
-                        <Link href={`/appointments/${appointment.id}`} className="block hover:bg-gray-50 p-2 rounded">
-                          <div className="flex items-center space-x-2">
-                            <CalendarIcon className="w-4 h-4" />
-                            <p className="font-semibold">
-                              {format(new Date(appointment.date), 'MMMM d, yyyy')}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <ClockIcon className="w-4 h-4" />
-                            <p>{format(new Date(appointment.date), 'h:mm a')}</p>
-                          </div>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <MapPinIcon className="w-4 h-4" />
-                            <p>{appointment.location}</p>
-                          </div>
-                          <p className="mt-2">
-                            Patient: {appointment.patients?.id ? (
-                              <Link href={`/patients/${appointment.patients.id}`} className="text-blue-600 hover:underline">
-                                {appointment.patients?.name || 'N/A'}
-                              </Link>
-                            ) : (
-                              appointment.patients?.name || 'N/A'
-                            )}
-                          </p>
-                          <p>Type: {appointment.type}</p>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No upcoming appointments</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Assigned Patients</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {assignedPatients.length > 0 ? (
-                  <ul className="space-y-4">
-                    {assignedPatients.map((patient) => (
-                      <li key={patient.id} className="flex items-center space-x-4">
-                        <Avatar>
-                          <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <Link href={`/patients/${patient.id}`} className="font-medium hover:underline">
-                            {patient.name}
-                          </Link>
-                          <p className="text-sm text-gray-500">{patient.contact_number}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No patients assigned to this doctor.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Add more cards for other doctor-related information as needed */}
+    <DashboardLayout>
+      <div className="bg-blue-600 text-white p-6">
+        <div className="flex justify-between items-center mb-4">
+          <Link href="/doctors" className="inline-flex items-center text-white hover:underline transition-colors duration-200">
+            <ChevronLeft className="w-5 h-5 mr-1" />
+            Doctors
+          </Link>
+          <Button size="sm" className="bg-white text-blue-600 hover:bg-blue-50">
+            <PlusCircle className="w-4 h-4 mr-1" />
+            New Log
+          </Button>
+        </div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Dr. {doctor.first_name} {doctor.last_name}</h1>
+            <div className="flex items-center mt-2 text-sm">
+              <MapPin className="w-4 h-4 mr-1" />
+              <span>{doctor.address}</span>
+            </div>
+          </div>
+          <div className="mt-4 md:mt-0 text-right">
+            <p className="text-xl font-medium flex items-center justify-end">
+              <Phone className="w-4 h-4 mr-1" />
+              {doctor.contact_number}
+            </p>
+            <p className="text-lg flex items-center justify-end">
+              <Mail className="w-4 h-4 mr-1" />
+              {doctor.email}
+            </p>
           </div>
         </div>
       </div>
-    </div>
+
+      <div className="container mx-auto p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-1 bg-white shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl font-semibold text-blue-800">Doctor Information</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <p><strong>Specialization:</strong> {doctor.specialization}</p>
+              {doctor.assistant && <p><strong>Assistant:</strong> {doctor.assistant}</p>}
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-2xl font-semibold">Appointment Calendar</CardTitle>
+                <Dialog open={isAddAppointmentOpen} onOpenChange={setIsAddAppointmentOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <PlusCircle className="w-4 h-4 mr-1" />
+                      Schedule Appointment
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Schedule New Appointment</DialogTitle>
+                    </DialogHeader>
+                    <AddAppointmentForm 
+                      onSuccess={() => {
+                        setIsAddAppointmentOpen(false);
+                        fetchAppointments(supabase, userId, { 
+                          doctorId: id as string, 
+                          limit: 5, 
+                          upcoming: true 
+                        }).then(setAppointments);
+                      }} 
+                      doctorId={doctor?.id.toString()}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    className="rounded-md border w-full"
+                    modifiers={{
+                      hasAppointment: (date) => appointments.some(
+                        (appointment) => new Date(appointment.date).toDateString() === date.toDateString()
+                      )
+                    }}
+                    modifiersStyles={{
+                      hasAppointment: { backgroundColor: '#93c5fd', color: '#1e40af' }
+                    }}
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-4">
+                  {appointments.length > 0 ? (
+                    appointments.map((appointment) => (
+                      <div 
+                        key={appointment.id} 
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                      >
+                        <div className="flex-grow">
+                          <Link href={`/appointments/${appointment.id}`} className="block">
+                            <div className="font-semibold text-blue-600 hover:text-blue-800">
+                              {appointment.patients?.name} {appointment.type} with Dr. {doctor.last_name}
+                            </div>
+                            <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                              <div className="flex items-center">
+                                <CalendarIcon className="w-4 h-4 mr-1" />
+                                {formatLocalDate(convertUTCToLocal(appointment.date), "MMMM d, yyyy")}
+                              </div>
+                              <div className="flex items-center">
+                                <ClockIcon className="w-4 h-4 mr-1" />
+                                {formatLocalDate(convertUTCToLocal(appointment.date), "h:mm a")}
+                              </div>
+                              <div className="flex items-center">
+                                <MapPinIcon className="w-4 h-4 mr-1" />
+                                {appointment.location}
+                              </div>
+                            </div>
+                          </Link>
+                        </div>
+                        <div className="flex space-x-2 ml-4">
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleReschedule(appointment);
+                            }}
+                            className="flex items-center"
+                            title="Reschedule"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleCancel(appointment);
+                            }}
+                            className="flex items-center text-red-600 hover:text-red-800 hover:bg-red-100"
+                            title="Cancel"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No upcoming appointments.</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Assigned Patients</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {assignedPatients.length > 0 ? (
+                <ul className="space-y-4">
+                  {assignedPatients.map((patient) => (
+                    <li key={patient.id} className="flex items-center space-x-4">
+                      <Avatar>
+                        <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <Link href={`/patients/${patient.id}`} className="font-medium hover:underline">
+                          {patient.name}
+                        </Link>
+                        <p className="text-sm text-gray-500">{patient.contact_number}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No patients assigned to this doctor.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <RescheduleAppointmentDialog
+        isOpen={isRescheduleDialogOpen}
+        onOpenChange={setIsRescheduleDialogOpen}
+        appointmentId={selectedAppointment?.id || 0}
+        onSuccess={handleRescheduleSuccess}
+      />
+
+      <CancelAppointmentDialog
+        isOpen={isCancelDialogOpen}
+        onOpenChange={setIsCancelDialogOpen}
+        appointment={selectedAppointment}
+        onCancel={handleCancelSuccess}
+      />
+    </DashboardLayout>
   )
 }

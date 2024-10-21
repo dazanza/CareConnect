@@ -78,3 +78,24 @@ export interface PatientDoctor {
   user_id: string;
   created_at: string;
 }
+
+export interface Todo {
+  id: number;
+  text: string;
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+  due_date: string | null;
+  appointment_id: number | null;
+  patient_id: number | null;
+  event_id: number | null;
+  log_id: number | null;
+  user_id: string;
+  doctor?: string;
+  event?: string;
+  patients?: {
+    id: number;
+    name: string;
+  };
+  patientName?: string;
+}
