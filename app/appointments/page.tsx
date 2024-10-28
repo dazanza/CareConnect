@@ -1,210 +1,227 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { Appointment } from '@/types'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { AddAppointmentForm } from '@/app/components/AddAppointmentForm'
+import { Calendar, Clock, MapPin, RefreshCw, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
-import { fetchAppointments } from '@/app/lib/dataFetching'
-import DashboardLayout from '@/app/components/layout/DashboardLayout'
-import Link from 'next/link'
-import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon } from 'lucide-react'
-import { convertUTCToLocal, formatLocalDate } from '@/app/lib/dateUtils'
-import { rescheduleAppointment, cancelAppointment } from "@/app/lib/appointments"
+import { toast } from 'react-hot-toast'
+import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointmentDialog'
+import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
+import { AppointmentSkeleton } from '@/components/ui/skeleton'
+import { AppointmentCalendar } from '@/app/components/AppointmentCalendar'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+interface Appointment {
+  id: string
+  date: string
+  patient: {
+    id: string
+    name: string
+  }
+  doctor: {
+    id: string
+    name: string
+  }
+  location: string
+}
 
 export default function AppointmentsPage() {
   const { supabase } = useSupabase()
-  const [appointmentsData, setAppointmentsData] = useState<Appointment[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false)
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [showReschedule, setShowReschedule] = useState(false)
+  const [showCancel, setShowCancel] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
 
-  const loadAppointments = useCallback(async () => {
-    if (!supabase) {
-      console.log('Supabase client not available')
-      setError('Supabase client not available')
-      return
-    }
+  useEffect(() => {
+    fetchAppointments()
+  }, [supabase])
 
-    setIsLoading(true)
-    setError(null)
+  const fetchAppointments = async () => {
+    if (!supabase) return
+
     try {
-      console.log('Fetching appointments...')
-      const data = await fetchAppointments(supabase)
-      console.log('Appointments fetched:', data)
-      if (data.length === 0) {
-        setError('No appointments found in the database')
-      }
-      setAppointmentsData(data)
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          date,
+          location,
+          patient:patients!patient_id (id, name),
+          doctor:doctors!doctor_id (id, name)
+        `)
+        .order('date', { ascending: true })
+
+      if (error) throw error
+      
+      // Transform the data to match the Appointment interface
+      const transformedData: Appointment[] = data.map(apt => ({
+        id: apt.id,
+        date: apt.date,
+        location: apt.location,
+        patient: apt.patient[0],
+        doctor: apt.doctor[0]
+      }))
+      
+      setAppointments(transformedData)
     } catch (error) {
       console.error('Error fetching appointments:', error)
-      setError(`Failed to load appointments: ${error.message}`)
+      toast.error('Failed to load appointments')
     } finally {
       setIsLoading(false)
     }
-  }, [supabase])
+  }
 
-  useEffect(() => {
-    console.log('AppointmentsPage mounted')
-    loadAppointments()
-    return () => {
-      console.log('AppointmentsPage unmounted')
-    }
-  }, [loadAppointments])
+  const handleReschedule = async (date: string, time: string) => {
+    if (!selectedAppointment || !supabase) return
 
-  const appointments = useMemo(() => appointmentsData, [appointmentsData])
+    try {
+      const newDateTime = `${date}T${time}:00`
+      const { error } = await supabase
+        .from('appointments')
+        .update({ date: newDateTime })
+        .eq('id', selectedAppointment.id)
 
-  const handleAppointmentAdded = useCallback(async () => {
-    setIsAddAppointmentOpen(false)
-    await loadAppointments()
-  }, [loadAppointments])
+      if (error) throw error
 
-  const handleReschedule = async (newDate: Date) => {
-    if (selectedAppointment) {
-      try {
-        await rescheduleAppointment(supabase, selectedAppointment.id, newDate)
-        toast.success('Appointment rescheduled successfully')
-        loadAppointments()
-      } catch (error) {
-        console.error('Error rescheduling appointment:', error)
-        toast.error('Failed to reschedule appointment')
-      }
-      setIsRescheduleDialogOpen(false)
+      setAppointments(appointments.map(apt => 
+        apt.id === selectedAppointment.id 
+          ? { ...apt, date: newDateTime }
+          : apt
+      ))
+      toast.success('Appointment rescheduled successfully')
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error)
+      toast.error('Failed to reschedule appointment')
+      throw error
     }
   }
 
   const handleCancel = async () => {
-    if (selectedAppointment) {
-      try {
-        await cancelAppointment(supabase, selectedAppointment.id)
-        toast.success('Appointment cancelled successfully')
-        loadAppointments()
-      } catch (error) {
-        console.error('Error cancelling appointment:', error)
-        toast.error('Failed to cancel appointment')
-      }
-      setIsCancelDialogOpen(false)
+    if (!selectedAppointment || !supabase) return
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', selectedAppointment.id)
+
+      if (error) throw error
+
+      setAppointments(appointments.filter(apt => apt.id !== selectedAppointment.id))
+      toast.success('Appointment cancelled successfully')
+    } catch (error) {
+      console.error('Error cancelling appointment:', error)
+      toast.error('Failed to cancel appointment')
+      throw error
     }
   }
 
-  console.log('AppointmentsPage rendering, isLoading:', isLoading)
-
   if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="container mx-auto px-4 py-8">
-          <p>Loading appointments...</p>
-        </div>
-      </DashboardLayout>
-    )
+    return <AppointmentSkeleton />
   }
 
-  if (error) {
-    return (
-      <DashboardLayout>
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-red-500">{error}</p>
-        </div>
-      </DashboardLayout>
-    )
+  const formatAppointmentDate = (date: string) => {
+    return format(new Date(date), 'MMMM d, yyyy')
   }
 
   return (
-    <DashboardLayout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">All Appointments</h1>
-          <Button onClick={loadAppointments}>Refresh Appointments</Button>
-          <Dialog open={isAddAppointmentOpen} onOpenChange={setIsAddAppointmentOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Appointment</DialogTitle>
-              </DialogHeader>
-              <AddAppointmentForm onSuccess={handleAppointmentAdded} />
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {console.log('Rendering appointments:', appointments)} 
-        {appointments.length > 0 ? (
-          <ul className="space-y-4">
-            {appointments.map((appointment) => (
-              <li key={appointment.id} className="border-b pb-4">
-                <div className="block hover:bg-gray-50 p-2 rounded">
-                  <Link href={`/appointments/${appointment.id}`} className="block mb-2">
-                    <div className="flex items-center space-x-2">
-                      <CalendarIcon className="w-4 h-4" />
-                      <p className="font-semibold">
-                        {formatLocalDate(convertUTCToLocal(appointment.date), 'MMMM d, yyyy')}
-                      </p>
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Appointments</h1>
+      
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="list">List View</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list">
+          <div className="grid gap-4">
+            {appointments.length === 0 ? (
+              <p className="text-muted-foreground">No appointments scheduled.</p>
+            ) : (
+              appointments.map((appointment) => (
+                <Card key={appointment.id}>
+                  <CardContent className="flex items-center justify-between p-6">
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{appointment.patient.name}</h3>
+                      <div className="flex items-center text-muted-foreground mt-1">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        {formatAppointmentDate(appointment.date)}
+                      </div>
+                      <div className="flex items-center text-muted-foreground mt-1">
+                        <Clock className="w-4 h-4 mr-2" />
+                        {format(new Date(appointment.date), 'HH:mm')}
+                      </div>
+                      <div className="flex items-center text-muted-foreground mt-1">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        {appointment.location}
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <ClockIcon className="w-4 h-4" />
-                      <p>{formatLocalDate(convertUTCToLocal(appointment.date), 'h:mm a')}</p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedAppointment(appointment)
+                          setShowReschedule(true)
+                        }}
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedAppointment(appointment)
+                          setShowCancel(true)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <MapPinIcon className="w-4 h-4" />
-                      <p>{appointment.location}</p>
-                    </div>
-                    {/* ... (patient and doctor info) */}
-                    <p>Type: {appointment.type}</p>
-                  </Link>
-                  <div className="mt-2 space-x-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setSelectedAppointment(appointment)
-                        setIsRescheduleDialogOpen(true)
-                      }}
-                    >
-                      Reschedule
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      onClick={() => {
-                        setSelectedAppointment(appointment)
-                        setIsCancelDialogOpen(true)
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No appointments found.</p>
-        )}
-      </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="calendar">
+          <AppointmentCalendar
+            appointments={appointments}
+            onDateSelect={setSelectedDate}
+            className="min-h-[600px]"
+          />
+        </TabsContent>
+      </Tabs>
 
-      <RescheduleAppointmentDialog
-        isOpen={isRescheduleDialogOpen}
-        onOpenChange={setIsRescheduleDialogOpen}
-        appointmentId={selectedAppointment?.id || 0}
-        onSuccess={(newDate) => handleReschedule(newDate)}
-      />
-
-      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Appointment</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to cancel this appointment? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCancelDialogOpen(false)}>No, keep appointment</Button>
-            <Button variant="destructive" onClick={handleCancel}>Yes, cancel appointment</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </DashboardLayout>
+      {selectedAppointment && (
+        <>
+          <RescheduleAppointmentDialog
+            isOpen={showReschedule}
+            onClose={() => {
+              setShowReschedule(false)
+              setSelectedAppointment(null)
+            }}
+            onReschedule={handleReschedule}
+            currentDate={selectedAppointment.date.split('T')[0]}
+            currentTime={selectedAppointment.date.split('T')[1].substring(0, 5)}
+          />
+          <CancelAppointmentDialog
+            isOpen={showCancel}
+            onClose={() => {
+              setShowCancel(false)
+              setSelectedAppointment(null)
+            }}
+            onCancel={handleCancel}
+            appointmentDate={formatAppointmentDate(selectedAppointment.date)}
+          />
+        </>
+      )}
+    </div>
   )
 }

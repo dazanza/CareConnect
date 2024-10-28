@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, Suspense } from "react"
 import { format } from "date-fns"
 import { Calendar as CalendarIcon, User, Trash2, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -16,6 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useSupabase } from "@/app/hooks/useSupabase"
 import { Todo } from '@/types'
 import { toast } from "react-hot-toast"
+import { TodoListSkeleton } from "@/components/ui/skeleton"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 
 type AppTodoListProps = {
   patientId?: string
@@ -23,13 +25,14 @@ type AppTodoListProps = {
   userId?: string
 }
 
-export function AppTodoList({ patientId, appointmentId, userId }: AppTodoListProps) {
+export default function AppTodoList({ patientId, appointmentId, userId }: AppTodoListProps) {
   const { supabase } = useSupabase()
   const [todos, setTodos] = useState<Todo[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>(userId)
   const [newTask, setNewTask] = useState("")
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   useEffect(() => {
     async function initializeComponent() {
@@ -37,7 +40,7 @@ export function AppTodoList({ patientId, appointmentId, userId }: AppTodoListPro
         try {
           const { data: { user }, error } = await supabase.auth.getUser()
           if (error) throw error
-          setCurrentUserId(user?.id)
+          setCurrentUserId(user?.id || null)
         } catch (error) {
           console.error('Error fetching user:', error)
           setIsLoading(false)
@@ -86,11 +89,11 @@ export function AppTodoList({ patientId, appointmentId, userId }: AppTodoListPro
   const addTask = async () => {
     if (!supabase || newTask.trim() === "") return
 
-    const task: Partial<Todo> = {
+    const task = {
       text: newTask,
       completed: false,
-      patient_id: patientId,
-      appointment_id: appointmentId,
+      patient_id: patientId ? parseInt(patientId) : null,
+      appointment_id: appointmentId ? parseInt(appointmentId) : null,
       user_id: currentUserId,
       due_date: dueDate?.toISOString(),
     }
@@ -153,91 +156,103 @@ export function AppTodoList({ patientId, appointmentId, userId }: AppTodoListPro
     }
   }
 
+  if (error) {
+    return (
+      <ErrorBoundary 
+        error={error} 
+        reset={() => {
+          setError(null)
+          fetchTodos()
+        }} 
+      />
+    )
+  }
+
   return (
-    <div className="w-full h-full p-4 space-y-4">
-      <h2 className="text-2xl font-bold">Todo List</h2>
-      {isLoading ? (
-        <p>Loading todos...</p>
-      ) : currentUserId ? (
-        <>
-          <div className="flex items-center space-x-2">
-            <Input
-              type="text"
-              placeholder="Add a new task"
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              className="flex-grow"
-            />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-10 px-0 justify-center",
-                    !dueDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={(date) => setDueDate(date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <Button onClick={addTask} className="w-10 px-0 justify-center">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="space-y-2 mt-4 overflow-y-auto" style={{ maxHeight: 'calc(100% - 120px)' }}>
-            <h3 className="text-lg font-semibold">Tasks</h3>
-            {todos.filter(todo => !todo.completed).length === 0 ? (
-              <p className="text-muted-foreground">No active todos.</p>
-            ) : (
-              todos
-                .filter(todo => !todo.completed)
-                .map((todo) => (
-                  <div key={todo.id} className="flex items-center space-x-2 p-2 border rounded">
-                    <Checkbox
-                      checked={todo.completed}
-                      onCheckedChange={() => toggleComplete(todo.id)}
-                    />
-                    <div className="flex-grow">
-                      <span className={cn(todo.completed && "line-through text-muted-foreground")}>
-                        {todo.text}
-                      </span>
-                      <span className="text-sm text-gray-500 ml-2">
-                        Patient: {todo.patientName}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm">
-                      {todo.due_date && (
-                        <span className="text-muted-foreground">
-                          Due: {format(new Date(todo.due_date), "MMM d, yyyy")}
+    <Suspense fallback={<TodoListSkeleton />}>
+      <div className="w-full h-full p-4 space-y-4">
+        <h2 className="text-2xl font-bold">Todo List</h2>
+        {isLoading ? (
+          <p>Loading todos...</p>
+        ) : currentUserId ? (
+          <>
+            <div className="flex items-center space-x-2">
+              <Input
+                type="text"
+                placeholder="Add a new task"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                className="flex-grow"
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-10 px-0 justify-center",
+                      !dueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={(date) => setDueDate(date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button onClick={addTask} className="w-10 px-0 justify-center">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-2 mt-4 overflow-y-auto" style={{ maxHeight: 'calc(100% - 120px)' }}>
+              <h3 className="text-lg font-semibold">Tasks</h3>
+              {todos.filter(todo => !todo.completed).length === 0 ? (
+                <p className="text-muted-foreground">No active todos.</p>
+              ) : (
+                todos
+                  .filter(todo => !todo.completed)
+                  .map((todo) => (
+                    <div key={todo.id} className="flex items-center space-x-2 p-2 border rounded">
+                      <Checkbox
+                        checked={todo.completed}
+                        onCheckedChange={() => toggleComplete(todo.id)}
+                      />
+                      <div className="flex-grow">
+                        <span className={cn(todo.completed && "line-through text-muted-foreground")}>
+                          {todo.text}
                         </span>
-                      )}
+                        <span className="text-sm text-gray-500 ml-2">
+                          Patient: {todo.patientName}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm">
+                        {todo.due_date && (
+                          <span className="text-muted-foreground">
+                            Due: {format(new Date(todo.due_date), "MMM d, yyyy")}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteTask(todo.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteTask(todo.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))
-            )}
-          </div>
-        </>
-      ) : (
-        <p>Please log in to view your todo list.</p>
-      )}
-    </div>
+                  ))
+              )}
+            </div>
+          </>
+        ) : (
+          <p>Please log in to view your todo list.</p>
+        )}
+      </div>
+    </Suspense>
   )
 }
-
-export default AppTodoList

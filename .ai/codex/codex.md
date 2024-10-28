@@ -354,3 +354,38 @@ L044:
 - Application: Show a list of patients assigned to a doctor to provide an overview of their patient load
 - Impact: Facilitates better patient management and quick access to patient information from the doctor's view
 - Related: L040, L041
+
+L045:
+- Context: /app/patients/[id]/page.tsx
+- Insight: Comprehensive patient details page with multiple health management components
+- Application: Organize patient data into distinct components for vitals, documents, prescriptions, etc.
+- Impact: Improves code organization and maintainability while providing a complete patient overview
+- Related: L029, L032
+
+L046:
+- Context: /app/components/BillingManager.tsx
+- Insight: Implementation of billing system with payment tracking and status management
+- Application: Use status-based UI indicators and proper financial data handling
+- Impact: Enables accurate financial tracking and billing management
+- Related: L029, L045
+
+L047:
+- Context: /app/components/ImmunizationTracker.tsx
+- Insight: Vaccine scheduling and tracking with automatic next due date calculation
+- Application: Implement date-based calculations for recurring medical events
+- Impact: Ensures proper immunization scheduling and patient follow-up
+- Related: L045, L046
+
+L048:
+- Context: /app/components/VitalsTracker.tsx
+- Insight: Real-time vitals monitoring with data visualization
+- Application: Use charts and visual indicators for medical data representation
+- Impact: Improves data interpretation and trend analysis
+- Related: L045, L033
+
+L049:
+- Context: /app/lib/db/schema organization
+- Insight: Modular schema definitions for different medical entities
+- Application: Separate schema files for different aspects of the medical system
+- Impact: Improves database schema management and maintainability
+- Related: L028, L045

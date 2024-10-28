@@ -1,33 +1,66 @@
-import React from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+'use client'
+
+import { useState } from 'react'
 import { Button } from "@/components/ui/button"
-import { Appointment } from '@/types'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { toast } from "react-hot-toast"
 
 interface CancelAppointmentDialogProps {
   isOpen: boolean
-  onOpenChange: (open: boolean) => void
-  appointment: Appointment | null
-  onCancel: () => void
+  onClose: () => void
+  onCancel: () => Promise<void>
+  appointmentDate: string
 }
 
 export function CancelAppointmentDialog({
   isOpen,
-  onOpenChange,
-  appointment,
-  onCancel
+  onClose,
+  onCancel,
+  appointmentDate,
 }: CancelAppointmentDialogProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleCancel = async () => {
+    setIsSubmitting(true)
+    try {
+      await onCancel()
+      toast.success('Appointment cancelled successfully')
+      onClose()
+    } catch (error) {
+      toast.error('Failed to cancel appointment')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Cancel Appointment</DialogTitle>
           <DialogDescription>
-            Are you sure you want to cancel this appointment? This action cannot be undone.
+            Are you sure you want to cancel the appointment scheduled for {appointmentDate}? 
+            This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>No, keep appointment</Button>
-          <Button variant="destructive" onClick={onCancel}>Yes, cancel appointment</Button>
+          <Button variant="outline" onClick={onClose}>
+            Keep Appointment
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleCancel}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Cancelling...' : 'Cancel Appointment'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
