@@ -54,3 +54,35 @@ export interface DocumentInput {
   url: string
   category: Document['category']
 }
+
+export interface Appointment {
+  id: number
+  patient_id: number
+  doctor_id: number
+  date: string
+  type: string
+  location: string
+  notes?: string
+  status: 'scheduled' | 'cancelled' | 'completed'
+  patients?: {
+    id: number
+    name: string
+  }
+  doctors?: {
+    id: number
+    first_name: string
+    last_name: string
+  }
+}
+
+export interface MedicalEvent {
+  id: string
+  date: string
+  type: 'appointment' | 'prescription' | 'diagnosis' | 'test'
+  title: string
+  description: string
+  doctor: {
+    id: string
+    name: string
+  }
+}

@@ -389,3 +389,66 @@ L049:
 - Application: Separate schema files for different aspects of the medical system
 - Impact: Improves database schema management and maintainability
 - Related: L028, L045
+
+L050:
+Context: /app/lib/timeline-service.ts and /app/types/timeline.ts
+Insight: Implementation of timeline events with related data fetching
+Application: Use nested selects in Supabase queries to fetch related data for timeline events
+Impact: Provides comprehensive timeline view with associated medical data
+Related: L037, L038
+
+L051:
+Context: /app/components/medical-history/TimelineView.tsx
+Insight: Implementation of filterable timeline with event type categories
+Application: Use dropdown menu for filtering and consistent color coding for event types
+Impact: Improves user experience by allowing focused view of specific event types
+Related: L050
+
+L052:
+Context: /supabase/migrations/20240312_medical_records.sql
+Insight: Structured approach to medical records with RLS policies
+Application: Create tables with proper relationships and security policies
+Impact: Ensures data integrity and proper access control for medical records
+Related: L049
+
+L053:
+Context: /app/components/medical-history/TimelineEventCard.tsx
+Insight: Expandable card design for timeline events
+Application: Use collapsible sections for detailed event information
+Impact: Provides clean interface while allowing access to detailed information
+Related: L051, L029
+
+L054:
+Context: /supabase/migrations/20240312_timeline_triggers.sql
+Insight: Automated timeline event creation through database triggers
+Application: Create triggers for various medical events to maintain timeline
+Impact: Ensures consistent timeline updates across the application
+Related: L052, L050
+
+L057:
+- Context: /app/components/notifications/NotificationListener.tsx
+- Insight: Real-time notification system using Supabase's realtime subscriptions
+- Application: Subscribe to database changes and show toast notifications
+- Impact: Provides immediate user feedback for important system events
+- Related: L053, L054
+
+L058:
+- Context: /supabase/migrations/20240312_medical_rls_policies.sql
+- Insight: Comprehensive RLS policies with shared access control
+- Application: Use RLS with patient_shares table for granular access control
+- Impact: Ensures data security while allowing flexible sharing
+- Related: L052, L055
+
+L059:
+- Context: /app/components/medical-history/TimelineView.tsx
+- Insight: Unified timeline view for all patient-related events
+- Application: Combine different event types with consistent UI and filtering
+- Impact: Provides clear chronological view of patient history
+- Related: L050, L051
+
+L060:
+- Context: /supabase/migrations/20240312_timeline_triggers.sql
+- Insight: Automated timeline event generation using database triggers
+- Application: Create timeline entries automatically for various medical events
+- Impact: Maintains consistent timeline without manual intervention
+- Related: L054, L059

@@ -11,13 +11,17 @@ import { MedicalHistoryTimeline } from '@/app/components/MedicalHistoryTimeline'
 import { AddMedicalHistoryForm } from '@/app/components/AddMedicalHistoryForm'
 import { PatientCardSkeleton } from '@/components/ui/skeleton'
 import { VitalsTracker } from '@/app/components/VitalsTracker'
-import { DocumentManager } from '@/app/components/DocumentManager'
+import { DocumentManager } from '@/components/documents/DocumentManager'
 import { PrescriptionManager } from '@/app/components/PrescriptionManager'
 import { LabResultsManager } from '@/app/components/LabResultsManager'
 import { AllergiesManager } from '@/app/components/AllergiesManager'
 import { MedicationsTracker } from '@/app/components/MedicationsTracker'
 import { ImmunizationTracker } from '@/app/components/ImmunizationTracker'
 import { BillingManager } from '@/app/components/BillingManager'
+import { PatientShares } from '@/components/patients/PatientShares'
+import { Separator } from '@/components/ui/separator'
+import { TimelineView } from '@/components/medical-history/TimelineView'
+import { getPatientTimeline } from '@/lib/timeline-service'
 
 interface Doctor {
   id: string
@@ -152,8 +156,24 @@ interface Bill {
   }
 }
 
-export default function PatientDetailsPage() {
-  const params = useParams()
+interface TimelineEvent {
+  id: string
+  patient_id: number
+  user_id: string
+  type: 'appointment' | 'prescription' | 'vitals' | 'lab_result' | 'note'
+  date: string
+  title: string
+  description: string | null
+  metadata: Record<string, any> | null
+  created_by: string
+  created_at: string
+  appointment_id?: number
+  prescription_id?: number
+  vitals_id?: number
+  lab_result_id?: number
+}
+
+export default function PatientDetailsPage({ params }: { params: { id: string } }) {
   const { supabase } = useSupabase()
   const [isLoading, setIsLoading] = useState(true)
   const [patient, setPatient] = useState<any>(null)
@@ -168,10 +188,12 @@ export default function PatientDetailsPage() {
   const [medications, setMedications] = useState<Medication[]>([])
   const [immunizations, setImmunizations] = useState<Immunization[]>([])
   const [bills, setBills] = useState<Bill[]>([])
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([])
 
   useEffect(() => {
     if (supabase && params.id) {
       fetchPatientData()
+      fetchTimelineEvents()
       fetchDoctors()
       fetchMedicalHistory()
       fetchVitals()
@@ -383,6 +405,16 @@ export default function PatientDetailsPage() {
     }
   }
 
+  const fetchTimelineEvents = async () => {
+    try {
+      const data = await getPatientTimeline(supabase, parseInt(params.id))
+      setTimelineEvents(data)
+    } catch (error) {
+      console.error('Error fetching timeline:', error)
+      toast.error('Failed to load timeline')
+    }
+  }
+
   if (isLoading) {
     return <PatientCardSkeleton />
   }
@@ -392,7 +424,7 @@ export default function PatientDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{patient.name}</h1>
         <Button onClick={() => setShowAddHistory(true)}>
@@ -464,6 +496,27 @@ export default function PatientDetailsPage() {
           patientId={params.id as string}
           initialBills={bills}
         />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Patient Sharing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PatientShares 
+              patientId={parseInt(params.id)} 
+              patientName={patient?.name || ''} 
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Medical Timeline</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TimelineView patientId={parseInt(params.id)} />
+          </CardContent>
+        </Card>
       </div>
 
       <AddMedicalHistoryForm

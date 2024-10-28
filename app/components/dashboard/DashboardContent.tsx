@@ -15,8 +15,12 @@ import Link from 'next/link'
 import AppTodoList from '@/app/components/AppTodoList'
 import { useAuth } from '@clerk/nextjs'
 import { convertUTCToLocal, formatLocalDate } from '@/app/lib/dateUtils'
-import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointmentDialog'
-import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
+import { RescheduleAppointmentDialog } from '@/components/appointments/RescheduleAppointmentDialog'
+import { CancelAppointmentDialog } from '@/components/appointments/CancelAppointmentDialog'
+import { ErrorBoundary, ErrorDisplay, LoadingSpinner } from '@/components/ui/error-boundary'
+import { Suspense } from 'react'
+import { toast } from 'react-hot-toast'
+import { rescheduleAppointment, cancelAppointment } from '@/lib/appointment-actions'
 
 export default function DashboardContent() {
   const { supabase } = useSupabase()
@@ -268,16 +272,16 @@ export default function DashboardContent() {
 
       <RescheduleAppointmentDialog
         isOpen={isRescheduleDialogOpen}
-        onOpenChange={setIsRescheduleDialogOpen}
         appointmentId={selectedAppointment?.id || 0}
         onSuccess={handleRescheduleSuccess}
+        onClose={() => setIsRescheduleDialogOpen(false)}
       />
 
       <CancelAppointmentDialog
         isOpen={isCancelDialogOpen}
-        onOpenChange={setIsCancelDialogOpen}
         appointment={selectedAppointment}
         onCancel={handleCancelSuccess}
+        onClose={() => setIsCancelDialogOpen(false)}
       />
     </div>
   )

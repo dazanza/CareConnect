@@ -1,5 +1,6 @@
 import { Appointment } from '@/types'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { unstable_cache } from 'next/cache'
 
 export async function fetchAppointments(supabase: SupabaseClient, userId: string, options: { patientId?: string; doctorId?: string; limit?: number; upcoming?: boolean; allPatients?: boolean } = {}) {
   console.log('fetchAppointments called for user:', userId, 'with options:', options)
@@ -38,4 +39,13 @@ export async function fetchAppointments(supabase: SupabaseClient, userId: string
 
   console.log('fetchAppointments data:', data)
   return data
+}
+
+// Implement caching for frequently accessed data
+export async function getCachedAppointments(supabase: SupabaseClient, userId: string, options = {}) {
+  return unstable_cache(
+    async () => fetchAppointments(supabase, userId, options),
+    ['appointments', userId, JSON.stringify(options)],
+    { revalidate: 60 } // Revalidate every minute
+  )()
 }

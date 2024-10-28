@@ -3,21 +3,28 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Calendar } from '@/components/ui/calendar'
+import { Button } from '@/components/ui/button'
 
 interface RescheduleAppointmentDialogProps {
   isOpen: boolean
-  appointmentId: number | string
-  onSuccess: (newDate: Date) => void
   onClose: () => void
+  appointmentId: number
+  onSuccess: (newDate: Date) => void
 }
 
 export function RescheduleAppointmentDialog({
   isOpen,
+  onClose,
   appointmentId,
-  onSuccess,
-  onClose
+  onSuccess
 }: RescheduleAppointmentDialogProps) {
   const [date, setDate] = useState<Date | undefined>(new Date())
+
+  const handleReschedule = () => {
+    if (date) {
+      onSuccess(date)
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -25,18 +32,22 @@ export function RescheduleAppointmentDialog({
         <DialogHeader>
           <DialogTitle>Reschedule Appointment</DialogTitle>
         </DialogHeader>
-        <div className="p-4">
+        <div className="space-y-4">
           <Calendar
             mode="single"
             selected={date}
-            onSelect={(newDate) => {
-              setDate(newDate)
-              if (newDate) {
-                onSuccess(newDate)
-              }
-            }}
+            onSelect={setDate}
+            disabled={(date) => date < new Date()}
             initialFocus
           />
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleReschedule} disabled={!date}>
+              Reschedule
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
