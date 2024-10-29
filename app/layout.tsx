@@ -8,6 +8,7 @@ import {
 import { Inter } from 'next/font/google'
 import './globals.css'
 import toast, { Toaster } from 'react-hot-toast';
+import Link from 'next/link';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -27,17 +28,21 @@ export default function RootLayout({
         <body className={inter.className}>
           <header className="p-4 bg-white shadow-sm">
             <div className="container mx-auto flex justify-between items-center">
-              <h1 className="text-2xl font-bold text-blue-800">CareConnect</h1>
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                    Sign In
-                  </button>
-                </SignInButton>
-              </SignedOut>
-              <SignedIn>
-                <UserButton afterSignOutUrl="/" />
-              </SignedIn>
+              <Link href="/" className="text-2xl font-bold text-blue-800">
+                CareConnect
+              </Link>
+              <div>
+                <SignedIn>
+                  <UserButton afterSignOutUrl="/" />
+                </SignedIn>
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                      Sign In
+                    </button>
+                  </SignInButton>
+                </SignedOut>
+              </div>
             </div>
           </header>
           <main className="container mx-auto mt-8">

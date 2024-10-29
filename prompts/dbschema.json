@@ -247,9 +247,23 @@
   {
     "table_name": "family_groups",
     "column_name": "user_id",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "family_groups",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "family_groups",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
   },
   {
     "table_name": "lab_results",
@@ -526,6 +540,13 @@
   },
   {
     "table_name": "patient_family_group",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "patient_family_group",
     "column_name": "patient_id",
     "data_type": "integer",
     "is_nullable": "NO",
@@ -540,10 +561,24 @@
   },
   {
     "table_name": "patient_family_group",
-    "column_name": "user_id",
+    "column_name": "relationship",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": null
+  },
+  {
+    "table_name": "patient_family_group",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "patient_family_group",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
   },
   {
     "table_name": "patient_shares",

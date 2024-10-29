@@ -24,17 +24,17 @@ export interface Doctor {
 
 export interface Appointment {
   id: number;
-  patient_id: number;
-  doctor_id: number;
   date: string;
   type: string;
   location: string;
-  notes?: string;
-  patients: {
+  patient_id: number;
+  doctor_id: number;
+  status: 'scheduled' | 'cancelled' | 'completed';
+  patients?: {
     id: number;
     name: string;
   };
-  doctors: {
+  doctors?: {
     id: number;
     first_name: string;
     last_name: string;
@@ -43,15 +43,8 @@ export interface Appointment {
 
 export interface Prescription {
   id: number;
-  patient_id: number;
   medication: string;
-  dosage: string;
-  frequency: string;
-  start_date: string;
-  end_date: string;
   next_dose: string;
-  notes: string;
-  user_id: string;
 }
 
 export interface Vital {

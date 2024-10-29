@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react"
 import { format } from "date-fns"
-import { Calendar as CalendarIcon, User, Trash2, Plus } from "lucide-react"
+import { Calendar as CalendarIcon, Trash2, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
@@ -16,8 +16,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useSupabase } from "@/app/hooks/useSupabase"
 import { Todo } from '@/types'
 import { toast } from "react-hot-toast"
-import { TodoListSkeleton } from "@/components/ui/skeleton"
+import { TodoListSkeleton } from "@/app/components/ui/skeleton"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { useAuth } from '@clerk/nextjs'
 
 type AppTodoListProps = {
   patientId?: string
@@ -27,35 +28,19 @@ type AppTodoListProps = {
 
 export default function AppTodoList({ patientId, appointmentId, userId }: AppTodoListProps) {
   const { supabase } = useSupabase()
+  const { userId: clerkUserId } = useAuth()
   const [todos, setTodos] = useState<Todo[]>([])
   const [newTask, setNewTask] = useState("")
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   useEffect(() => {
-    async function initializeComponent() {
-      if (!currentUserId) {
-        try {
-          const { data: { user }, error } = await supabase.auth.getUser()
-          if (error) throw error
-          setCurrentUserId(user?.id || null)
-        } catch (error) {
-          console.error('Error fetching user:', error)
-          setIsLoading(false)
-          return
-        }
-      }
-      fetchTodos()
-    }
-
-    initializeComponent()
-  }, [supabase, patientId, appointmentId, currentUserId])
+    if (!supabase || !clerkUserId) return
+    fetchTodos()
+  }, [supabase, patientId, appointmentId, clerkUserId])
 
   const fetchTodos = async () => {
-    if (!supabase || !currentUserId) return
-
     setIsLoading(true)
     try {
       const { data: todosData, error: todosError } = await supabase
@@ -67,7 +52,7 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
             name
           )
         `)
-        .eq('user_id', currentUserId)
+        .eq('user_id', clerkUserId)
         .order('created_at', { ascending: false })
 
       if (todosError) throw todosError
@@ -94,7 +79,7 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
       completed: false,
       patient_id: patientId ? parseInt(patientId) : null,
       appointment_id: appointmentId ? parseInt(appointmentId) : null,
-      user_id: currentUserId,
+      user_id: clerkUserId,
       due_date: dueDate?.toISOString(),
     }
 
@@ -158,13 +143,22 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
 
   if (error) {
     return (
-      <ErrorBoundary 
-        error={error} 
-        reset={() => {
-          setError(null)
-          fetchTodos()
-        }} 
-      />
+      <ErrorBoundary>
+        <div className="p-4 rounded-md bg-destructive/10 text-destructive">
+          <h2 className="font-semibold">Something went wrong</h2>
+          <p className="text-sm">{error.message}</p>
+          <Button 
+            variant="outline" 
+            className="mt-2"
+            onClick={() => {
+              setError(null)
+              fetchTodos()
+            }}
+          >
+            Try Again
+          </Button>
+        </div>
+      </ErrorBoundary>
     )
   }
 
@@ -174,7 +168,7 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
         <h2 className="text-2xl font-bold">Todo List</h2>
         {isLoading ? (
           <p>Loading todos...</p>
-        ) : currentUserId ? (
+        ) : clerkUserId ? (
           <>
             <div className="flex items-center space-x-2">
               <Input

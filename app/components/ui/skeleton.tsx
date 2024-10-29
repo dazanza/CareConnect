@@ -12,28 +12,19 @@ function Skeleton({
   )
 }
 
-// Export both the base Skeleton and the specific skeleton components
-export { Skeleton }
-
-// Export specific skeleton components
-export const TodoListSkeleton = () => {
+export function TodoListSkeleton() {
   return (
-    <div className="space-y-3">
-      <Skeleton className="h-8 w-full" />
-      {[1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-6 w-full" />
-      ))}
-    </div>
-  )
-}
-
-export const AppointmentSkeleton = () => {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-12 w-full" />
-      <div className="space-y-2">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-24 w-full" />
+    <div className="w-full p-4 space-y-4">
+      <div className="space-y-3">
+        <Skeleton className="h-8 w-1/3" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      <div className="space-y-3 pt-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="flex items-center space-x-4">
+            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-4 flex-grow" />
+          </div>
         ))}
       </div>
     </div>
@@ -60,3 +51,17 @@ export function PatientCardSkeleton() {
     </div>
   )
 }
+
+export function AppointmentSkeleton() {
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-[125px] w-full" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-[250px]" />
+        <Skeleton className="h-4 w-[200px]" />
+      </div>
+    </div>
+  )
+}
+
+export { Skeleton }

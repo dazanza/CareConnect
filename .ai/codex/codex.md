@@ -452,3 +452,38 @@ L060:
 - Application: Create timeline entries automatically for various medical events
 - Impact: Maintains consistent timeline without manual intervention
 - Related: L054, L059
+
+L061:
+- Context: /app/hooks/useSupabase.ts
+- Insight: Protected property access in Supabase client should be avoided
+- Application: Use auth.setSession instead of modifying rest.headers directly
+- Impact: Prevents TypeScript errors and maintains proper encapsulation
+- Related: L010
+
+L062:
+- Context: /app/lib/dataFetching.ts
+- Insight: Consistent pattern for data fetching with user_id filtering
+- Application: Use filter('user_id', 'eq', userId) for text-based user ID comparison
+- Impact: Resolves UUID casting issues and maintains consistent data access patterns
+- Related: L025, L035
+
+L063:
+- Context: Supabase RLS policies
+- Insight: RLS policies should handle text-based user IDs consistently
+- Application: Remove UUID casting in RLS policies and use text comparison
+- Impact: Prevents type conversion errors and simplifies access control
+- Related: L062
+
+L064:
+- Context: /app/components/patients/PatientsContent.tsx and /app/components/doctors/DoctorsContent.tsx
+- Insight: Consistent error handling and loading state patterns
+- Application: Use DataLoadingState component and handleError utility consistently
+- Impact: Provides uniform user experience during data loading and error states
+- Related: L029
+
+L065:
+- Context: /types/supabase.ts
+- Insight: Database types should match actual column types exactly
+- Application: Use string type for user_id fields instead of UUID
+- Impact: Ensures type safety and prevents runtime type errors
+- Related: L028, L062

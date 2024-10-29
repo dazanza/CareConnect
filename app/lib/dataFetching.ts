@@ -1,20 +1,40 @@
 import { Appointment } from '@/types'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { Database } from '@/types/supabase'
 import { unstable_cache } from 'next/cache'
 
-export async function fetchAppointments(supabase: SupabaseClient, userId: string, options: { patientId?: string; doctorId?: string; limit?: number; upcoming?: boolean; allPatients?: boolean } = {}) {
-  console.log('fetchAppointments called for user:', userId, 'with options:', options)
+export async function fetchAppointments(
+  supabase: SupabaseClient,
+  userId: string,
+  options: {
+    limit?: number
+    upcoming?: boolean
+    allPatients?: boolean
+    patientId?: string
+    doctorId?: string
+  } = {}
+) {
   let query = supabase
     .from('appointments')
     .select(`
       *,
-      patients (id, name),
-      doctors (id, first_name, last_name)
+      patients:patient_id (
+        id,
+        name
+      ),
+      doctors:doctor_id (
+        id,
+        first_name,
+        last_name
+      )
     `)
     .eq('user_id', userId)
-    .order('date', { ascending: true })
 
-  if (options.patientId && !options.allPatients) {
+  if (options.upcoming) {
+    query = query.gte('date', new Date().toISOString())
+  }
+
+  if (options.patientId) {
     query = query.eq('patient_id', options.patientId)
   }
 
@@ -22,9 +42,7 @@ export async function fetchAppointments(supabase: SupabaseClient, userId: string
     query = query.eq('doctor_id', options.doctorId)
   }
 
-  if (options.upcoming) {
-    query = query.gte('date', new Date().toISOString())
-  }
+  query = query.order('date', { ascending: true })
 
   if (options.limit) {
     query = query.limit(options.limit)
@@ -32,12 +50,7 @@ export async function fetchAppointments(supabase: SupabaseClient, userId: string
 
   const { data, error } = await query
 
-  if (error) {
-    console.error('Error in fetchAppointments:', error)
-    throw error
-  }
-
-  console.log('fetchAppointments data:', data)
+  if (error) throw error
   return data
 }
 
@@ -48,4 +61,96 @@ export async function getCachedAppointments(supabase: SupabaseClient, userId: st
     ['appointments', userId, JSON.stringify(options)],
     { revalidate: 60 } // Revalidate every minute
   )()
+}
+
+// Create a centralized patient fetching function
+export async function fetchPatients(
+  supabase: SupabaseClient<Database>,
+  options: {
+    limit?: number
+    searchTerm?: string
+    userId?: string
+  } = {}
+) {
+  try {
+    console.log('Starting fetchPatients...')
+    
+    let query = supabase
+      .from('patients')
+      .select('*')
+      .filter('user_id', 'eq', options.userId?.toString())
+    
+    if (options.searchTerm) {
+      query = query.ilike('name', `%${options.searchTerm}%`)
+    }
+    
+    const { data, error } = await query
+      .order('name')
+      .limit(options.limit || 10)
+
+    if (error) {
+      console.error('Error fetching patients:', error)
+      throw error
+    }
+
+    console.log('Query successful, got data:', data)
+    return data
+  } catch (error) {
+    console.error('Error in fetchPatients:', error)
+    throw error
+  }
+}
+
+export async function fetchDoctors(
+  supabase: SupabaseClient<Database>,
+  options: {
+    limit?: number
+    searchTerm?: string
+    userId?: string
+  } = {}
+) {
+  try {
+    console.log('Starting fetchDoctors...')
+    
+    // First, check if we can access the doctors table at all
+    const { count, error: countError } = await supabase
+      .from('doctors')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', options.userId)
+
+    if (countError) {
+      console.error('Error checking doctors table:', countError)
+      throw countError
+    }
+
+    console.log('Total doctors in table:', count)
+
+    let query = supabase
+      .from('doctors')
+      .select('*')
+      .eq('user_id', options.userId)
+    
+    if (options.searchTerm) {
+      query = query.or(
+        `first_name.ilike.%${options.searchTerm}%,` +
+        `last_name.ilike.%${options.searchTerm}%,` +
+        `specialization.ilike.%${options.searchTerm}%`
+      )
+    }
+    
+    const { data, error } = await query
+      .order('last_name')
+      .limit(options.limit || 10)
+
+    if (error) {
+      console.error('Error fetching doctors:', error)
+      throw error
+    }
+
+    console.log('Query successful, got data:', data)
+    return data
+  } catch (error) {
+    console.error('Error in fetchDoctors:', error)
+    throw error
+  }
 }

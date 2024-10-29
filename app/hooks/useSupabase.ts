@@ -1,52 +1,32 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { useAuth } from '@clerk/nextjs';
-import { useEffect, useState, useRef } from 'react';
+'use client'
 
-let supabaseInstance: SupabaseClient | null = null;
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useEffect, useState } from 'react'
+import { Database } from '@/types/supabase'
+import { useAuth } from '@clerk/nextjs'
 
 export function useSupabase() {
-  const { getToken } = useAuth();
-  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
-  const initializingRef = useRef(false);
+  const { getToken } = useAuth()
+  const [supabase] = useState(() => createClientComponentClient<Database>())
 
   useEffect(() => {
-    if (supabaseInstance) {
-      setSupabase(supabaseInstance);
-      return;
+    const updateSupabaseAuth = async () => {
+      try {
+        const token = await getToken({ template: 'supabase' })
+        if (!token) return
+
+        // Set auth header directly
+        supabase.rest.headers = {
+          ...supabase.rest.headers,
+          Authorization: `Bearer ${token}`
+        }
+      } catch (error) {
+        console.error('Error in updateSupabaseAuth:', error)
+      }
     }
 
-    if (initializingRef.current) return;
+    updateSupabaseAuth()
+  }, [getToken, supabase])
 
-    initializingRef.current = true;
-
-    const initSupabase = async () => {
-      const supabaseClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          global: {
-            fetch: async (url, options: RequestInit = {}) => {
-              const clerkToken = await getToken({ template: 'supabase' });
-              
-              const headers = new Headers(options.headers);
-              headers.set('Authorization', `Bearer ${clerkToken}`);
-              
-              return fetch(url, {
-                ...options,
-                headers,
-              });
-            },
-          },
-        }
-      );
-
-      supabaseInstance = supabaseClient;
-      setSupabase(supabaseClient);
-      initializingRef.current = false;
-    };
-
-    initSupabase();
-  }, [getToken]);
-
-  return { supabase };
+  return { supabase }
 }
