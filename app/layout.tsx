@@ -9,6 +9,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
+import { Suspense } from 'react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -32,16 +33,18 @@ export default function RootLayout({
                 CareConnect
               </Link>
               <div>
-                <SignedIn>
-                  <UserButton afterSignOutUrl="/" />
-                </SignedIn>
-                <SignedOut>
-                  <SignInButton mode="modal">
-                    <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                      Sign In
-                    </button>
-                  </SignInButton>
-                </SignedOut>
+                <Suspense fallback={<div className="w-8 h-8" />}>
+                  <SignedIn>
+                    <UserButton afterSignOutUrl="/" />
+                  </SignedIn>
+                  <SignedOut>
+                    <SignInButton mode="modal">
+                      <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                        Sign In
+                      </button>
+                    </SignInButton>
+                  </SignedOut>
+                </Suspense>
               </div>
             </div>
           </header>

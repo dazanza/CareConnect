@@ -22,6 +22,13 @@ import { DataLoadingState } from '@/app/components/ui/loading-states'
 import { Suspense } from 'react'
 import { toast } from 'react-hot-toast'
 import { rescheduleAppointment, cancelAppointment } from '@/app/lib/appointment-actions'
+import dynamic from 'next/dynamic'
+
+// Dynamically import components that use Clerk
+const UserButton = dynamic(
+  () => import('@clerk/nextjs').then((mod) => mod.UserButton),
+  { ssr: false }
+)
 
 export default function DashboardContent() {
   const { supabase } = useSupabase()
@@ -133,7 +140,12 @@ export default function DashboardContent() {
   return (
     <ErrorBoundary>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <Suspense fallback={<DataLoadingState />}>
+            <UserButton afterSignOutUrl="/" />
+          </Suspense>
+        </div>
         
         <DataLoadingState
           isLoading={isLoading}

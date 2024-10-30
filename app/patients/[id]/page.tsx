@@ -183,6 +183,19 @@ interface PatientDoctor {
   primary: boolean
 }
 
+// Add proper type for the doctor data from Supabase query
+interface PatientDoctorResponse {
+  id: string
+  doctor: {
+    id: string
+    first_name: string
+    last_name: string
+    specialization: string
+    contact_number: string
+    email: string
+  }
+}
+
 export default function PatientDetailsPage({ params }: { params: { id: string } }) {
   const { supabase } = useSupabase()
   const [isLoading, setIsLoading] = useState(true)
@@ -190,15 +203,15 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [medicalHistory, setMedicalHistory] = useState<MedicalEvent[]>([])
   const [showAddHistory, setShowAddHistory] = useState(false)
-  const [initialVitals, setInitialVitals] = useState<[]>([])
+  const [initialVitals, setInitialVitals] = useState<any[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
-  const [labResults, setLabResults] = useState<LabResult[]>([])
+  const [labResults, setLabResults] = useState<Partial<LabResult>[]>([])
   const [allergies, setAllergies] = useState<Allergy[]>([])
   const [medications, setMedications] = useState<Medication[]>([])
   const [immunizations, setImmunizations] = useState<Immunization[]>([])
   const [bills, setBills] = useState<Bill[]>([])
-  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([])
+  const [timelineEvents, setTimelineEvents] = useState<Partial<TimelineEvent>[]>([])
   const [patientDoctors, setPatientDoctors] = useState<PatientDoctor[]>([])
 
   useEffect(() => {
@@ -274,13 +287,14 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   
       if (error) throw error
   
-      const formattedDoctors: PatientDoctor[] = data.map(item => ({
+      // Add type assertion to fix the mapping error
+      const formattedDoctors: PatientDoctor[] = (data as PatientDoctorResponse[]).map(item => ({
         id: item.doctor.id,
         name: `${item.doctor.first_name} ${item.doctor.last_name}`,
         specialty: item.doctor.specialization,
         phone: item.doctor.contact_number,
         email: item.doctor.email,
-        primary: false // Since this field doesn't exist in schema
+        primary: false
       }))
   
       setPatientDoctors(formattedDoctors)
