@@ -5,23 +5,23 @@ import { useParams } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus } from 'lucide-react'
+import { Plus, Phone, Mail, Trash2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { MedicalHistoryTimeline } from '@/app/components/MedicalHistoryTimeline'
 import { AddMedicalHistoryForm } from '@/app/components/AddMedicalHistoryForm'
-import { PatientCardSkeleton } from '@/components/ui/skeleton'
+import { PatientCardSkeleton } from '@/app/components/ui/skeletons'
 import { VitalsTracker } from '@/app/components/VitalsTracker'
-import { DocumentManager } from '@/components/documents/DocumentManager'
+import { DocumentManager } from '@/app/components/documents/DocumentManager'
 import { PrescriptionManager } from '@/app/components/PrescriptionManager'
 import { LabResultsManager } from '@/app/components/LabResultsManager'
 import { AllergiesManager } from '@/app/components/AllergiesManager'
 import { MedicationsTracker } from '@/app/components/MedicationsTracker'
 import { ImmunizationTracker } from '@/app/components/ImmunizationTracker'
 import { BillingManager } from '@/app/components/BillingManager'
-import { PatientShares } from '@/components/patients/PatientShares'
+import { PatientShares } from '@/app/components/patients/PatientShares'
 import { Separator } from '@/components/ui/separator'
-import { TimelineView } from '@/components/medical-history/TimelineView'
-import { getPatientTimeline } from '@/lib/timeline-service'
+import { TimelineView } from '@/app/components/medical-history/TimelineView'
+import { getPatientTimeline } from '@/app/lib/timeline-service'
 
 interface Doctor {
   id: string
@@ -173,6 +173,16 @@ interface TimelineEvent {
   lab_result_id?: number
 }
 
+// Add this interface with the existing interfaces
+interface PatientDoctor {
+  id: string
+  name: string
+  specialty: string
+  phone: string
+  email: string
+  primary: boolean
+}
+
 export default function PatientDetailsPage({ params }: { params: { id: string } }) {
   const { supabase } = useSupabase()
   const [isLoading, setIsLoading] = useState(true)
@@ -189,6 +199,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [immunizations, setImmunizations] = useState<Immunization[]>([])
   const [bills, setBills] = useState<Bill[]>([])
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([])
+  const [patientDoctors, setPatientDoctors] = useState<PatientDoctor[]>([])
 
   useEffect(() => {
     if (supabase && params.id) {
@@ -204,6 +215,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       fetchMedications()
       fetchImmunizations()
       fetchBills()
+      fetchPatientDoctors()
     }
   }, [supabase, params.id])
 
@@ -227,13 +239,54 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     try {
       const { data, error } = await supabase
         .from('doctors')
-        .select('id, name')
-
+        .select('id, first_name, last_name')
+  
       if (error) throw error
-      setDoctors(data)
+      
+      const formattedDoctors: Doctor[] = data.map(doc => ({
+        id: doc.id,
+        name: `${doc.first_name} ${doc.last_name}`
+      }))
+      
+      setDoctors(formattedDoctors)
     } catch (error) {
       console.error('Error fetching doctors:', error)
       toast.error('Failed to load doctors')
+    }
+  }
+
+  const fetchPatientDoctors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('patient_doctors')
+        .select(`
+          id,
+          doctor:doctor_id (
+            id,
+            first_name,
+            last_name,
+            specialization,
+            contact_number,
+            email
+          )
+        `)
+        .eq('patient_id', params.id)
+  
+      if (error) throw error
+  
+      const formattedDoctors: PatientDoctor[] = data.map(item => ({
+        id: item.doctor.id,
+        name: `${item.doctor.first_name} ${item.doctor.last_name}`,
+        specialty: item.doctor.specialization,
+        phone: item.doctor.contact_number,
+        email: item.doctor.email,
+        primary: false // Since this field doesn't exist in schema
+      }))
+  
+      setPatientDoctors(formattedDoctors)
+    } catch (error) {
+      console.error('Error fetching patient doctors:', error)
+      toast.error('Failed to load patient doctors')
     }
   }
 
@@ -247,13 +300,26 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           type,
           title,
           description,
-          doctor:doctors(id, name)
+          doctor:doctor_id (
+            id,
+            first_name,
+            last_name
+          )
         `)
         .eq('patient_id', params.id)
         .order('date', { ascending: false })
-
+  
       if (error) throw error
-      setMedicalHistory(data)
+  
+      const formattedHistory = data.map(item => ({
+        ...item,
+        doctor: {
+          id: item.doctor.id,
+          name: `${item.doctor.first_name} ${item.doctor.last_name}`
+        }
+      }))
+  
+      setMedicalHistory(formattedHistory)
     } catch (error) {
       console.error('Error fetching medical history:', error)
       toast.error('Failed to load medical history')
@@ -268,8 +334,8 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         .from('vitals')
         .select('*')
         .eq('patient_id', params.id)
-        .order('date', { ascending: false })
-
+        .order('date_time', { ascending: false })
+  
       if (error) throw error
       setInitialVitals(data)
     } catch (error) {
@@ -294,22 +360,33 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     }
   }
 
-  const fetchPrescriptions = async () => {
+  const fetchPatientShares = async () => {
     try {
       const { data, error } = await supabase
-        .from('prescriptions')
+        .from('patient_shares')
         .select(`
-          *,
-          doctor:doctors(id, name)
+          id,
+          access_level,
+          expires_at,
+          shared_by:shared_by_user_id (
+            clerk_id,
+            first_name,
+            last_name
+          ),
+          shared_with:shared_with_user_id (
+            clerk_id,
+            first_name,
+            last_name
+          )
         `)
         .eq('patient_id', params.id)
-        .order('created_at', { ascending: false })
-
+  
       if (error) throw error
-      setPrescriptions(data)
+      return data
     } catch (error) {
-      console.error('Error fetching prescriptions:', error)
-      toast.error('Failed to load prescriptions')
+      console.error('Error fetching patient shares:', error)
+      toast.error('Failed to load patient shares')
+      return []
     }
   }
 
@@ -318,17 +395,45 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       const { data, error } = await supabase
         .from('lab_results')
         .select(`
-          *,
-          doctor:doctors(id, name)
+          id,
+          test_name,
+          test_type,
+          result_value,
+          reference_range,
+          unit,
+          date,
+          notes,
+          status,
+          doctor:doctor_id (
+            id,
+            first_name,
+            last_name
+          )
         `)
         .eq('patient_id', params.id)
         .order('date', { ascending: false })
-
+  
       if (error) throw error
       setLabResults(data)
     } catch (error) {
       console.error('Error fetching lab results:', error)
       toast.error('Failed to load lab results')
+    }
+  }
+
+  const fetchPrescriptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .eq('patient_id', params.id)
+        .order('start_date', { ascending: false })
+  
+      if (error) throw error
+      setPrescriptions(data)
+    } catch (error) {
+      console.error('Error fetching prescriptions:', error)
+      toast.error('Failed to load prescriptions')
     }
   }
 
@@ -407,7 +512,26 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   const fetchTimelineEvents = async () => {
     try {
-      const data = await getPatientTimeline(supabase, parseInt(params.id))
+      const { data, error } = await supabase
+        .from('timeline_events')
+        .select(`
+          id,
+          type,
+          date,
+          title,
+          description,
+          metadata,
+          created_by,
+          created_at,
+          appointment_id,
+          prescription_id,
+          vitals_id,
+          lab_result_id
+        `)
+        .eq('patient_id', params.id)
+        .order('date', { ascending: false })
+  
+      if (error) throw error
       setTimelineEvents(data)
     } catch (error) {
       console.error('Error fetching timeline:', error)
@@ -444,6 +568,69 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
               <p><strong>Contact:</strong> {patient.phone}</p>
               <p><strong>Email:</strong> {patient.email}</p>
               <p><strong>Address:</strong> {patient.address}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Assigned Doctors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {patientDoctors.length === 0 ? (
+                <p className="text-muted-foreground">No doctors assigned</p>
+              ) : (
+                patientDoctors.map((doctor) => (
+                  <div 
+                    key={doctor.id} 
+                    className="flex items-start justify-between p-3 border rounded-lg"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{doctor.name}</h3>
+                        {doctor.primary && (
+                          <span className="px-2 py-1 text-xs bg-primary/10 text-primary rounded-full">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
+                      <div className="mt-1 space-y-1 text-sm">
+                        <p className="flex items-center gap-2">
+                          <Phone className="w-4 h-4" />
+                          {doctor.phone}
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          {doctor.email}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        // Add doctor removal functionality here
+                        toast.error('Doctor removal not implemented')
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  // Add doctor assignment functionality here
+                  toast.error('Doctor assignment not implemented')
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Assign Doctor
+              </Button>
             </div>
           </CardContent>
         </Card>

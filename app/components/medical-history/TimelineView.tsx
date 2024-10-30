@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { TimelineEventCard } from './TimelineEventCard'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { getPatientTimeline } from '@/lib/timeline-service'
+import { getPatientTimeline } from '@/app/lib/timeline-service'
 
 interface TimelineViewProps {
   patientId: number

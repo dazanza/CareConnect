@@ -1,5 +1,4 @@
-import * as React from "react"
-import { Skeleton } from "./skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function PatientCardSkeleton() {
   return (
@@ -24,12 +23,11 @@ export function PatientCardSkeleton() {
 
 export function AppointmentSkeleton() {
   return (
-    <div className="space-y-4">
-      <Skeleton className="h-12 w-full" />
+    <div className="space-y-3">
+      <Skeleton className="h-[125px] w-full" />
       <div className="space-y-2">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-24 w-full" />
-        ))}
+        <Skeleton className="h-4 w-[250px]" />
+        <Skeleton className="h-4 w-[200px]" />
       </div>
     </div>
   )

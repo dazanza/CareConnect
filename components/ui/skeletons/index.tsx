@@ -1,5 +1,4 @@
-import * as React from "react"
-import { Skeleton } from "./skeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function PatientCardSkeleton() {
   return (
@@ -52,4 +51,4 @@ export function TodoListSkeleton() {
       </div>
     </div>
   )
-}
+} 

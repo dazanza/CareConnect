@@ -487,3 +487,52 @@ L065:
 - Application: Use string type for user_id fields instead of UUID
 - Impact: Ensures type safety and prevents runtime type errors
 - Related: L028, L062
+
+L066:
+- Context: Database schema and data fetching
+- Insight: Correct field names and relationships in Supabase schema
+- Application: Update queries to match actual database structure:
+  - Use first_name/last_name for doctors
+  - Use date_time for vitals instead of created_at
+  - Handle patient_doctors relationships correctly
+- Impact: Ensures correct data fetching and prevents database errors
+- Related: L062, L063
+
+L067:
+- Context: /app/components/ui/skeletons organization
+- Insight: Skeleton components should be in app directory for Next.js App Router
+- Application: Move skeleton components to /app/components/ui/skeletons.tsx
+- Impact: Maintains consistent file organization and follows Next.js conventions
+- Related: L029
+
+L068:
+- Context: /app/appointments/page.tsx
+- Insight: Proper handling of nested Supabase query results
+- Application: Transform nested data before setting state:  ```typescript
+  const transformedData = data.map(apt => ({
+    ...apt,
+    doctor: {
+      id: apt.doctor.id,
+      name: `${apt.doctor.first_name} ${apt.doctor.last_name}`
+    }
+  }))  ```
+- Impact: Ensures type safety and correct data structure
+- Related: L066
+
+L069:
+- Context: /app/patients/[id]/page.tsx
+- Insight: Consistent pattern for fetching related data
+- Application: Use nested selects with proper field names:  ```typescript
+  .select(`
+    id,
+    doctor:doctor_id (
+      id,
+      first_name,
+      last_name,
+      specialization,
+      contact_number,
+      email
+    )
+  `)  ```
+- Impact: Improves data fetching efficiency and type safety
+- Related: L066, L068

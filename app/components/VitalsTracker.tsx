@@ -15,7 +15,7 @@ import {
 import { toast } from "react-hot-toast"
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { VitalsChart } from '@/app/components/VitalsChart'
-import { parseBloodPressure, formatBloodPressure, transformVitalsForChart } from '@/lib/vitals-utils'
+import { parseBloodPressure, formatBloodPressure, transformVitalsForChart } from '@/app/lib/vitals-utils'
 
 interface VitalsData {
   id: string

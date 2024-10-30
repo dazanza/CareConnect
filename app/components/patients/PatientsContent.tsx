@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { fetchPatients } from '@/app/lib/dataFetching'
 import { handleError } from '@/app/lib/errorHandling'
 import { DataLoadingState } from '@/app/components/ui/loading-states'
-import { PatientCardSkeleton } from '@/app/components/ui/skeleton'
+import { PatientCardSkeleton } from '@/app/components/ui/skeletons'
 import { ErrorBoundary } from '@/app/components/ui/error-boundary'
 
 interface PatientsContentProps {

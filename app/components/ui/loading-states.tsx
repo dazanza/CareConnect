@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Skeleton } from './skeleton'
+import { Skeleton } from "@/app/components/ui/skeleton"
 
 interface EmptyStateProps {
   message: string

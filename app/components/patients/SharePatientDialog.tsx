@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'react-hot-toast'
-import { sharePatient, AccessLevel } from '@/lib/patient-sharing'
+import { sharePatient, AccessLevel } from '@/app/lib/patient-sharing'
 import { Calendar } from '@/components/ui/calendar'
 import { format } from 'date-fns'
 

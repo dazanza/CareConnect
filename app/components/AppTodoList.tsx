@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useSupabase } from "@/app/hooks/useSupabase"
 import { Todo } from '@/types'
 import { toast } from "react-hot-toast"
-import { TodoListSkeleton } from "@/app/components/ui/skeleton"
+import { TodoListSkeleton } from "@/app/components/ui/skeletons"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { useAuth } from '@clerk/nextjs'
 

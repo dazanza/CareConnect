@@ -9,7 +9,7 @@ import { format } from 'date-fns'
 import { toast } from 'react-hot-toast'
 import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointmentDialog'
 import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
-import { AppointmentSkeleton } from '@/components/ui/skeleton'
+import { AppointmentSkeleton } from '@/app/components/ui/skeletons'
 import { AppointmentCalendar } from '@/app/components/AppointmentCalendar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -42,7 +42,7 @@ export default function AppointmentsPage() {
 
   const fetchAppointments = async () => {
     if (!supabase) return
-
+  
     try {
       const { data, error } = await supabase
         .from('appointments')
@@ -50,11 +50,18 @@ export default function AppointmentsPage() {
           id,
           date,
           location,
-          patient:patients!patient_id (id, name),
-          doctor:doctors!doctor_id (id, name)
+          patient:patients!patient_id (
+            id, 
+            name
+          ),
+          doctor:doctors!doctor_id (
+            id, 
+            first_name,
+            last_name
+          )
         `)
         .order('date', { ascending: true })
-
+  
       if (error) throw error
       
       // Transform the data to match the Appointment interface
@@ -62,8 +69,14 @@ export default function AppointmentsPage() {
         id: apt.id,
         date: apt.date,
         location: apt.location,
-        patient: apt.patient[0],
-        doctor: apt.doctor[0]
+        patient: {
+          id: apt.patient.id,
+          name: apt.patient.name
+        },
+        doctor: {
+          id: apt.doctor.id,
+          name: `${apt.doctor.first_name} ${apt.doctor.last_name}`
+        }
       }))
       
       setAppointments(transformedData)
