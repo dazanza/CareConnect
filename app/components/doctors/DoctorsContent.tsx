@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@clerk/nextjs'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { Input } from "@/components/ui/input"
 import Link from 'next/link'
@@ -8,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { ErrorBoundary } from '@/app/components/ui/error-boundary'
 import { DataLoadingState } from '@/app/components/ui/loading-states'
 import { handleError } from '@/app/lib/errorHandling'
-import { useAuth } from '@clerk/nextjs'
 import { fetchDoctors } from '@/app/lib/dataFetching'
 
 interface DoctorsContentProps {
@@ -18,37 +19,29 @@ interface DoctorsContentProps {
 export default function DoctorsContent({ onAddDoctor }: DoctorsContentProps) {
   const { supabase } = useSupabase()
   const { userId } = useAuth()
-  const [doctors, setDoctors] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
-  useEffect(() => {
-    if (!supabase || !userId) return
-
-    async function loadDoctors() {
-      console.log('Starting to load doctors...')
+  const { data: doctors = [], isLoading } = useQuery({
+    queryKey: ['doctors', userId, searchTerm],
+    queryFn: async () => {
+      if (!supabase || !userId) return []
+      
       try {
-        setIsLoading(true)
         const data = await fetchDoctors(supabase, { 
           searchTerm,
           limit: 10,
           userId
         })
-        console.log('Doctors loaded:', data)
-        setDoctors(data)
+        return data
       } catch (error) {
         handleError(error, 'DoctorsContent')
-      } finally {
-        setIsLoading(false)
+        throw error
       }
-    }
-
-    loadDoctors()
-  }, [supabase, searchTerm, userId])
-
-  if (isLoading) {
-    return <DataLoadingState isLoading={true} isEmpty={false}>Loading...</DataLoadingState>
-  }
+    },
+    gcTime: 1000 * 60 * 30, // Keep in garbage collection for 30 minutes
+    staleTime: 1000 * 60 * 5, // Consider fresh for 5 minutes
+    refetchOnWindowFocus: false
+  })
 
   return (
     <ErrorBoundary>

@@ -1,4 +1,4 @@
- "use client"
+"use client"
 
 import { useClerk } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
@@ -13,10 +13,14 @@ export function SignOutButton({ className }: SignOutButtonProps) {
   const { signOut } = useClerk()
   const router = useRouter()
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.push("/")
-    router.refresh()
+  const handleSignOut = () => {
+    signOut().then(() => {
+      // Only redirect after signOut completes
+      router.push("/")
+      router.refresh()
+    }).catch((error) => {
+      console.error('Error signing out:', error)
+    })
   }
 
   return (

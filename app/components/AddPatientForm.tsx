@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import toast from 'react-hot-toast'
+import { toast } from 'react-hot-toast'
+import { useAuth } from "@clerk/nextjs"
+import { useQueryClient } from '@tanstack/react-query'
 
 interface AddPatientFormProps {
   onSuccess?: () => void
@@ -15,6 +17,8 @@ interface AddPatientFormProps {
 
 export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   const { supabase } = useSupabase()
+  const { userId: clerkUserId } = useAuth()
+  const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [gender, setGender] = useState('')
@@ -34,6 +38,10 @@ export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
         throw new Error('Supabase client not initialized')
       }
 
+      if (!clerkUserId) {
+        throw new Error('User not authenticated')
+      }
+
       const { data, error } = await supabase
         .from('patients')
         .insert({
@@ -42,13 +50,16 @@ export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
           gender,
           contact_number: contactNumber,
           address,
-          medical_history: medicalHistory || null // Allow null if empty
+          medical_history: medicalHistory || null,
+          user_id: clerkUserId.toString(),
+          created_at: new Date().toISOString()
         })
         .select()
 
       if (error) throw error
 
-      console.log('Patient added successfully:', data)
+      // Invalidate and refetch patients query
+      queryClient.invalidateQueries({ queryKey: ['patients'] })
 
       toast.success("Patient added successfully")
 

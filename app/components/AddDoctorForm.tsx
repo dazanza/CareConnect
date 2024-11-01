@@ -6,9 +6,10 @@ import { useSupabase } from '@/app/lib/supabase'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import toast from 'react-hot-toast'
+import { toast } from 'react-hot-toast'
 import { useAuth } from "@clerk/nextjs"
 import { Doctor } from '@/types'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface AddDoctorFormProps {
   onSuccess?: () => void
@@ -17,6 +18,7 @@ interface AddDoctorFormProps {
 export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
   const { supabase } = useSupabase()
   const { userId: clerkUserId } = useAuth()
+  const queryClient = useQueryClient()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [specialization, setSpecialization] = useState('')
@@ -48,7 +50,7 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
         contact_number: contactNumber,
         address,
         created_at: new Date().toISOString(),
-        user_id: clerkUserId.toString(), // Ensure it's a string
+        user_id: clerkUserId.toString(),
       }
 
       if (email) doctorData.email = email
@@ -61,7 +63,8 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
 
       if (error) throw error
 
-      console.log('Doctor added successfully:', data)
+      // Invalidate and refetch doctors query
+      queryClient.invalidateQueries({ queryKey: ['doctors'] })
 
       toast.success("Doctor added successfully")
 
