@@ -536,3 +536,17 @@ L069:
   `)  ```
 - Impact: Improves data fetching efficiency and type safety
 - Related: L066, L068
+
+
+L070:
+- Context: /app/layout.tsx and /app/components/layout/Sidebar.tsx
+- Insight: Fixed layout issues by using proper width constraints and shrink-0
+- Application: Use `w-60 shrink-0` on sidebar container and remove fixed positioning
+- Impact: Ensures proper sidebar width and prevents content from being pushed right
+- Related: L020, L021, L022
+
+Key points:
+1. The sidebar width needs to be fixed with `shrink-0` to prevent content shifting
+2. Fixed positioning was causing layout issues and should be avoided
+3. Content area should be wrapped in a flex container with proper padding
+4. Removing duplicate layout components improves maintainability

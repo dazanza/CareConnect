@@ -1,263 +1,92 @@
 [
   {
-    "policy_name": "Allow system-level operations",
-    "table_name": "users",
+    "policy_name": "Users can manage medications",
+    "table_name": "medications",
     "policy_role": null,
     "command": "*",
-    "policy_expression": "(auth.role() = 'service_role'::text)",
+    "policy_expression": "(user_id = requesting_user_id())",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Auth can delete",
-    "table_name": "todos",
-    "policy_role": "authenticated",
-    "command": "d",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Auth can insert",
-    "table_name": "todos",
-    "policy_role": "authenticated",
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(requesting_user_id() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Auth can select",
-    "table_name": "todos",
-    "policy_role": "authenticated",
+    "policy_name": "Users can view medications",
+    "table_name": "medications",
+    "policy_role": null,
     "command": "r",
-    "policy_expression": "(requesting_user_id() = user_id)",
+    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = medications.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Auth can update",
-    "table_name": "patient_doctors",
-    "policy_role": "authenticated",
-    "command": "w",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": "(requesting_user_id() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Auth can update",
-    "table_name": "todos",
-    "policy_role": "authenticated",
-    "command": "w",
-    "policy_expression": "(requesting_user_id() = user_id)",
+    "policy_name": "Users can manage immunizations",
+    "table_name": "immunizations",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Auth can view",
-    "table_name": "patient_doctors",
-    "policy_role": "authenticated",
+    "policy_name": "Users can view immunizations",
+    "table_name": "immunizations",
+    "policy_role": null,
     "command": "r",
-    "policy_expression": "(requesting_user_id() = user_id)",
+    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = immunizations.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Auth insert",
-    "table_name": "patient_doctors",
-    "policy_role": "authenticated",
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(requesting_user_id() = user_id)",
+    "policy_name": "Users can manage appointments",
+    "table_name": "appointments",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Authenticated can all",
+    "policy_name": "Users can view appointments",
+    "table_name": "appointments",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = appointments.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage medical files",
+    "table_name": "medical_files",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view medical files",
+    "table_name": "medical_files",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage notes",
     "table_name": "notes",
-    "policy_role": "authenticated",
+    "policy_role": null,
     "command": "*",
-    "policy_expression": "(requesting_user_id() = user_id)",
+    "policy_expression": "(user_id = requesting_user_id())",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Authenticated can delete",
-    "table_name": "appointments",
-    "policy_role": "authenticated",
-    "command": "d",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can delete",
-    "table_name": "medical_files",
-    "policy_role": "authenticated",
-    "command": "d",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can insert",
-    "table_name": "appointments",
-    "policy_role": "authenticated",
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(requesting_user_id() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can insert",
-    "table_name": "doctors",
-    "policy_role": "authenticated",
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(requesting_user_id() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can insert",
-    "table_name": "medical_files",
-    "policy_role": "authenticated",
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(requesting_user_id() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can select",
-    "table_name": "appointments",
-    "policy_role": "authenticated",
+    "policy_name": "Users can view notes",
+    "table_name": "notes",
+    "policy_role": null,
     "command": "r",
-    "policy_expression": "(requesting_user_id() = user_id)",
+    "policy_expression": "(user_id = requesting_user_id())",
     "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can select",
-    "table_name": "medical_files",
-    "policy_role": "authenticated",
-    "command": "r",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can update",
-    "table_name": "appointments",
-    "policy_role": "authenticated",
-    "command": "w",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can update",
-    "table_name": "doctors",
-    "policy_role": "authenticated",
-    "command": "w",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can update",
-    "table_name": "medical_files",
-    "policy_role": "authenticated",
-    "command": "w",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated can view",
-    "table_name": "doctors",
-    "policy_role": "authenticated",
-    "command": "r",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated for all",
-    "table_name": "prescriptions",
-    "policy_role": "authenticated",
-    "command": "*",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated for all",
-    "table_name": "user_family_group",
-    "policy_role": "authenticated",
-    "command": "*",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated for all",
-    "table_name": "vitals",
-    "policy_role": "authenticated",
-    "command": "*",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated users can delete own data",
-    "table_name": "users",
-    "policy_role": "authenticated",
-    "command": "d",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated users can insert own data",
-    "table_name": "users",
-    "policy_role": "authenticated",
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(requesting_user_id() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Authenticated users can select own data",
-    "table_name": "users",
-    "policy_role": "authenticated",
-    "command": "r",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable insert for authenticated user",
-    "table_name": "vitals",
-    "policy_role": "authenticated",
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(requesting_user_id() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable insert for authenticated users only",
-    "table_name": "app_logins",
-    "policy_role": "authenticated",
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "true",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable insert for authenticated users only",
-    "table_name": "doctors",
-    "policy_role": "authenticated",
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "true",
     "policy_type": "PERMISSIVE"
   },
   {
@@ -270,389 +99,299 @@
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Enable read access for all users",
-    "table_name": "app_logins",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "true",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable read access for all users",
-    "table_name": "appointments",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "true",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable read access for all users",
-    "table_name": "medical_files",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "true",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable read access for all users",
-    "table_name": "notes",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "true",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable read access for all users",
+    "policy_name": "Users can manage patient doctors",
     "table_name": "patient_doctors",
     "policy_role": null,
-    "command": "r",
-    "policy_expression": "true",
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Enable read access for all users",
-    "table_name": "prescriptions",
+    "policy_name": "Users can view patient doctors",
+    "table_name": "patient_doctors",
     "policy_role": null,
-    "command": "r",
-    "policy_expression": "true",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable read access for all users",
-    "table_name": "user_family_group",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "true",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable read access for all users",
-    "table_name": "vitals",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "true",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable select for authenticated user",
-    "table_name": "vitals",
-    "policy_role": "authenticated",
-    "command": "r",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can update own data",
-    "table_name": "users",
-    "policy_role": "authenticated",
-    "command": "w",
-    "policy_expression": "(requesting_user_id() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view shares they created or received",
-    "table_name": "patient_shares",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = shared_by_user_id) OR (auth.uid() = shared_with_user_id))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can create shares for their patients",
-    "table_name": "patient_shares",
-    "policy_role": null,
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(EXISTS ( SELECT 1\n   FROM patients\n  WHERE ((patients.id = patient_shares.patient_id) AND ((patients.user_id)::uuid = auth.uid()))))",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can delete shares they created",
-    "table_name": "patient_shares",
-    "policy_role": null,
-    "command": "d",
-    "policy_expression": "(auth.uid() = shared_by_user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view appointments for shared patients",
-    "table_name": "appointments",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = (user_id)::uuid) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = appointments.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can create lab results for their patients",
-    "table_name": "lab_results",
-    "policy_role": null,
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(auth.uid() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can create prescriptions for their patients",
-    "table_name": "prescriptions",
-    "policy_role": null,
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(auth.uid() = (user_id)::uuid)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view lab results for their patients",
-    "table_name": "lab_results",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = user_id) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = lab_results.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can update lab results they created",
-    "table_name": "lab_results",
-    "policy_role": null,
-    "command": "w",
-    "policy_expression": "((auth.uid() = user_id) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = lab_results.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view vitals for their patients",
-    "table_name": "vitals",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = (user_id)::uuid) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = vitals.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can create vitals for their patients",
-    "table_name": "vitals",
-    "policy_role": null,
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(auth.uid() = (user_id)::uuid)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can update vitals they created",
-    "table_name": "vitals",
-    "policy_role": null,
-    "command": "w",
-    "policy_expression": "((auth.uid() = (user_id)::uuid) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = vitals.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view prescriptions for their patients",
-    "table_name": "prescriptions",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = (user_id)::uuid) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = prescriptions.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can update prescriptions they created",
-    "table_name": "prescriptions",
-    "policy_role": null,
-    "command": "w",
-    "policy_expression": "((auth.uid() = (user_id)::uuid) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = prescriptions.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view appointments for their patients",
-    "table_name": "appointments",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = (user_id)::uuid) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = appointments.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can create appointments for their patients",
-    "table_name": "appointments",
-    "policy_role": null,
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(auth.uid() = (user_id)::uuid)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can update appointments they created",
-    "table_name": "appointments",
-    "policy_role": null,
-    "command": "w",
-    "policy_expression": "((auth.uid() = (user_id)::uuid) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = appointments.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view timeline events for their patients",
-    "table_name": "timeline_events",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = user_id) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = timeline_events.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can create timeline events for their patients",
-    "table_name": "timeline_events",
-    "policy_role": null,
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(auth.uid() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view documents for their patients",
-    "table_name": "documents",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = user_id) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = documents.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can upload documents for their patients",
-    "table_name": "documents",
-    "policy_role": null,
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(auth.uid() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can update documents they uploaded",
-    "table_name": "documents",
-    "policy_role": null,
-    "command": "w",
-    "policy_expression": "((auth.uid() = user_id) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = documents.patient_id) AND (patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.access_level = ANY (ARRAY['write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view their family groups",
-    "table_name": "family_groups",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "(auth.uid() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can create family groups",
-    "table_name": "family_groups",
-    "policy_role": null,
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "(auth.uid() = user_id)",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can update their family groups",
-    "table_name": "family_groups",
-    "policy_role": null,
-    "command": "w",
-    "policy_expression": "(auth.uid() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can delete their family groups",
-    "table_name": "family_groups",
-    "policy_role": null,
-    "command": "d",
-    "policy_expression": "(auth.uid() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view their patient family group relationships",
-    "table_name": "patient_family_group",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = user_id) OR (EXISTS ( SELECT 1\n   FROM family_groups\n  WHERE ((family_groups.id = patient_family_group.family_group_id) AND (family_groups.user_id = auth.uid())))))",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can create patient family group relationships",
-    "table_name": "patient_family_group",
-    "policy_role": null,
-    "command": "a",
-    "policy_expression": null,
-    "with_check_expression": "((auth.uid() = user_id) AND (EXISTS ( SELECT 1\n   FROM family_groups\n  WHERE ((family_groups.id = patient_family_group.family_group_id) AND (family_groups.user_id = auth.uid())))))",
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can update their patient family group relationships",
-    "table_name": "patient_family_group",
-    "policy_role": null,
-    "command": "w",
-    "policy_expression": "(auth.uid() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can delete their patient family group relationships",
-    "table_name": "patient_family_group",
-    "policy_role": null,
-    "command": "d",
-    "policy_expression": "(auth.uid() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Enable read access for own patients",
-    "table_name": "patients",
-    "policy_role": "authenticated",
     "command": "r",
     "policy_expression": "(user_id = requesting_user_id())",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Enable insert access for own patients",
+    "policy_name": "Users can manage patients",
     "table_name": "patients",
-    "policy_role": "authenticated",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view patients",
+    "table_name": "patients",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage user family group",
+    "table_name": "user_family_group",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view user family group",
+    "table_name": "user_family_group",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage own profile",
+    "table_name": "users",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view own profile",
+    "table_name": "users",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage prescriptions",
+    "table_name": "prescriptions",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view prescriptions",
+    "table_name": "prescriptions",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = prescriptions.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage todos",
+    "table_name": "todos",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view todos",
+    "table_name": "todos",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage vitals",
+    "table_name": "vitals",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view vitals",
+    "table_name": "vitals",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = vitals.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Enable insert own logins",
+    "table_name": "app_logins",
+    "policy_role": null,
     "command": "a",
     "policy_expression": null,
     "with_check_expression": "(user_id = requesting_user_id())",
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Enable update access for own patients",
-    "table_name": "patients",
-    "policy_role": "authenticated",
-    "command": "w",
+    "policy_name": "Enable read for own logins",
+    "table_name": "app_logins",
+    "policy_role": null,
+    "command": "r",
     "policy_expression": "(user_id = requesting_user_id())",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Enable delete access for own patients",
-    "table_name": "patients",
-    "policy_role": "authenticated",
-    "command": "d",
+    "policy_name": "Users can manage doctors",
+    "table_name": "doctors",
+    "policy_role": null,
+    "command": "*",
     "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view doctors",
+    "table_name": "doctors",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage notifications",
+    "table_name": "notifications",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "((user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view notifications",
+    "table_name": "notifications",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can create shares",
+    "table_name": "patient_shares",
+    "policy_role": null,
+    "command": "a",
+    "policy_expression": null,
+    "with_check_expression": "(EXISTS ( SELECT 1\n   FROM patients\n  WHERE ((patients.id = patient_shares.patient_id) AND (patients.user_id = requesting_user_id()))))",
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage own shares",
+    "table_name": "patient_shares",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "((shared_by_user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view shares",
+    "table_name": "patient_shares",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(((shared_by_user_id)::text = requesting_user_id()) OR ((shared_with_user_id)::text = requesting_user_id()))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage documents",
+    "table_name": "documents",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "((user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view documents",
+    "table_name": "documents",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(((user_id)::text = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = documents.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage family groups",
+    "table_name": "family_groups",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "((user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view family groups",
+    "table_name": "family_groups",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage lab results",
+    "table_name": "lab_results",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "((user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view lab results",
+    "table_name": "lab_results",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(((user_id)::text = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = lab_results.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage patient family group",
+    "table_name": "patient_family_group",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "((user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view patient family group",
+    "table_name": "patient_family_group",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage timeline events",
+    "table_name": "timeline_events",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "((user_id)::text = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view timeline events",
+    "table_name": "timeline_events",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(((user_id)::text = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = timeline_events.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   }

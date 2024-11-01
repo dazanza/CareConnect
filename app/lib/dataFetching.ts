@@ -2,6 +2,9 @@ import { Appointment } from '@/types'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/supabase'
 import { unstable_cache } from 'next/cache'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useAuth } from '@clerk/nextjs'
+import { toast } from 'react-hot-toast'
 
 export async function fetchAppointments(
   supabase: SupabaseClient,
@@ -65,11 +68,11 @@ export async function getCachedAppointments(supabase: SupabaseClient, userId: st
 
 // Create a centralized patient fetching function
 export async function fetchPatients(
-  supabase: SupabaseClient<Database>,
+  supabase: SupabaseClient,
+  userId: string,
   options: {
     limit?: number
     searchTerm?: string
-    userId?: string
   } = {}
 ) {
   try {
@@ -78,7 +81,7 @@ export async function fetchPatients(
     let query = supabase
       .from('patients')
       .select('*')
-      .filter('user_id', 'eq', options.userId?.toString())
+      .eq('user_id', userId)
     
     if (options.searchTerm) {
       query = query.ilike('name', `%${options.searchTerm}%`)

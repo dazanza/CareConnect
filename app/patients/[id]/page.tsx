@@ -22,179 +22,22 @@ import { PatientShares } from '@/app/components/patients/PatientShares'
 import { Separator } from '@/components/ui/separator'
 import { TimelineView } from '@/app/components/medical-history/TimelineView'
 import { getPatientTimeline } from '@/app/lib/timeline-service'
-
-interface Doctor {
-  id: string
-  name: string
-}
-
-interface MedicalEvent {
-  id: string
-  date: string
-  type: 'appointment' | 'prescription' | 'diagnosis' | 'test'
-  title: string
-  description: string
-  doctor: {
-    id: string
-    name: string
-  }
-}
-
-interface Document {
-  id: string
-  name: string
-  type: string
-  size: number
-  url: string
-  uploaded_at: string
-  category: 'lab_result' | 'prescription' | 'imaging' | 'other'
-}
-
-interface Prescription {
-  id: string
-  medication: string
-  dosage: string
-  frequency: string
-  duration: number
-  start_date: string
-  end_date: string
-  instructions: string
-  doctor_id: string
-  patient_id: string
-  status: 'active' | 'completed' | 'cancelled'
-  doctor: {
-    id: string
-    name: string
-  }
-}
-
-interface LabResult {
-  id: string
-  test_name: string
-  test_type: string
-  result_value: string
-  reference_range: string
-  unit: string
-  date: string
-  notes: string
-  status: 'normal' | 'abnormal' | 'critical'
-  doctor_id: string
-  patient_id: string
-  doctor: {
-    id: string
-    name: string
-  }
-}
-
-interface Allergy {
-  id: string
-  patient_id: string
-  allergen: string
-  reaction: string
-  severity: 'mild' | 'moderate' | 'severe'
-  notes: string
-  date_identified: string
-  status: 'active' | 'inactive'
-}
-
-interface Medication {
-  id: string
-  name: string
-  dosage: string
-  frequency: string
-  start_date: string
-  end_date: string | null
-  instructions: string
-  status: 'active' | 'discontinued' | 'completed'
-  reason_for_discontinuation?: string
-  side_effects?: string
-  adherence_rate?: number
-  doctor_id: string
-  patient_id: string
-  doctor: {
-    id: string
-    name: string
-  }
-}
-
-interface Immunization {
-  id: string
-  vaccine_name: string
-  vaccine_type: string
-  dose_number: number
-  date_administered: string
-  next_due_date: string | null
-  administered_by: string
-  batch_number: string
-  manufacturer: string
-  location: string
-  notes: string
-  status: 'completed' | 'scheduled' | 'overdue'
-  side_effects?: string
-  patient_id: string
-  doctor_id: string
-  doctor: {
-    id: string
-    name: string
-  }
-}
-
-interface Bill {
-  id: string
-  date: string
-  amount: number
-  description: string
-  status: 'pending' | 'paid' | 'overdue' | 'cancelled'
-  insurance_claim_id?: string
-  payment_method?: string
-  payment_date?: string
-  patient_id: string
-  service_id: string
-  service: {
-    name: string
-    code: string
-  }
-}
-
-interface TimelineEvent {
-  id: string
-  patient_id: number
-  user_id: string
-  type: 'appointment' | 'prescription' | 'vitals' | 'lab_result' | 'note'
-  date: string
-  title: string
-  description: string | null
-  metadata: Record<string, any> | null
-  created_by: string
-  created_at: string
-  appointment_id?: number
-  prescription_id?: number
-  vitals_id?: number
-  lab_result_id?: number
-}
-
-// Add this interface with the existing interfaces
-interface PatientDoctor {
-  id: string
-  name: string
-  specialty: string
-  phone: string
-  email: string
-  primary: boolean
-}
-
-// Add proper type for the doctor data from Supabase query
-interface PatientDoctorResponse {
-  id: string
-  doctor: {
-    id: string
-    first_name: string
-    last_name: string
-    specialization: string
-    contact_number: string
-    email: string
-  }
-}
+import { 
+  MedicalDocument, 
+  Doctor, 
+  MedicalEvent, 
+  Prescription, 
+  LabResult,
+  Allergy,
+  Medication,
+  Immunization,
+  Bill,
+  TimelineEvent,
+  PatientDoctor,
+  PatientDoctorResponse
+} from '@/app/types'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function PatientDetailsPage({ params }: { params: { id: string } }) {
   const { supabase } = useSupabase()
@@ -204,15 +47,17 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [medicalHistory, setMedicalHistory] = useState<MedicalEvent[]>([])
   const [showAddHistory, setShowAddHistory] = useState(false)
   const [initialVitals, setInitialVitals] = useState<any[]>([])
-  const [documents, setDocuments] = useState<Document[]>([])
+  const [documents, setDocuments] = useState<MedicalDocument[]>([])
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
-  const [labResults, setLabResults] = useState<Partial<LabResult>[]>([])
+  const [labResults, setLabResults] = useState<LabResult[]>([])
   const [allergies, setAllergies] = useState<Allergy[]>([])
   const [medications, setMedications] = useState<Medication[]>([])
   const [immunizations, setImmunizations] = useState<Immunization[]>([])
   const [bills, setBills] = useState<Bill[]>([])
-  const [timelineEvents, setTimelineEvents] = useState<Partial<TimelineEvent>[]>([])
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([])
   const [patientDoctors, setPatientDoctors] = useState<PatientDoctor[]>([])
+  const [isAssignDoctorOpen, setIsAssignDoctorOpen] = useState(false)
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
 
   useEffect(() => {
     if (supabase && params.id) {
@@ -287,13 +132,12 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   
       if (error) throw error
   
-      // Add type assertion to fix the mapping error
-      const formattedDoctors: PatientDoctor[] = (data as PatientDoctorResponse[]).map(item => ({
+      const formattedDoctors: PatientDoctor[] = (data as any[]).map(item => ({
         id: item.doctor.id,
         name: `${item.doctor.first_name} ${item.doctor.last_name}`,
-        specialty: item.doctor.specialization,
-        phone: item.doctor.contact_number,
-        email: item.doctor.email,
+        specialty: item.doctor.specialization || '',
+        phone: item.doctor.contact_number || '',
+        email: item.doctor.email || '',
         primary: false
       }))
   
@@ -325,12 +169,16 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   
       if (error) throw error
   
-      const formattedHistory = data.map(item => ({
-        ...item,
-        doctor: {
+      const formattedHistory: MedicalEvent[] = data.map(item => ({
+        id: item.id,
+        date: item.date,
+        type: item.type,
+        title: item.title,
+        description: item.description,
+        doctor: item.doctor ? {
           id: item.doctor.id,
           name: `${item.doctor.first_name} ${item.doctor.last_name}`
-        }
+        } : null
       }))
   
       setMedicalHistory(formattedHistory)
@@ -346,7 +194,17 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     try {
       const { data, error } = await supabase
         .from('vitals')
-        .select('*')
+        .select(`
+          id,
+          date_time,
+          blood_pressure,
+          heart_rate,
+          temperature,
+          oxygen_saturation,
+          blood_sugar,
+          mood,
+          notes
+        `)
         .eq('patient_id', params.id)
         .order('date_time', { ascending: false })
   
@@ -428,7 +286,41 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         .order('date', { ascending: false })
   
       if (error) throw error
-      setLabResults(data)
+  
+      const formattedResults: LabResult[] = (data as unknown as Array<{
+        id: string;
+        test_name: string;
+        test_type: string;
+        result_value: string;
+        reference_range: string;
+        unit: string;
+        date: string;
+        notes: string;
+        status: 'normal' | 'abnormal' | 'critical';
+        doctor: {
+          id: string;
+          first_name: string;
+          last_name: string;
+        };
+      }>).map(item => ({
+        id: item.id,
+        test_name: item.test_name,
+        test_type: item.test_type,
+        result_value: item.result_value,
+        reference_range: item.reference_range,
+        unit: item.unit,
+        date: item.date,
+        notes: item.notes,
+        status: item.status,
+        doctor_id: item.doctor.id,
+        patient_id: params.id,
+        doctor: {
+          id: item.doctor.id,
+          name: `${item.doctor.first_name} ${item.doctor.last_name}`
+        }
+      }))
+  
+      setLabResults(formattedResults)
     } catch (error) {
       console.error('Error fetching lab results:', error)
       toast.error('Failed to load lab results')
@@ -530,6 +422,8 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         .from('timeline_events')
         .select(`
           id,
+          patient_id,
+          user_id,
           type,
           date,
           title,
@@ -546,10 +440,37 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         .order('date', { ascending: false })
   
       if (error) throw error
-      setTimelineEvents(data)
+    
+      setTimelineEvents(data as TimelineEvent[])
     } catch (error) {
       console.error('Error fetching timeline:', error)
       toast.error('Failed to load timeline')
+    }
+  }
+
+  const handleAssignDoctor = async () => {
+    if (!selectedDoctorId) {
+      toast.error('Please select a doctor')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('patient_doctors')
+        .insert({
+          patient_id: params.id,
+          doctor_id: selectedDoctorId,
+        })
+
+      if (error) throw error
+
+      toast.success('Doctor assigned successfully')
+      fetchPatientDoctors() // Refresh the list
+      setIsAssignDoctorOpen(false)
+      setSelectedDoctorId('')
+    } catch (error) {
+      console.error('Error assigning doctor:', error)
+      toast.error('Failed to assign doctor')
     }
   }
 
@@ -637,10 +558,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => {
-                  // Add doctor assignment functionality here
-                  toast.error('Doctor assignment not implemented')
-                }}
+                onClick={() => setIsAssignDoctorOpen(true)}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Assign Doctor
@@ -730,6 +648,29 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           setShowAddHistory(false)
         }}
       />
+
+      <Dialog open={isAssignDoctorOpen} onOpenChange={setIsAssignDoctorOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Doctor</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a doctor" />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors.map((doctor) => (
+                  <SelectItem key={doctor.id} value={doctor.id}>
+                    {doctor.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleAssignDoctor}>Assign</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

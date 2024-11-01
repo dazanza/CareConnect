@@ -26,21 +26,48 @@ export function useSupabase() {
         {
           global: {
             fetch: async (url, options = {}) => {
-              const clerkToken = await getToken({ template: 'supabase' });
-              
-              const headers = new Headers(options?.headers);
-              headers.set('Authorization', `Bearer ${clerkToken}`);
-              
-              return fetch(url, {
-                ...options,
-                headers,
-              });
+              try {
+                const clerkToken = await getToken({ template: 'supabase' });
+                if (!clerkToken) throw new Error('No auth token available');
+
+                const headers = new Headers(options?.headers || {});
+                headers.set('Authorization', `Bearer ${clerkToken}`);
+
+                return fetch(url, {
+                  ...options,
+                  headers,
+                });
+              } catch (error) {
+                console.error('Error in Supabase fetch:', error);
+                // Try to refresh the token
+                const newToken = await getToken({ template: 'supabase', skipCache: true });
+                if (!newToken) throw new Error('Failed to refresh token');
+
+                const headers = new Headers(options?.headers || {});
+                headers.set('Authorization', `Bearer ${newToken}`);
+
+                return fetch(url, {
+                  ...options,
+                  headers,
+                });
+              }
             },
+          },
+          auth: {
+            autoRefreshToken: true,
+            persistSession: true,
           },
         }
       );
 
-      console.log('Supabase client initialized'); // Add this line
+      console.log('Supabase client initialized');
+
+      // Set up auth state change listener
+      supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Supabase token refreshed');
+        }
+      });
 
       supabaseInstance = supabaseClient;
       setSupabase(supabaseClient);

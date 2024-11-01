@@ -8,8 +8,9 @@ import {
 import { Inter } from 'next/font/google'
 import './globals.css'
 import toast, { Toaster } from 'react-hot-toast';
-import Link from 'next/link';
 import { Suspense } from 'react'
+import { Providers } from './providers'
+import AppSidebar from '@/app/components/layout/Sidebar'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -27,29 +28,28 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={inter.className}>
-          <header className="p-4 bg-white shadow-sm">
-            <div className="container mx-auto flex justify-between items-center">
-              <Link href="/" className="text-2xl font-bold text-blue-800">
-                CareConnect
-              </Link>
-              <div>
-                <Suspense fallback={<div className="w-8 h-8" />}>
-                  <SignedIn>
-                    <UserButton afterSignOutUrl="/" />
-                  </SignedIn>
-                  <SignedOut>
-                    <SignInButton mode="modal">
-                      <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                        Sign In
-                      </button>
-                    </SignInButton>
-                  </SignedOut>
-                </Suspense>
-              </div>
-            </div>
-          </header>
-          <main className="container mx-auto mt-8">
-            {children}
+          <main>
+            <Providers>
+              <SignedIn>
+                <div className="flex min-h-screen">
+                  <div className="w-60 shrink-0">
+                    <AppSidebar />
+                  </div>
+                  <div className="p-4">
+                    {children}
+                  </div>
+                </div>
+              </SignedIn>
+              <SignedOut>
+                <div className="flex flex-col items-center justify-center min-h-screen">
+                  <SignInButton mode="modal">
+                    <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                      Sign In
+                    </button>
+                  </SignInButton>
+                </div>
+              </SignedOut>
+            </Providers>
           </main>
           <Toaster position="top-right" />
         </body>

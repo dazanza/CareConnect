@@ -142,7 +142,9 @@ export default function DashboardContent() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <Suspense fallback={<DataLoadingState />}>
+          <Suspense fallback={<DataLoadingState isLoading={true} isEmpty={false}>
+            <div>Loading...</div>
+          </DataLoadingState>}>
             <UserButton afterSignOutUrl="/" />
           </Suspense>
         </div>

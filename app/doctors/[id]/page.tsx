@@ -5,7 +5,6 @@ import { useSupabase } from '@/app/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Doctor, Patient, Appointment } from '@/types'
-import DashboardLayout from '@/app/components/layout/DashboardLayout'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AddAppointmentForm } from '@/app/components/AddAppointmentForm'
@@ -16,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from '@clerk/nextjs'
 import { convertUTCToLocal, formatLocalDate } from '@/app/lib/dateUtils'
 import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointmentDialog'
+import { rescheduleAppointment, cancelAppointment } from '@/app/lib/appointments'
 import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
 import { ChevronLeft, MapPin, PlusCircle, RefreshCw, Trash2, Phone, Mail, CalendarIcon, ClockIcon, MapPinIcon } from "lucide-react"
 import toast from 'react-hot-toast'
@@ -144,7 +144,7 @@ export default function DoctorDetailsPage() {
   }
 
   return (
-    <DashboardLayout>
+    <div>
       <div className="bg-blue-600 text-white p-6">
         <div className="flex justify-between items-center mb-4">
           <Link href="/doctors" className="inline-flex items-center text-white hover:underline transition-colors duration-200">
@@ -343,6 +343,6 @@ export default function DoctorDetailsPage() {
         appointment={selectedAppointment}
         onCancel={handleCancelSuccess}
       />
-    </DashboardLayout>
+    </div>
   )
 }

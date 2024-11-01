@@ -19,33 +19,16 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Pill, Plus, Calendar, Clock, AlertCircle } from 'lucide-react'
+import { Pill, Plus, Calendar, Clock, AlertCircle, Trash2 } from 'lucide-react'
 import { toast } from "react-hot-toast"
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { format, addDays } from 'date-fns'
-
-interface Prescription {
-  id: string
-  medication: string
-  dosage: string
-  frequency: string
-  duration: number
-  start_date: string
-  end_date: string
-  instructions: string
-  doctor_id: string
-  patient_id: string
-  status: 'active' | 'completed' | 'cancelled'
-  doctor: {
-    id: string
-    name: string
-  }
-}
+import { Doctor, Prescription } from '@/app/types'
 
 interface PrescriptionManagerProps {
   patientId: string
-  doctors: Array<{ id: string; name: string }>
-  initialPrescriptions?: Prescription[]
+  doctors: Doctor[]
+  initialPrescriptions: Prescription[]
 }
 
 export function PrescriptionManager({ 
@@ -81,13 +64,30 @@ export function PrescriptionManager({
           status: 'active',
           duration: parseInt(newPrescription.duration)
         })
-        .select('*, doctor:doctors(id, name)')
+        .select('*, doctor:doctors(id, first_name, last_name)')
         .single()
 
       if (error) throw error
 
-      setPrescriptions([data, ...prescriptions])
+      const formattedPrescription = {
+        ...data,
+        doctor: {
+          id: data.doctor.id,
+          name: `${data.doctor.first_name} ${data.doctor.last_name}`
+        }
+      }
+
+      setPrescriptions([formattedPrescription, ...prescriptions])
       setShowAddPrescription(false)
+      setNewPrescription({
+        medication: '',
+        dosage: '',
+        frequency: '',
+        duration: '',
+        instructions: '',
+        doctor_id: '',
+        start_date: format(new Date(), 'yyyy-MM-dd')
+      })
       toast.success('Prescription added successfully')
     } catch (error) {
       console.error('Error adding prescription:', error)
@@ -95,16 +95,20 @@ export function PrescriptionManager({
     }
   }
 
-  const getStatusColor = (status: Prescription['status']) => {
-    switch (status) {
-      case 'active':
-        return 'text-green-500'
-      case 'completed':
-        return 'text-blue-500'
-      case 'cancelled':
-        return 'text-red-500'
-      default:
-        return 'text-gray-500'
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('prescriptions')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      setPrescriptions(prescriptions.filter(p => p.id !== id))
+      toast.success('Prescription deleted successfully')
+    } catch (error) {
+      console.error('Error deleting prescription:', error)
+      toast.error('Failed to delete prescription')
     }
   }
 
@@ -132,9 +136,13 @@ export function PrescriptionManager({
                     <Pill className="w-5 h-5 text-blue-500" />
                     <h3 className="font-medium">{prescription.medication}</h3>
                   </div>
-                  <span className={`text-sm font-medium ${getStatusColor(prescription.status)}`}>
-                    {prescription.status.charAt(0).toUpperCase() + prescription.status.slice(1)}
-                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(prescription.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {prescription.dosage} • {prescription.frequency}
@@ -222,7 +230,7 @@ export function PrescriptionManager({
                 </SelectTrigger>
                 <SelectContent>
                   {doctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>
+                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
                       Dr. {doctor.name}
                     </SelectItem>
                   ))}
