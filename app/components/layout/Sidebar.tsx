@@ -43,6 +43,7 @@ import {
   SidebarGroupLabel
 } from "@/components/ui/sidebar"
 import { cn } from '@/lib/utils'
+import { SignOutButton } from "@/app/components/auth/SignOutButton"
 
 export default function AppSidebar() {
   const pathname = usePathname()
@@ -214,6 +215,9 @@ export default function AppSidebar() {
                       <span>Settings</span>
                     </SidebarMenuButton>
                   </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SignOutButton className="w-full justify-start" />
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>

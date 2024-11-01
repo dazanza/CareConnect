@@ -41,13 +41,7 @@ export default function RootLayout({
                 </div>
               </SignedIn>
               <SignedOut>
-                <div className="flex flex-col items-center justify-center min-h-screen">
-                  <SignInButton mode="modal">
-                    <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                      Sign In
-                    </button>
-                  </SignInButton>
-                </div>
+                {children}
               </SignedOut>
             </Providers>
           </main>

@@ -1,27 +1,15 @@
 "use client";
 
-import { useAuth, useSignIn } from "@clerk/nextjs";
+import { SignInButton as ClerkSignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 export function SignInButton() {
-  const { isSignedIn } = useAuth();
-  const { signOut } = useAuth();
-  const { openSignIn } = useSignIn();
-
-  const handleClick = async () => {
-    if (isSignedIn) {
-      await signOut();
-    } else {
-      openSignIn();
-    }
-  };
-
   return (
-    <Button 
-      onClick={handleClick}
-      variant="outline"
-    >
-      {isSignedIn ? "Sign Out" : "Sign In"}
-    </Button>
+    <ClerkSignInButton mode="modal">
+      <Button size="lg" className="px-8">
+        Get Started <ArrowRight className="ml-2 h-5 w-5" />
+      </Button>
+    </ClerkSignInButton>
   );
 }
