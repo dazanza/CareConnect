@@ -41,11 +41,6 @@ export interface Appointment {
   };
 }
 
-export interface Prescription {
-  id: number;
-  medication: string;
-  next_dose: string;
-}
 
 export interface Vital {
   id: number;
@@ -91,4 +86,73 @@ export interface Todo {
     name: string;
   };
   patientName?: string;
+}
+
+export interface Prescription {
+  id: number
+  patient_id: number
+  medication_id: number
+  medication: string // Keep for backward compatibility
+  dosage: string
+  frequency: string
+  duration?: string
+  refills: number
+  status: 'active' | 'completed' | 'discontinued'
+  prescribed_by: number
+  start_date: string
+  end_date?: string
+  next_dose?: string // Keep for backward compatibility
+  notes?: string
+  created_at: string
+  doctor?: {
+    id: number
+    first_name: string
+    last_name: string
+  }
+  medication_details?: Medication
+}
+
+// Add new Medication interface
+export interface Medication {
+  id: number
+  name: string
+  generic_name?: string
+  strength: string
+  form: MedicationForm
+  manufacturer?: string
+  description?: string
+  warnings?: string
+  side_effects?: string
+  interactions?: string
+  created_at: string
+  updated_at: string
+  user_id: string
+}
+
+// Add type for medication forms
+export type MedicationForm = 'tablet' | 'capsule' | 'liquid' | 'injection' | 'topical' | 'inhaler' | 'patch'
+
+// Add form data interfaces
+export interface MedicationFormData {
+  name: string
+  generic_name?: string
+  strength: string
+  form: MedicationForm
+  manufacturer?: string
+  description?: string
+  warnings?: string
+  side_effects?: string
+  interactions?: string
+}
+
+export interface PrescriptionFormData {
+  medication_id: number
+  dosage: string
+  frequency: string
+  duration?: string
+  refills: number
+  prescribed_by: number
+  start_date: string
+  end_date?: string
+  notes?: string
 }

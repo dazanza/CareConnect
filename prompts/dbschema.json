@@ -756,6 +756,13 @@
     "column_default": "CURRENT_TIMESTAMP"
   },
   {
+    "table_name": "medications",
+    "column_name": "prescription_id",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
     "table_name": "notes",
     "column_name": "id",
     "data_type": "integer",
@@ -1029,6 +1036,69 @@
     "column_default": "requesting_user_id()"
   },
   {
+    "table_name": "pending_shares",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "pending_shares",
+    "column_name": "patient_id",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "pending_shares",
+    "column_name": "email",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "pending_shares",
+    "column_name": "access_level",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "pending_shares",
+    "column_name": "shared_by_user_id",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "pending_shares",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "CURRENT_TIMESTAMP"
+  },
+  {
+    "table_name": "pending_shares",
+    "column_name": "expires_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "pending_shares",
+    "column_name": "claimed_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "pending_shares",
+    "column_name": "claimed_by_user_id",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
     "table_name": "prescriptions",
     "column_name": "id",
     "data_type": "integer",
@@ -1097,6 +1167,41 @@
     "data_type": "text",
     "is_nullable": "YES",
     "column_default": "requesting_user_id()"
+  },
+  {
+    "table_name": "prescriptions",
+    "column_name": "medication_id",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "prescriptions",
+    "column_name": "duration",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "prescriptions",
+    "column_name": "refills",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "table_name": "prescriptions",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "'active'::text"
+  },
+  {
+    "table_name": "prescriptions",
+    "column_name": "prescribed_by",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": null
   },
   {
     "table_name": "timeline_events",

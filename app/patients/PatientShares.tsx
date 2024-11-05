@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSupabase } from "@/app/hooks/useSupabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
+import { sendShareInvitation } from '@/app/actions/sendShareInvitation'
 
 interface PatientSharesProps {
   patientId: number;
@@ -21,70 +22,165 @@ interface PatientSharesProps {
 interface Share {
   id: string;
   shared_with_user_id: string;
-  access_level: string;
+  access_level: 'read' | 'write' | 'admin';
   expires_at: string | null;
+  shared_with: {
+    email: string;
+    first_name?: string;
+    last_name?: string;
+  };
+  is_pending?: boolean;
 }
 
 export function PatientShares({ patientId }: PatientSharesProps) {
   const [email, setEmail] = useState("");
-  const [accessLevel, setAccessLevel] = useState("read");
+  const [accessLevel, setAccessLevel] = useState<Share['access_level']>("read");
   const [shares, setShares] = useState<Share[]>([]);
-  const supabase = useSupabase();
+  const { supabase } = useSupabase();
+
+  useEffect(() => {
+    loadShares();
+  }, [patientId]);
 
   const handleShare = async () => {
     try {
-      // First get the user ID for the email
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // First check if the user exists in our users table
       const { data: userData, error: userError } = await supabase
         .from("users")
-        .select("id")
+        .select("id, email")
         .eq("email", email)
         .single();
 
-      if (userError || !userData) {
-        toast.error("User not found");
-        return;
-      }
+      if (userError) {
+        // If user doesn't exist, create a pending share
+        const { data: pendingShare, error: pendingShareError } = await supabase
+          .from("pending_shares")
+          .insert({
+            patient_id: patientId,
+            email: email,
+            access_level: accessLevel,
+            shared_by_user_id: user.id,
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days expiry
+          })
+          .select()
+          .single();
 
-      // Create the share
-      const { error: shareError } = await supabase
-        .from("patient_shares")
-        .insert({
-          patient_id: patientId,
-          shared_with_user_id: userData.id,
-          access_level: accessLevel,
+        if (pendingShareError) {
+          console.error('Pending share error:', pendingShareError);
+          toast.error("Failed to create share invitation");
+          return;
+        }
+
+        // Send email invitation
+        const { success, error } = await sendShareInvitation({
+          email,
+          patientId,
+          shareId: pendingShare.id,
+          accessLevel,
+          invitedBy: user.email || 'A healthcare provider'
         });
 
-      if (shareError) {
-        toast.error("Failed to share patient");
-        return;
+        if (!success) {
+          console.error('Failed to send invitation:', error);
+          toast.error("Failed to send invitation email");
+          return;
+        }
+
+        toast.success("Share invitation sent to " + email);
+      } else {
+        // If user exists, create the share directly
+        const { error: shareError } = await supabase
+          .from("patient_shares")
+          .insert({
+            patient_id: patientId,
+            shared_with_user_id: userData.id,
+            shared_by_user_id: user.id,
+            access_level: accessLevel,
+          });
+
+        if (shareError) {
+          console.error('Share error:', shareError);
+          toast.error("Failed to share patient");
+          return;
+        }
+
+        toast.success("Patient shared successfully with " + email);
       }
 
-      toast.success("Patient shared successfully");
       loadShares();
       setEmail("");
     } catch (error) {
+      console.error('Share error:', error);
       toast.error("An error occurred");
     }
   };
 
   const loadShares = async () => {
-    const { data, error } = await supabase
-      .from("patient_shares")
-      .select(`
-        id,
-        shared_with_user_id,
-        access_level,
-        expires_at,
-        users:shared_with_user_id (email)
-      `)
-      .eq("patient_id", patientId);
+    try {
+      const { data: activeShares, error } = await supabase
+        .from("patient_shares")
+        .select(`
+          id,
+          shared_with_user_id,
+          access_level,
+          expires_at,
+          shared_with:users!shared_with_user_id(
+            email,
+            first_name,
+            last_name
+          )
+        `)
+        .eq("patient_id", patientId);
 
-    if (error) {
-      toast.error("Failed to load shares");
-      return;
+      if (error) {
+        console.error('Load shares error:', error);
+        toast.error("Failed to load shares");
+        return;
+      }
+
+      const formattedActiveShares: Share[] = (activeShares || []).map(share => ({
+        id: share.id,
+        shared_with_user_id: share.shared_with_user_id,
+        access_level: share.access_level as Share['access_level'],
+        expires_at: share.expires_at,
+        shared_with: {
+          email: share.shared_with[0]?.email || 'Unknown',
+          first_name: share.shared_with[0]?.first_name,
+          last_name: share.shared_with[0]?.last_name
+        }
+      }));
+
+      // Load pending shares
+      const { data: pendingShares, error: pendingError } = await supabase
+        .from("pending_shares")
+        .select("*")
+        .eq("patient_id", patientId)
+        .is("claimed_at", null);
+
+      if (pendingError) {
+        console.error('Load pending shares error:', pendingError);
+        return;
+      }
+
+      const formattedPendingShares: Share[] = (pendingShares || []).map(ps => ({
+        id: ps.id,
+        shared_with_user_id: '',
+        access_level: ps.access_level as Share['access_level'],
+        expires_at: ps.expires_at,
+        shared_with: {
+          email: ps.email
+        },
+        is_pending: true
+      }));
+
+      setShares([...formattedActiveShares, ...formattedPendingShares]);
+    } catch (error) {
+      console.error('Error loading shares:', error);
+      toast.error('Failed to load shares');
     }
-
-    setShares(data || []);
   };
 
   const removeShare = async (shareId: string) => {
@@ -94,6 +190,7 @@ export function PatientShares({ patientId }: PatientSharesProps) {
       .eq("id", shareId);
 
     if (error) {
+      console.error('Remove share error:', error);
       toast.error("Failed to remove share");
       return;
     }
@@ -118,7 +215,7 @@ export function PatientShares({ patientId }: PatientSharesProps) {
         
         <div className="grid gap-2">
           <Label htmlFor="access">Access Level</Label>
-          <Select value={accessLevel} onValueChange={setAccessLevel}>
+          <Select value={accessLevel} onValueChange={(value) => setAccessLevel(value as Share['access_level'])}>
             <SelectTrigger id="access">
               <SelectValue placeholder="Select access level" />
             </SelectTrigger>
@@ -141,7 +238,19 @@ export function PatientShares({ patientId }: PatientSharesProps) {
             className="flex items-center justify-between p-2 border rounded"
           >
             <div>
-              <p>{(share as any).users?.email}</p>
+              <p className="flex items-center gap-2">
+                {share.shared_with.email}
+                {share.is_pending && (
+                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                    Pending
+                  </span>
+                )}
+              </p>
+              {share.shared_with.first_name && (
+                <p className="text-sm text-muted-foreground">
+                  {share.shared_with.first_name} {share.shared_with.last_name}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">
                 Access: {share.access_level}
               </p>

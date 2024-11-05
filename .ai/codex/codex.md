@@ -550,3 +550,82 @@ Key points:
 2. Fixed positioning was causing layout issues and should be avoided
 3. Content area should be wrapped in a flex container with proper padding
 4. Removing duplicate layout components improves maintainability
+
+L071:
+Context: /app/components/patients/PatientsContent.tsx and /app/components/doctors/DoctorsContent.tsx
+Insight: React Query v5 API changes require gcTime instead of cacheTime
+Application: Update query options to use gcTime and proper staleTime settings
+Impact: Ensures proper cache management and data freshness
+Related: L069, L070
+
+L072:
+Context: /app/components/auth/SignOutButton.tsx
+Insight: Clerk's signOut needs proper promise handling
+Application: Use promise chaining instead of async/await for signOut
+Impact: Prevents cookie-related errors during sign-out process
+Related: L020, L021
+
+L073:
+Context: /app/components/layout/Sidebar.tsx
+Insight: Sidebar needs consistent styling and state management
+Application: Use Collapsible for expandable sections and proper state management for dialogs
+Impact: Improves UX with consistent animations and state handling
+Related: L070
+
+L074:
+Context: /app/page.tsx
+Insight: BentoGrid component provides better feature showcase
+Application: Use BentoGrid with consistent gradients and icons for features
+Impact: Improves landing page visual appeal and information hierarchy
+Related: None
+
+L075:
+Context: /app/components/VitalsChart.tsx
+Insight: Recharts requires proper module resolution
+Application: Update package installation and import structure
+Impact: Resolves module resolution errors and ensures chart functionality
+Related: None
+
+L076:
+- Context: Type organization in /app/types/
+- Insight: Types should be organized by domain in separate files and re-exported from index.ts
+- Application: Create separate type files (medications.ts, patients.ts, etc.) and use index.ts as a central export point
+- Impact: Improves code organization, maintainability, and prevents circular dependencies
+- Related: L028, L066
+
+L077:
+- Context: Database schema alignment in type definitions
+- Insight: Type definitions must exactly match database schema including nullability and field types
+- Application: Update interfaces to match database column definitions:
+  - Use correct nullable fields based on is_nullable
+  - Match data types (integer -> number, text -> string)
+  - Include default fields like created_at, updated_at
+- Impact: Ensures type safety and prevents runtime errors
+- Related: L066, L076
+
+L078:
+- Context: Form data types vs database types
+- Insight: Form data types should be separate from database entity types
+- Application: Create separate interfaces for form data (e.g., MedicationFormData) that only include editable fields
+- Impact: Provides better type safety for forms while maintaining database type accuracy
+- Related: L077
+
+L079:
+- Context: Relationship handling in types
+- Insight: Database relationships should be represented as optional nested objects in types
+- Application: Add optional nested objects for relationships:  ```typescript
+  doctor?: {
+    id: number
+    first_name: string
+    last_name: string
+  }  ```
+- Impact: Provides type safety for joined queries while maintaining flexibility
+- Related: L077, L078
+
+L080:
+- Context: Enum-like types in TypeScript
+- Insight: Use string literal unions for enum-like types instead of enums
+- Application: Define types like:  ```typescript
+  type MedicationForm = 'tablet' | 'capsule' | 'liquid' | 'injection' | 'topical' | 'inhaler' | 'patch'  ```
+- Impact: Provides better type safety and runtime performance than enums
+- Related: L077, L078

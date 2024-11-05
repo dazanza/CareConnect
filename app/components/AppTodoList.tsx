@@ -19,11 +19,17 @@ import { toast } from "react-hot-toast"
 import { TodoListSkeleton } from "@/app/components/ui/skeletons"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { useAuth } from '@clerk/nextjs'
+import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select"
 
 type AppTodoListProps = {
   patientId?: string
   appointmentId?: string
   userId?: string
+}
+
+interface PatientOption {
+  id: number
+  name: string
 }
 
 export default function AppTodoList({ patientId, appointmentId, userId }: AppTodoListProps) {
@@ -34,10 +40,15 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [patients, setPatients] = useState<PatientOption[]>([])
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(
+    patientId ? parseInt(patientId) : null
+  )
 
   useEffect(() => {
     if (!supabase || !clerkUserId) return
     fetchTodos()
+    fetchPatients()
   }, [supabase, patientId, appointmentId, clerkUserId])
 
   const fetchTodos = async () => {
@@ -71,13 +82,30 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
     }
   }
 
+  const fetchPatients = async () => {
+    if (!supabase) return
+
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('id, name')
+        .order('name')
+
+      if (error) throw error
+      setPatients(data)
+    } catch (error) {
+      console.error('Error fetching patients:', error)
+      toast.error('Failed to load patients')
+    }
+  }
+
   const addTask = async () => {
     if (!supabase || newTask.trim() === "") return
 
     const task = {
       text: newTask,
       completed: false,
-      patient_id: patientId ? parseInt(patientId) : null,
+      patient_id: selectedPatientId || (patientId ? parseInt(patientId) : null),
       appointment_id: appointmentId ? parseInt(appointmentId) : null,
       user_id: clerkUserId,
       due_date: dueDate?.toISOString(),
@@ -100,6 +128,7 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
       setTodos([newTodo, ...todos])
       setNewTask("")
       setDueDate(undefined)
+      if (!patientId) setSelectedPatientId(null) // Reset selection if not in patient context
       toast.success('Todo added successfully')
     }
   }
@@ -178,6 +207,24 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
                 onChange={(e) => setNewTask(e.target.value)}
                 className="flex-grow"
               />
+              {!patientId && ( // Only show patient selector if not in patient context
+                <Select
+                  value={selectedPatientId?.toString()}
+                  onValueChange={(value) => setSelectedPatientId(value ? parseInt(value) : null)}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select patient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No patient</SelectItem>
+                    {patients.map((patient) => (
+                      <SelectItem key={patient.id} value={patient.id.toString()}>
+                        {patient.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Popover>
                 <PopoverTrigger asChild>
                   <Button

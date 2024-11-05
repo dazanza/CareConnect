@@ -1,5 +1,23 @@
 [
   {
+    "policy_name": "Users can manage immunizations",
+    "table_name": "immunizations",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view immunizations",
+    "table_name": "immunizations",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = immunizations.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can manage medications",
     "table_name": "medications",
     "policy_role": null,
@@ -18,20 +36,11 @@
     "policy_type": "PERMISSIVE"
   },
   {
-    "policy_name": "Users can manage immunizations",
-    "table_name": "immunizations",
-    "policy_role": null,
-    "command": "*",
-    "policy_expression": "(user_id = requesting_user_id())",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view immunizations",
-    "table_name": "immunizations",
-    "policy_role": null,
+    "policy_name": "Users can view medications through prescriptions",
+    "table_name": "medications",
+    "policy_role": "authenticated",
     "command": "r",
-    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = immunizations.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
+    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM prescriptions\n  WHERE ((prescriptions.id = medications.prescription_id) AND (prescriptions.patient_id IN ( SELECT patient_shares.patient_id\n           FROM patient_shares\n          WHERE (((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now())))))))))",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
@@ -135,6 +144,24 @@
     "policy_type": "PERMISSIVE"
   },
   {
+    "policy_name": "Users can manage prescriptions",
+    "table_name": "prescriptions",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view prescriptions",
+    "table_name": "prescriptions",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = prescriptions.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can manage user family group",
     "table_name": "user_family_group",
     "policy_role": null,
@@ -167,24 +194,6 @@
     "policy_role": null,
     "command": "r",
     "policy_expression": "(user_id = requesting_user_id())",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can manage prescriptions",
-    "table_name": "prescriptions",
-    "policy_role": null,
-    "command": "*",
-    "policy_expression": "(user_id = requesting_user_id())",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view prescriptions",
-    "table_name": "prescriptions",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((user_id = requesting_user_id()) OR (EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = prescriptions.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now()))))))",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
@@ -302,6 +311,24 @@
     "policy_role": null,
     "command": "r",
     "policy_expression": "(((shared_by_user_id)::text = requesting_user_id()) OR ((shared_with_user_id)::text = requesting_user_id()))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage pending shares they created",
+    "table_name": "pending_shares",
+    "policy_role": "authenticated",
+    "command": "*",
+    "policy_expression": "(shared_by_user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view pending shares for their email",
+    "table_name": "pending_shares",
+    "policy_role": "authenticated",
+    "command": "r",
+    "policy_expression": "(email = ( SELECT users.email\n   FROM users\n  WHERE (users.user_id = requesting_user_id())))",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
