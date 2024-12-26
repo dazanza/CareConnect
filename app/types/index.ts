@@ -147,3 +147,117 @@ export interface Appointment {
     last_name: string
   }
 }
+
+export interface MedicalEvent {
+  id: string
+  date: string
+  type: string
+  title: string
+  description: string
+  doctor_id: string
+  doctor: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+}
+
+export interface Allergy {
+  id: string
+  patient_id: string
+  allergen: string
+  reaction: string
+  severity: string
+  date_identified: string
+  notes?: string
+}
+
+export interface Immunization {
+  id: string
+  patient_id: string
+  vaccine_name: string
+  date_administered: string
+  dose_number?: number
+  notes?: string
+  doctor: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+}
+
+export interface PatientDoctor {
+  id: string
+  name: string
+  specialty: string
+  phone: string
+  email: string
+  primary: boolean
+}
+
+export interface PatientDoctorResponse {
+  id: string
+  doctor: {
+    id: string
+    first_name: string
+    last_name: string
+    specialization: string
+    contact_number: string
+    email: string
+  }
+}
+
+export interface DoctorOption {
+  id: string
+  first_name: string
+  last_name: string
+  name: string
+  specialization: string
+  contact_number: string | null
+  email: string | null
+  address: string | null
+  user_id: string | null
+  created_at: string
+  assistant: string | null
+}
+
+export interface Medication {
+  id: string
+  name: string
+  dosage: string
+  frequency: string
+  start_date: string
+  end_date: string
+  notes?: string
+  patient_id: string
+  doctor_id: string
+  created_at: string
+  doctor: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+}
+
+// Re-export types from patients module
+export type { PatientShare, PendingShare } from './patients'
+
+// Local type definitions
+export interface Prescription {
+  id: string
+  patient_id: string
+  medication_name: string
+  dosage: string
+  frequency: string
+  start_date: string
+  end_date: string
+  notes?: string
+  doctor_id: string
+  created_at: string
+  status: 'active' | 'completed' | 'cancelled'
+  doctor?: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+}

@@ -629,3 +629,19 @@ L080:
   type MedicationForm = 'tablet' | 'capsule' | 'liquid' | 'injection' | 'topical' | 'inhaler' | 'patch'  ```
 - Impact: Provides better type safety and runtime performance than enums
 - Related: L077, L078
+
+L081:
+- Context: /app/patients/[id]/page.tsx
+- Insight: Patient data fetching should not convert ID types or add extra parsing
+- Application: Use direct string ID from params in Supabase query:
+  ```typescript
+  .from('patients')
+  .select('*')
+  .eq('id', params.id)
+  .single()
+  ```
+- Impact: Prevents type conversion issues and maintains working data fetching pattern
+- Related: L066, L077
+
+L082:
+...

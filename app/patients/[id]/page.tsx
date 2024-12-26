@@ -59,9 +59,29 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [isAssignDoctorOpen, setIsAssignDoctorOpen] = useState(false)
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
 
+  // Add loading states for each data type
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [isLoadingVitals, setIsLoadingVitals] = useState(false)
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false)
+  const [isLoadingPrescriptions, setIsLoadingPrescriptions] = useState(false)
+  const [isLoadingLabResults, setIsLoadingLabResults] = useState(false)
+  const [isLoadingAllergies, setIsLoadingAllergies] = useState(false)
+  const [isLoadingMedications, setIsLoadingMedications] = useState(false)
+  const [isLoadingImmunizations, setIsLoadingImmunizations] = useState(false)
+  const [isLoadingTimeline, setIsLoadingTimeline] = useState(false)
+  const [isLoadingPatientDoctors, setIsLoadingPatientDoctors] = useState(false)
+
+  // Primary useEffect for patient data
   useEffect(() => {
     if (supabase && params.id) {
       fetchPatientData()
+    }
+  }, [supabase, params.id])
+
+  // Secondary useEffect for related data, only runs after patient is loaded
+  useEffect(() => {
+    if (supabase && params.id && patient) {
       fetchTimelineEvents()
       fetchDoctors()
       fetchMedicalHistory()
@@ -74,7 +94,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       fetchImmunizations()
       fetchPatientDoctors()
     }
-  }, [supabase, params.id])
+  }, [supabase, params.id, patient])
 
   const fetchPatientData = async () => {
     try {
@@ -103,6 +123,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   }
 
   const fetchDoctors = async () => {
+    setIsLoadingDoctors(true)
     try {
       const { data, error } = await supabase
         .from('doctors')
@@ -128,10 +149,13 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     } catch (error) {
       console.error('Error fetching doctors:', error)
       toast.error('Failed to load doctors')
+    } finally {
+      setIsLoadingDoctors(false)
     }
   }
 
   const fetchPatientDoctors = async () => {
+    setIsLoadingPatientDoctors(true)
     try {
       const { data, error } = await supabase
         .from('patient_doctors')
@@ -147,10 +171,10 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           )
         `)
         .eq('patient_id', params.id)
-  
+
       if (error) throw error
-  
-      const formattedDoctors: PatientDoctor[] = (data as any[]).map(item => ({
+
+      const formattedDoctors: PatientDoctor[] = data.map(item => ({
         id: item.doctor.id,
         name: `${item.doctor.first_name} ${item.doctor.last_name}`,
         specialty: item.doctor.specialization || '',
@@ -158,15 +182,18 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         email: item.doctor.email || '',
         primary: false
       }))
-  
+
       setPatientDoctors(formattedDoctors)
     } catch (error) {
       console.error('Error fetching patient doctors:', error)
       toast.error('Failed to load patient doctors')
+    } finally {
+      setIsLoadingPatientDoctors(false)
     }
   }
 
   const fetchMedicalHistory = async () => {
+    setIsLoadingHistory(true)
     try {
       const patientId = parseInt(params.id)
       if (isNaN(patientId)) {
@@ -208,11 +235,12 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       console.error('Error fetching medical history:', error)
       toast.error('Failed to load medical history')
     } finally {
-      setIsLoading(false)
+      setIsLoadingHistory(false)
     }
   }
 
   const fetchVitals = async () => {
+    setIsLoadingVitals(true)
     try {
       const patientId = parseInt(params.id)
       if (isNaN(patientId)) {
@@ -230,10 +258,13 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     } catch (error) {
       console.error('Error fetching vitals:', error)
       toast.error('Failed to load vitals data')
+    } finally {
+      setIsLoadingVitals(false)
     }
   }
 
   const fetchDocuments = async () => {
+    setIsLoadingDocuments(true)
     try {
       const patientId = parseInt(params.id)
       if (isNaN(patientId)) {
@@ -251,6 +282,8 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     } catch (error) {
       console.error('Error fetching documents:', error)
       toast.error('Failed to load documents')
+    } finally {
+      setIsLoadingDocuments(false)
     }
   }
 
@@ -285,6 +318,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   }
 
   const fetchLabResults = async () => {
+    setIsLoadingLabResults(true)
     try {
       const { data, error } = await supabase
         .from('lab_results')
@@ -306,25 +340,10 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         `)
         .eq('patient_id', params.id)
         .order('date', { ascending: false })
-  
+
       if (error) throw error
-  
-      const formattedResults: LabResult[] = (data as unknown as Array<{
-        id: string;
-        test_name: string;
-        test_type: string;
-        result_value: string;
-        reference_range: string;
-        unit: string;
-        date: string;
-        notes: string;
-        status: 'normal' | 'abnormal' | 'critical';
-        doctor: {
-          id: string;
-          first_name: string;
-          last_name: string;
-        };
-      }>).map(item => ({
+
+      const formattedResults: LabResult[] = data.map(item => ({
         id: item.id,
         test_name: item.test_name,
         test_type: item.test_type,
@@ -341,15 +360,18 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           name: `${item.doctor.first_name} ${item.doctor.last_name}`
         }
       }))
-  
+
       setLabResults(formattedResults)
     } catch (error) {
       console.error('Error fetching lab results:', error)
       toast.error('Failed to load lab results')
+    } finally {
+      setIsLoadingLabResults(false)
     }
   }
 
   const fetchPrescriptions = async () => {
+    setIsLoadingPrescriptions(true)
     try {
       const patientId = parseInt(params.id)
       if (isNaN(patientId)) {
@@ -367,10 +389,13 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     } catch (error) {
       console.error('Error fetching prescriptions:', error)
       toast.error('Failed to load prescriptions')
+    } finally {
+      setIsLoadingPrescriptions(false)
     }
   }
 
   const fetchAllergies = async () => {
+    setIsLoadingAllergies(true)
     try {
       const patientId = parseInt(params.id)
       if (isNaN(patientId)) {
@@ -388,10 +413,13 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     } catch (error) {
       console.error('Error fetching allergies:', error)
       toast.error('Failed to load allergies')
+    } finally {
+      setIsLoadingAllergies(false)
     }
   }
 
   const fetchMedications = async () => {
+    setIsLoadingMedications(true)
     try {
       const patientId = parseInt(params.id)
       if (isNaN(patientId)) {
@@ -416,10 +444,13 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     } catch (error) {
       console.error('Error fetching medications:', error)
       toast.error('Failed to load medications')
+    } finally {
+      setIsLoadingMedications(false)
     }
   }
 
   const fetchImmunizations = async () => {
+    setIsLoadingImmunizations(true)
     try {
       const patientId = parseInt(params.id)
       if (isNaN(patientId)) {
@@ -444,10 +475,13 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     } catch (error) {
       console.error('Error fetching immunizations:', error)
       toast.error('Failed to load immunizations')
+    } finally {
+      setIsLoadingImmunizations(false)
     }
   }
 
   const fetchTimelineEvents = async () => {
+    setIsLoadingTimeline(true)
     try {
       const patientId = parseInt(params.id)
       if (isNaN(patientId)) {
@@ -480,6 +514,8 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     } catch (error) {
       console.error('Error fetching timeline:', error)
       toast.error('Failed to load timeline')
+    } finally {
+      setIsLoadingTimeline(false)
     }
   }
 
