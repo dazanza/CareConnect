@@ -1,13 +1,15 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from "next/navigation"
-import { SignInButton } from "@/app/components/auth/SigninButton"
+import { SignInButton } from "@clerk/nextjs"
+import { Button } from "@/components/ui/button"
 import { 
   Calendar, 
   Clock, 
   Shield, 
   Users, 
   ClipboardList, 
-  Bell 
+  Bell,
+  ArrowRight
 } from "lucide-react"
 import { BentoGrid, BentoCard } from "@/components/ui/bento-grid"
 
@@ -29,7 +31,11 @@ export default async function Home() {
             Simplify caregiving by centralizing medical appointments, prescriptions, and care notes in one place. Stay organized and connected with everyone involved in your loved one's care journey.
           </p>
           <div className="mt-10">
-            <SignInButton />
+            <SignInButton mode="modal">
+              <Button size="lg" className="px-8">
+                Get Started <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </SignInButton>
           </div>
 
           <BentoGrid className="mt-20">

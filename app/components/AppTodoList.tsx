@@ -209,14 +209,14 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
               />
               {!patientId && ( // Only show patient selector if not in patient context
                 <Select
-                  value={selectedPatientId?.toString()}
-                  onValueChange={(value) => setSelectedPatientId(value ? parseInt(value) : null)}
+                  value={selectedPatientId?.toString() || "none"}
+                  onValueChange={(value) => setSelectedPatientId(value === "none" ? null : parseInt(value))}
                 >
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Select patient" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No patient</SelectItem>
+                    <SelectItem value="none">No patient</SelectItem>
                     {patients.map((patient) => (
                       <SelectItem key={patient.id} value={patient.id.toString()}>
                         {patient.name}

@@ -17,7 +17,6 @@ import { LabResultsManager } from '@/app/components/LabResultsManager'
 import { AllergiesManager } from '@/app/components/AllergiesManager'
 import { MedicationsTracker } from '@/app/components/MedicationsTracker'
 import { ImmunizationTracker } from '@/app/components/ImmunizationTracker'
-import { BillingManager } from '@/app/components/BillingManager'
 import { PatientShares } from '@/app/components/patients/PatientShares'
 import { Separator } from '@/components/ui/separator'
 import { TimelineView } from '@/app/components/medical-history/TimelineView'
@@ -31,19 +30,21 @@ import {
   Allergy,
   Medication,
   Immunization,
-  Bill,
   TimelineEvent,
   PatientDoctor,
-  PatientDoctorResponse
+  PatientDoctorResponse,
+  DoctorOption
 } from '@/app/types'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { DialogFooter } from "@/components/ui/dialog"
 
 export default function PatientDetailsPage({ params }: { params: { id: string } }) {
   const { supabase } = useSupabase()
   const [isLoading, setIsLoading] = useState(true)
   const [patient, setPatient] = useState<any>(null)
-  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [doctors, setDoctors] = useState<DoctorOption[]>([])
   const [medicalHistory, setMedicalHistory] = useState<MedicalEvent[]>([])
   const [showAddHistory, setShowAddHistory] = useState(false)
   const [initialVitals, setInitialVitals] = useState<any[]>([])
@@ -53,7 +54,6 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [allergies, setAllergies] = useState<Allergy[]>([])
   const [medications, setMedications] = useState<Medication[]>([])
   const [immunizations, setImmunizations] = useState<Immunization[]>([])
-  const [bills, setBills] = useState<Bill[]>([])
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([])
   const [patientDoctors, setPatientDoctors] = useState<PatientDoctor[]>([])
   const [isAssignDoctorOpen, setIsAssignDoctorOpen] = useState(false)
@@ -72,7 +72,6 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       fetchAllergies()
       fetchMedications()
       fetchImmunizations()
-      fetchBills()
       fetchPatientDoctors()
     }
   }, [supabase, params.id])
@@ -85,11 +84,21 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         .eq('id', params.id)
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
+
+      if (!data) {
+        throw new Error('Patient not found')
+      }
+
       setPatient(data)
+      setIsLoading(false)
     } catch (error) {
       console.error('Error fetching patient:', error)
       toast.error('Failed to load patient data')
+      setIsLoading(false)
     }
   }
 
@@ -101,9 +110,18 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   
       if (error) throw error
       
-      const formattedDoctors: Doctor[] = data.map(doc => ({
+      const formattedDoctors = data.map(doc => ({
         id: doc.id,
-        name: `${doc.first_name} ${doc.last_name}`
+        first_name: doc.first_name,
+        last_name: doc.last_name,
+        name: `${doc.first_name} ${doc.last_name}`,
+        specialization: '',
+        contact_number: null,
+        email: null,
+        address: null,
+        user_id: null,
+        created_at: new Date().toISOString(),
+        assistant: null
       }))
       
       setDoctors(formattedDoctors)
@@ -150,6 +168,11 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   const fetchMedicalHistory = async () => {
     try {
+      const patientId = parseInt(params.id)
+      if (isNaN(patientId)) {
+        throw new Error('Invalid patient ID')
+      }
+
       const { data, error } = await supabase
         .from('medical_history')
         .select(`
@@ -158,29 +181,28 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           type,
           title,
           description,
-          doctor:doctor_id (
+          doctor_id,
+          doctor:doctors(
             id,
             first_name,
             last_name
           )
         `)
-        .eq('patient_id', params.id)
+        .eq('patient_id', patientId)
         .order('date', { ascending: false })
-  
+
       if (error) throw error
-  
-      const formattedHistory: MedicalEvent[] = data.map(item => ({
+
+      const formattedHistory = data.map(item => ({
         id: item.id,
         date: item.date,
         type: item.type,
         title: item.title,
         description: item.description,
-        doctor: item.doctor ? {
-          id: item.doctor.id,
-          name: `${item.doctor.first_name} ${item.doctor.last_name}`
-        } : null
+        doctor_id: item.doctor_id,
+        doctor: item.doctor
       }))
-  
+
       setMedicalHistory(formattedHistory)
     } catch (error) {
       console.error('Error fetching medical history:', error)
@@ -192,22 +214,17 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   const fetchVitals = async () => {
     try {
+      const patientId = parseInt(params.id)
+      if (isNaN(patientId)) {
+        throw new Error('Invalid patient ID')
+      }
+
       const { data, error } = await supabase
         .from('vitals')
-        .select(`
-          id,
-          date_time,
-          blood_pressure,
-          heart_rate,
-          temperature,
-          oxygen_saturation,
-          blood_sugar,
-          mood,
-          notes
-        `)
-        .eq('patient_id', params.id)
+        .select('*')
+        .eq('patient_id', patientId)
         .order('date_time', { ascending: false })
-  
+
       if (error) throw error
       setInitialVitals(data)
     } catch (error) {
@@ -218,10 +235,15 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   const fetchDocuments = async () => {
     try {
+      const patientId = parseInt(params.id)
+      if (isNaN(patientId)) {
+        throw new Error('Invalid patient ID')
+      }
+
       const { data, error } = await supabase
         .from('documents')
         .select('*')
-        .eq('patient_id', params.id)
+        .eq('patient_id', patientId)
         .order('uploaded_at', { ascending: false })
 
       if (error) throw error
@@ -329,12 +351,17 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   const fetchPrescriptions = async () => {
     try {
+      const patientId = parseInt(params.id)
+      if (isNaN(patientId)) {
+        throw new Error('Invalid patient ID')
+      }
+
       const { data, error } = await supabase
         .from('prescriptions')
         .select('*')
-        .eq('patient_id', params.id)
+        .eq('patient_id', patientId)
         .order('start_date', { ascending: false })
-  
+
       if (error) throw error
       setPrescriptions(data)
     } catch (error) {
@@ -345,10 +372,15 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   const fetchAllergies = async () => {
     try {
+      const patientId = parseInt(params.id)
+      if (isNaN(patientId)) {
+        throw new Error('Invalid patient ID')
+      }
+
       const { data, error } = await supabase
         .from('allergies')
         .select('*')
-        .eq('patient_id', params.id)
+        .eq('patient_id', patientId)
         .order('date_identified', { ascending: false })
 
       if (error) throw error
@@ -361,13 +393,22 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   const fetchMedications = async () => {
     try {
+      const patientId = parseInt(params.id)
+      if (isNaN(patientId)) {
+        throw new Error('Invalid patient ID')
+      }
+
       const { data, error } = await supabase
         .from('medications')
         .select(`
           *,
-          doctor:doctors(id, name)
+          doctor:doctors(
+            id,
+            first_name,
+            last_name
+          )
         `)
-        .eq('patient_id', params.id)
+        .eq('patient_id', patientId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -380,13 +421,22 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   const fetchImmunizations = async () => {
     try {
+      const patientId = parseInt(params.id)
+      if (isNaN(patientId)) {
+        throw new Error('Invalid patient ID')
+      }
+
       const { data, error } = await supabase
         .from('immunizations')
         .select(`
           *,
-          doctor:doctors(id, name)
+          doctor:doctors(
+            id,
+            first_name,
+            last_name
+          )
         `)
-        .eq('patient_id', params.id)
+        .eq('patient_id', patientId)
         .order('date_administered', { ascending: false })
 
       if (error) throw error
@@ -397,27 +447,13 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     }
   }
 
-  const fetchBills = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('bills')
-        .select(`
-          *,
-          service:services(name, code)
-        `)
-        .eq('patient_id', params.id)
-        .order('date', { ascending: false })
-
-      if (error) throw error
-      setBills(data)
-    } catch (error) {
-      console.error('Error fetching bills:', error)
-      toast.error('Failed to load bills')
-    }
-  }
-
   const fetchTimelineEvents = async () => {
     try {
+      const patientId = parseInt(params.id)
+      if (isNaN(patientId)) {
+        throw new Error('Invalid patient ID')
+      }
+
       const { data, error } = await supabase
         .from('timeline_events')
         .select(`
@@ -436,11 +472,10 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           vitals_id,
           lab_result_id
         `)
-        .eq('patient_id', params.id)
+        .eq('patient_id', patientId)
         .order('date', { ascending: false })
-  
+
       if (error) throw error
-    
       setTimelineEvents(data as TimelineEvent[])
     } catch (error) {
       console.error('Error fetching timeline:', error)
@@ -455,10 +490,15 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     }
 
     try {
+      const patientId = parseInt(params.id)
+      if (isNaN(patientId)) {
+        throw new Error('Invalid patient ID')
+      }
+
       const { error } = await supabase
         .from('patient_doctors')
         .insert({
-          patient_id: params.id,
+          patient_id: patientId,
           doctor_id: selectedDoctorId,
         })
 
@@ -522,41 +562,25 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
                     className="flex items-start justify-between p-3 border rounded-lg"
                   >
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{doctor.name}</h3>
-                        {doctor.primary && (
-                          <span className="px-2 py-1 text-xs bg-primary/10 text-primary rounded-full">
-                            Primary
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
-                      <div className="mt-1 space-y-1 text-sm">
-                        <p className="flex items-center gap-2">
-                          <Phone className="w-4 h-4" />
-                          {doctor.phone}
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <Mail className="w-4 h-4" />
-                          {doctor.email}
-                        </p>
-                      </div>
+                      <h4 className="font-medium">Dr. {doctor.name}</h4>
+                      {doctor.specialty && (
+                        <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
+                      )}
+                      {doctor.phone && (
+                        <p className="text-sm text-muted-foreground">{doctor.phone}</p>
+                      )}
+                      {doctor.email && (
+                        <p className="text-sm text-muted-foreground">{doctor.email}</p>
+                      )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        // Add doctor removal functionality here
-                        toast.error('Doctor removal not implemented')
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {doctor.primary && (
+                      <Badge variant="secondary">Primary</Badge>
+                    )}
                   </div>
                 ))
               )}
-              <Button
-                variant="outline"
+              <Button 
+                variant="outline" 
                 className="w-full"
                 onClick={() => setIsAssignDoctorOpen(true)}
               >
@@ -568,85 +592,56 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         </Card>
 
         <MedicalHistoryTimeline 
-          events={medicalHistory}
-          className="lg:col-span-1"
+          events={medicalHistory} 
+          className="lg:col-span-2"
         />
 
-        <VitalsTracker 
-          patientId={params.id as string}
+        <VitalsTracker
+          patientId={params.id}
           initialVitals={initialVitals}
         />
 
-        <DocumentManager 
-          patientId={params.id as string}
+        <DocumentManager
+          patientId={params.id}
           initialDocuments={documents}
         />
 
         <PrescriptionManager
-          patientId={params.id as string}
+          patientId={params.id}
           doctors={doctors}
           initialPrescriptions={prescriptions}
         />
 
         <LabResultsManager
-          patientId={params.id as string}
+          patientId={params.id}
           doctors={doctors}
           initialLabResults={labResults}
         />
 
         <AllergiesManager
-          patientId={params.id as string}
+          patientId={params.id}
           initialAllergies={allergies}
         />
 
         <MedicationsTracker
-          patientId={params.id as string}
+          patientId={params.id}
           doctors={doctors}
           initialMedications={medications}
         />
 
         <ImmunizationTracker
-          patientId={params.id as string}
+          patientId={params.id}
           doctors={doctors}
           initialImmunizations={immunizations}
         />
-
-        <BillingManager
-          patientId={params.id as string}
-          initialBills={bills}
-        />
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Patient Sharing</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PatientShares 
-              patientId={parseInt(params.id)} 
-              patientName={patient?.name || ''} 
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Medical Timeline</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TimelineView patientId={parseInt(params.id)} />
-          </CardContent>
-        </Card>
       </div>
 
       <AddMedicalHistoryForm
         isOpen={showAddHistory}
         onClose={() => setShowAddHistory(false)}
-        patientId={params.id as string}
+        patientId={params.id}
         doctors={doctors}
-        onSuccess={() => {
-          fetchMedicalHistory()
-          setShowAddHistory(false)
-        }}
+        onSuccess={fetchMedicalHistory}
       />
 
       <Dialog open={isAssignDoctorOpen} onOpenChange={setIsAssignDoctorOpen}>
@@ -654,21 +649,36 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           <DialogHeader>
             <DialogTitle>Assign Doctor</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a doctor" />
-              </SelectTrigger>
-              <SelectContent>
-                {doctors.map((doctor) => (
-                  <SelectItem key={doctor.id} value={doctor.id}>
-                    {doctor.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleAssignDoctor}>Assign</Button>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Select Doctor</label>
+              <Select
+                value={selectedDoctorId}
+                onValueChange={setSelectedDoctorId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors
+                    .filter(doc => !patientDoctors.some(pd => pd.id === doc.id))
+                    .map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id}>
+                        Dr. {doctor.first_name} {doctor.last_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignDoctorOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignDoctor}>
+              Assign Doctor
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

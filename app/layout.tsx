@@ -11,6 +11,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { Suspense } from 'react'
 import { Providers } from './providers'
 import AppSidebar from '@/app/components/layout/Sidebar'
+import Header from '@/app/components/layout/Header'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -35,8 +36,11 @@ export default function RootLayout({
                   <div className="w-60 shrink-0">
                     <AppSidebar />
                   </div>
-                  <div className="p-4">
-                    {children}
+                  <div className="flex-1 flex flex-col">
+                    <Header />
+                    <div className="p-4 flex-1">
+                      {children}
+                    </div>
                   </div>
                 </div>
               </SignedIn>
