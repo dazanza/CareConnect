@@ -14,6 +14,27 @@
     "column_default": null
   },
   {
+    "table_name": "admin_users",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": "nextval('admin_users_id_seq'::regclass)"
+  },
+  {
+    "table_name": "admin_users",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "admin_users",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "column_default": "CURRENT_TIMESTAMP"
+  },
+  {
     "table_name": "allergies",
     "column_name": "id",
     "data_type": "integer",
@@ -88,7 +109,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "NO",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "app_logins",
@@ -151,7 +172,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "doctors",
@@ -214,7 +235,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "doctors",
@@ -438,7 +459,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "immunizations",
@@ -592,7 +613,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "medical_history",
@@ -746,7 +767,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "medications",
@@ -802,7 +823,42 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
+  },
+  {
+    "table_name": "notes",
+    "column_name": "voice_recording_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "notes",
+    "column_name": "transcription",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "notes",
+    "column_name": "summary",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "notes",
+    "column_name": "event_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "notes",
+    "column_name": "doctor_id",
+    "data_type": "bigint",
+    "is_nullable": "YES",
+    "column_default": null
   },
   {
     "table_name": "notifications",
@@ -879,7 +935,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "patient_doctors",
@@ -1033,7 +1089,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "pending_shares",
@@ -1166,7 +1222,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "prescriptions",
@@ -1376,7 +1432,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "user_family_group",
@@ -1390,7 +1446,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "users",
@@ -1439,7 +1495,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "vitals",
@@ -1509,7 +1565,7 @@
     "column_name": "user_id",
     "data_type": "text",
     "is_nullable": "YES",
-    "column_default": "requesting_user_id()"
+    "column_default": "requesting_user_id_immutable()"
   },
   {
     "table_name": "vitals",

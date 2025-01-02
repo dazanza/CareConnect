@@ -1,5 +1,95 @@
 [
   {
+    "policy_name": "Allow admins full access to notes",
+    "table_name": "notes",
+    "policy_role": "authenticated",
+    "command": "*",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM admin_users\n  WHERE ((admin_users.user_id)::text = requesting_user_id())))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Allow owners full access to notes",
+    "table_name": "notes",
+    "policy_role": "authenticated",
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Allow shared users to view notes",
+    "table_name": "notes",
+    "policy_role": "authenticated",
+    "command": "r",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = notes.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now())))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage notes",
+    "table_name": "notes",
+    "policy_role": null,
+    "command": "*",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view notes",
+    "table_name": "notes",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(user_id = requesting_user_id())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage medical history",
+    "table_name": "medical_history",
+    "policy_role": "authenticated",
+    "command": "*",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM patients\n  WHERE ((patients.id = medical_history.patient_id) AND (patients.user_id = requesting_user_id_immutable()))))",
+    "with_check_expression": "(EXISTS ( SELECT 1\n   FROM patients\n  WHERE ((patients.id = medical_history.patient_id) AND (patients.user_id = requesting_user_id_immutable()))))",
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view shared medical history",
+    "table_name": "medical_history",
+    "policy_role": "authenticated",
+    "command": "r",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = medical_history.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id_immutable()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now())))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Admins can manage admin_users",
+    "table_name": "admin_users",
+    "policy_role": "authenticated",
+    "command": "*",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM admin_users a\n  WHERE ((a.user_id)::text = requesting_user_id_immutable())))",
+    "with_check_expression": "(EXISTS ( SELECT 1\n   FROM admin_users a\n  WHERE ((a.user_id)::text = requesting_user_id_immutable())))",
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can manage allergies",
+    "table_name": "allergies",
+    "policy_role": "authenticated",
+    "command": "*",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM patients\n  WHERE ((patients.id = allergies.patient_id) AND (patients.user_id = requesting_user_id_immutable()))))",
+    "with_check_expression": "(EXISTS ( SELECT 1\n   FROM patients\n  WHERE ((patients.id = allergies.patient_id) AND (patients.user_id = requesting_user_id_immutable()))))",
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view shared allergies",
+    "table_name": "allergies",
+    "policy_role": "authenticated",
+    "command": "r",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE ((patient_shares.patient_id = allergies.patient_id) AND ((patient_shares.shared_with_user_id)::text = requesting_user_id_immutable()) AND (patient_shares.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((patient_shares.expires_at IS NULL) OR (patient_shares.expires_at > now())))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can manage immunizations",
     "table_name": "immunizations",
     "policy_role": null,
@@ -74,24 +164,6 @@
   {
     "policy_name": "Users can view medical files",
     "table_name": "medical_files",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "(user_id = requesting_user_id())",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can manage notes",
-    "table_name": "notes",
-    "policy_role": null,
-    "command": "*",
-    "policy_expression": "(user_id = requesting_user_id())",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view notes",
-    "table_name": "notes",
     "policy_role": null,
     "command": "r",
     "policy_expression": "(user_id = requesting_user_id())",
