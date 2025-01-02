@@ -1,17 +1,18 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { useAuth } from '@clerk/nextjs'
 import { toast } from 'react-hot-toast'
-import { Notification } from '@/types/notifications'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function NotificationListener() {
+  const { user } = useAuth()
   const { supabase } = useSupabase()
-  const { userId } = useAuth()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (!supabase || !userId) return
+    if (!supabase || !user?.id) return
 
     const channel = supabase
       .channel('notifications')
@@ -21,13 +22,14 @@ export function NotificationListener() {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${userId}`
+          filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const notification = payload.new as Notification
+          const notification = payload.new as any
           toast(notification.message, {
-            icon: getNotificationIcon(notification.type)
+            icon: notification.type === 'success' ? '✅' : '⚠️',
           })
+          queryClient.invalidateQueries({ queryKey: ['notifications'] })
         }
       )
       .subscribe()
@@ -35,24 +37,7 @@ export function NotificationListener() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, userId])
+  }, [supabase, user?.id, queryClient])
 
   return null
-}
-
-function getNotificationIcon(type: string) {
-  switch (type) {
-    case 'appointment':
-      return '📅'
-    case 'todo':
-      return '✅'
-    case 'prescription':
-      return '💊'
-    case 'share':
-      return '🔗'
-    case 'family':
-      return '👨‍👩‍👧‍👦'
-    default:
-      return '📢'
-  }
 }

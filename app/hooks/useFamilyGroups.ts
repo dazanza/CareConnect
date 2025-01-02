@@ -1,38 +1,62 @@
-import { useState, useEffect } from 'react'
-import { useSupabase } from './useSupabase'
-import { useAuth } from '@clerk/nextjs'
-import { FamilyGroup } from '@/types/family'
-import { getFamilyGroups } from '@/lib/family-service'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
+import { useSupabase } from '@/app/hooks/useSupabase'
 import { toast } from 'react-hot-toast'
 
+interface FamilyGroup {
+  id: string
+  name: string
+  created_at: string
+  members: Array<{
+    id: string
+    name: string
+    date_of_birth: string
+    relationship?: string
+  }>
+}
+
 export function useFamilyGroups() {
+  const { user } = useAuth()
   const { supabase } = useSupabase()
-  const { userId } = useAuth()
-  const [familyGroups, setFamilyGroups] = useState<FamilyGroup[]>([])
-  const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    if (supabase && userId) {
-      fetchFamilyGroups()
-    }
-  }, [supabase, userId])
+  return useQuery({
+    queryKey: ['family-groups', user?.id],
+    queryFn: async () => {
+      if (!supabase || !user?.id) return []
 
-  async function fetchFamilyGroups() {
-    try {
-      setIsLoading(true)
-      const data = await getFamilyGroups(supabase, userId)
-      setFamilyGroups(data)
-    } catch (error) {
-      console.error('Error fetching family groups:', error)
-      toast.error('Failed to load family groups')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      const { data, error } = await supabase
+        .from('family_groups')
+        .select(`
+          *,
+          members:patient_family_group(
+            patient:patients(
+              id,
+              name,
+              date_of_birth
+            ),
+            relationship
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('name')
 
-  return {
-    familyGroups,
-    isLoading,
-    refetch: fetchFamilyGroups
-  }
+      if (error) {
+        toast.error('Failed to load family groups')
+        throw error
+      }
+
+      return data.map((group: any) => ({
+        ...group,
+        members: group.members.map((m: any) => ({
+          id: m.patient.id,
+          name: m.patient.name,
+          date_of_birth: m.patient.date_of_birth,
+          relationship: m.relationship
+        }))
+      }))
+    },
+    staleTime: 5 * 60 * 1000, // Data considered fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnWindowFocus: false // Don't refetch when window regains focus
+  })
 }

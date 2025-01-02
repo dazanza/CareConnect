@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { UserButton } from '@clerk/nextjs'
 import { 
   Home, 
   Users, 
@@ -44,6 +43,7 @@ import {
 } from "@/components/ui/sidebar"
 import { cn } from '@/lib/utils'
 import { SignOutButton } from "@/app/components/auth/SignOutButton"
+import { UserNav } from './UserNav'
 
 export default function AppSidebar() {
   const pathname = usePathname()
@@ -63,7 +63,7 @@ export default function AppSidebar() {
                 <LayoutDashboard className="h-6 w-6 text-blue-600" />
                 <span className="font-semibold text-xl text-blue-600">CareConnect</span>
               </div>
-              <UserButton afterSignOutUrl="/" />
+              <UserNav />
             </div>
           </SidebarHeader>
 

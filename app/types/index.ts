@@ -261,3 +261,19 @@ export interface Prescription {
     last_name: string
   }
 }
+
+export interface Todo {
+  id: number
+  task: string
+  completed: boolean
+  user_id: string
+  patient_id?: number
+  due_date?: string
+  created_at: string
+  updated_at: string
+  patients?: {
+    id: number
+    name: string
+  }
+  patientName?: string
+}

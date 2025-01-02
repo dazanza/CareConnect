@@ -1,306 +1,174 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { Appointment, Prescription } from '@/types'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar } from "@/components/ui/calendar"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { CalendarDays, Clock, MapPin, User, PlusCircle, RefreshCw, Trash2, CalendarIcon, MapPinIcon } from 'lucide-react'
-import { fetchAppointments } from '@/app/lib/dataFetching'
-import { format } from 'date-fns'
-import { AddAppointmentForm } from '@/app/components/AddAppointmentForm'
-import Link from 'next/link'
-import AppTodoList from '@/app/components/AppTodoList'
-import { useAuth } from '@clerk/nextjs'
-import { convertUTCToLocal, formatLocalDate } from '@/app/lib/dateUtils'
-import { RescheduleAppointmentDialog } from '@/app/components/appointments/RescheduleAppointmentDialog'
-import { CancelAppointmentDialog } from '@/app/components/appointments/CancelAppointmentDialog'
-import { ErrorBoundary } from '@/app/components/ui/error-boundary'
-import { DataLoadingState } from '@/app/components/ui/loading-states'
-import { Suspense } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
-import { rescheduleAppointment, cancelAppointment } from '@/app/lib/appointment-actions'
-import dynamic from 'next/dynamic'
+import Link from 'next/link'
+import { format } from 'date-fns'
 
-// Dynamically import components that use Clerk
-const UserButton = dynamic(
-  () => import('@clerk/nextjs').then((mod) => mod.UserButton),
-  { ssr: false }
-)
+interface DashboardData {
+  patientCount: number
+  appointmentCount: number
+  upcomingAppointments: Array<{
+    id: string
+    date: string
+    patient: {
+      id: string
+      name: string
+    }
+  }>
+  recentPatients: Array<{
+    id: string
+    name: string
+    date_of_birth: string
+  }>
+}
 
 export default function DashboardContent() {
+  const { user } = useAuth()
   const { supabase } = useSupabase()
-  const { userId } = useAuth()
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
-  const [date, setDate] = useState<Date | undefined>(new Date())
-  const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
-  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false)
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 
-  useEffect(() => {
-    async function fetchDashboardData() {
-      if (!supabase || !userId) return
+  const { data: dashboardData } = useQuery({
+    queryKey: ['dashboard', user?.id],
+    queryFn: async () => {
+      if (!supabase || !user?.id) return null
 
-      try {
-        setIsLoading(true)
-
-        const appointmentsData = await fetchAppointments(supabase, userId, { 
-          limit: 5, 
-          upcoming: true, 
-          allPatients: true // Add this line
-        })
-        setAppointments(appointmentsData)
-
-        const { data: prescriptionsData, error: prescriptionsError } = await supabase
-          .from('prescriptions')
-          .select('*')
-          .order('next_dose', { ascending: true })
+      const [
+        { count: patientCount, error: patientError },
+        { count: appointmentCount, error: appointmentError },
+        { data: upcomingAppointments, error: upcomingError },
+        { data: recentPatients, error: recentError }
+      ] = await Promise.all([
+        supabase
+          .from('patients')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+        supabase
+          .from('appointments')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+        supabase
+          .from('appointments')
+          .select(`
+            id,
+            date,
+            patient:patients (
+              id,
+              name
+            )
+          `)
+          .eq('user_id', user.id)
+          .gte('date', new Date().toISOString())
+          .order('date')
+          .limit(5),
+        supabase
+          .from('patients')
+          .select('id, name, date_of_birth')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
           .limit(5)
+      ])
 
-        if (prescriptionsError) throw prescriptionsError
-        setPrescriptions(prescriptionsData)
-
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error)
-      } finally {
-        setIsLoading(false)
+      if (patientError || appointmentError || upcomingError || recentError) {
+        toast.error('Failed to load dashboard data')
+        throw new Error('Failed to load dashboard data')
       }
-    }
 
-    if (userId) {
-      fetchDashboardData()
-    }
-  }, [supabase, userId])
-
-  const handleAppointmentAdded = () => {
-    setIsAddAppointmentOpen(false)
-    // Refresh appointments
-    if (userId) {
-      fetchAppointments(supabase, userId, { limit: 5, upcoming: true }).then(setAppointments)
-    }
-  }
-
-  const handleReschedule = (appointment: Appointment) => {
-    setSelectedAppointment(appointment)
-    setIsRescheduleDialogOpen(true)
-  }
-
-  const handleCancel = (appointment: Appointment) => {
-    setSelectedAppointment(appointment)
-    setIsCancelDialogOpen(true)
-  }
-
-  const handleRescheduleSuccess = async (newDate: Date) => {
-    if (selectedAppointment && userId) {
-      try {
-        await rescheduleAppointment(supabase, selectedAppointment.id, newDate)
-        toast.success('Appointment rescheduled successfully')
-        const updatedAppointments = await fetchAppointments(supabase, userId, { 
-          limit: 5, 
-          upcoming: true, 
-          allPatients: true 
-        })
-        setAppointments(updatedAppointments)
-      } catch (error) {
-        console.error('Error rescheduling appointment:', error)
-        toast.error('Failed to reschedule appointment')
+      return {
+        patientCount: patientCount || 0,
+        appointmentCount: appointmentCount || 0,
+        upcomingAppointments: upcomingAppointments || [],
+        recentPatients: recentPatients || []
       }
-      setIsRescheduleDialogOpen(false)
-    }
-  }
+    },
+    staleTime: 5 * 60 * 1000, // Data considered fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnWindowFocus: false
+  })
 
-  const handleCancelSuccess = async () => {
-    if (selectedAppointment && userId) {
-      try {
-        await cancelAppointment(supabase, selectedAppointment.id)
-        toast.success('Appointment cancelled successfully')
-        const updatedAppointments = await fetchAppointments(supabase, userId, { 
-          limit: 5, 
-          upcoming: true, 
-          allPatients: true 
-        })
-        setAppointments(updatedAppointments)
-      } catch (error) {
-        console.error('Error cancelling appointment:', error)
-        toast.error('Failed to cancel appointment')
-      }
-      setIsCancelDialogOpen(false)
-    }
-  }
-
-  if (!userId) {
-    return <div>Please sign in to view your dashboard.</div>
-  }
+  if (!dashboardData) return null
 
   return (
-    <ErrorBoundary>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <Suspense fallback={<DataLoadingState isLoading={true} isEmpty={false}>
-            <div>Loading...</div>
-          </DataLoadingState>}>
-            <UserButton afterSignOutUrl="/" />
-          </Suspense>
-        </div>
-        
-        <DataLoadingState
-          isLoading={isLoading}
-          isEmpty={false}
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-            {/* Calendar */}
-            <Card className="lg:col-span-2">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-2xl font-semibold">Appointment Calendar</CardTitle>
-                  <Dialog open={isAddAppointmentOpen} onOpenChange={setIsAddAppointmentOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                        <PlusCircle className="w-4 h-4 mr-1" />
-                        Schedule Appointment
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Schedule New Appointment</DialogTitle>
-                      </DialogHeader>
-                      <AddAppointmentForm onSuccess={handleAppointmentAdded} />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-1">
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      className="rounded-md border w-full"
-                      modifiers={{
-                        hasAppointment: (date) => appointments.some(
-                          (appointment) => new Date(appointment.date).toDateString() === date.toDateString()
-                        )
-                      }}
-                      modifiersStyles={{
-                        hasAppointment: { backgroundColor: '#93c5fd', color: '#1e40af' }
-                      }}
-                    />
-                  </div>
-                  <div className="md:col-span-2 space-y-4">
-                    {appointments.length > 0 ? (
-                      appointments.map((appointment) => (
-                        <div 
-                          key={appointment.id} 
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                        >
-                          <div className="flex-grow">
-                            <Link href={`/appointments/${appointment.id}`} className="block">
-                              <div className="font-semibold text-blue-600 hover:text-blue-800">
-                                {appointment.patients?.name} {appointment.type} with Dr. {appointment.doctors?.last_name}
-                              </div>
-                              <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
-                                <div className="flex items-center">
-                                  <CalendarIcon className="w-4 h-4 mr-1" />
-                                  {formatLocalDate(convertUTCToLocal(appointment.date), "MMMM d, yyyy")}
-                                </div>
-                                <div className="flex items-center">
-                                  <Clock className="w-4 h-4 mr-1" />
-                                  {formatLocalDate(convertUTCToLocal(appointment.date), "h:mm a")}
-                                </div>
-                                <div className="flex items-center">
-                                  <MapPinIcon className="w-4 h-4 mr-1" />
-                                  {appointment.location}
-                                </div>
-                              </div>
-                            </Link>
-                          </div>
-                          <div className="flex space-x-2 ml-4">
-                            <Button 
-                              variant="outline" 
-                              size="icon"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleReschedule(appointment);
-                              }}
-                              className="flex items-center"
-                              title="Reschedule"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="icon"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleCancel(appointment);
-                              }}
-                              className="flex items-center text-red-600 hover:text-red-800 hover:bg-red-100"
-                              title="Cancel"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p>No upcoming appointments.</p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Todo List */}
-            <Card className="lg:col-span-1 bg-white shadow-md">
-              <CardContent className="p-0 h-full">
-                <AppTodoList userId={userId} />
-              </CardContent>
-            </Card>
-
-            {/* Prescription Reminders */}
-            <Card className="lg:col-span-3">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-2xl font-semibold">Prescription Reminders</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {prescriptions.length > 0 ? (
-                  <ul className="space-y-2">
-                    {prescriptions.map((prescription) => (
-                      <li key={prescription.id} className="text-sm">
-                        <p className="font-medium">{prescription.medication}</p>
-                        <p className="text-gray-600">Next dose: {format(new Date(prescription.next_dose), 'MMMM d, yyyy h:mm a')}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-600">No prescription reminders</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </DataLoadingState>
-
-        <RescheduleAppointmentDialog
-          isOpen={isRescheduleDialogOpen}
-          appointmentId={selectedAppointment?.id || 0}
-          onSuccess={handleRescheduleSuccess}
-          onClose={() => setIsRescheduleDialogOpen(false)}
-        />
-
-        <CancelAppointmentDialog
-          isOpen={isCancelDialogOpen}
-          appointment={selectedAppointment}
-          onCancel={handleCancelSuccess}
-          onClose={() => setIsCancelDialogOpen(false)}
-        />
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardData.patientCount}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardData.appointmentCount}</div>
+          </CardContent>
+        </Card>
       </div>
-    </ErrorBoundary>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Upcoming Appointments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dashboardData.upcomingAppointments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No upcoming appointments</p>
+            ) : (
+              <div className="space-y-2">
+                {dashboardData.upcomingAppointments.map((appointment) => (
+                  <div key={appointment.id} className="flex justify-between items-center">
+                    <div>
+                      <Link href={`/patients/${appointment.patient.id}`}>
+                        <Button variant="link" className="p-0 h-auto font-medium">
+                          {appointment.patient.name}
+                        </Button>
+                      </Link>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(appointment.date), 'PPp')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Patients</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dashboardData.recentPatients.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No patients added yet</p>
+            ) : (
+              <div className="space-y-2">
+                {dashboardData.recentPatients.map((patient) => (
+                  <div key={patient.id} className="flex justify-between items-center">
+                    <div>
+                      <Link href={`/patients/${patient.id}`}>
+                        <Button variant="link" className="p-0 h-auto font-medium">
+                          {patient.name}
+                        </Button>
+                      </Link>
+                      <p className="text-sm text-muted-foreground">
+                        Born {format(new Date(patient.date_of_birth), 'PP')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useAuth } from '@clerk/nextjs'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { Input } from "@/components/ui/input"
 import Link from 'next/link'
@@ -18,19 +18,19 @@ interface DoctorsContentProps {
 
 export default function DoctorsContent({ onAddDoctor }: DoctorsContentProps) {
   const { supabase } = useSupabase()
-  const { userId } = useAuth()
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
 
   const { data: doctors = [], isLoading } = useQuery({
-    queryKey: ['doctors', userId, searchTerm],
+    queryKey: ['doctors', user?.id, searchTerm],
     queryFn: async () => {
-      if (!supabase || !userId) return []
+      if (!supabase || !user?.id) return []
       
       try {
         const data = await fetchDoctors(supabase, { 
           searchTerm,
           limit: 10,
-          userId
+          userId: user.id
         })
         return data
       } catch (error) {

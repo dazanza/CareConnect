@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useAuth } from '@clerk/nextjs'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
@@ -13,18 +13,18 @@ interface Patient {
 }
 
 export default function PatientsContent() {
-  const { userId } = useAuth()
+  const { user } = useAuth()
   const { supabase } = useSupabase()
 
   const { data: patients = [] } = useQuery({
-    queryKey: ['patients', userId],
+    queryKey: ['patients', user?.id],
     queryFn: async () => {
-      if (!supabase || !userId) return []
+      if (!supabase || !user?.id) return []
       
       const { data, error } = await supabase
         .from('patients')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .order('name')
 
       if (error) {
@@ -35,7 +35,7 @@ export default function PatientsContent() {
       return data
     },
     staleTime: 5 * 60 * 1000, // Data considered fresh for 5 minutes
-    cacheTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchOnWindowFocus: false // Don't refetch when window regains focus
   })
 

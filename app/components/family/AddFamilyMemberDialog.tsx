@@ -1,93 +1,74 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { useAuth } from '@clerk/nextjs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { toast } from 'react-hot-toast'
-import { addFamilyMember } from '@/lib/family-service'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface AddFamilyMemberDialogProps {
   isOpen: boolean
   onClose: () => void
-  groupId?: number
+  groupId?: string
   onSuccess: () => void
-}
-
-interface Patient {
-  id: number
-  name: string
-  date_of_birth: string
 }
 
 export function AddFamilyMemberDialog({
   isOpen,
   onClose,
   groupId,
-  onSuccess
+  onSuccess,
 }: AddFamilyMemberDialogProps) {
+  const { user } = useAuth()
   const { supabase } = useSupabase()
-  const { userId } = useAuth()
-  const [selectedPatient, setSelectedPatient] = useState<string>('')
-  const [relationship, setRelationship] = useState<string>('')
-  const [patients, setPatients] = useState<Patient[]>([])
+  const [name, setName] = useState('')
+  const [relationship, setRelationship] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    if (isOpen && supabase && userId && groupId) {
-      fetchAvailablePatients()
-    }
-  }, [isOpen, supabase, userId, groupId])
-
-  async function fetchAvailablePatients() {
-    if (!supabase || !userId || !groupId) return
-
-    try {
-      const { data, error } = await supabase
-        .from('patients')
-        .select('id, name, date_of_birth')
-        .eq('user_id', userId)
-        .not('id', 'in', (
-          supabase
-            .from('patient_family_group')
-            .select('patient_id')
-            .eq('family_group_id', groupId)
-        ))
-
-      if (error) throw error
-      setPatients(data)
-    } catch (error) {
-      console.error('Error fetching available patients:', error)
-      toast.error('Failed to load available patients')
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supabase || !userId || !groupId || !selectedPatient) return
+    if (!user?.id || !groupId) return
 
+    setIsLoading(true)
     try {
-      setIsLoading(true)
-      await addFamilyMember(supabase, {
-        patientId: parseInt(selectedPatient),
-        familyGroupId: groupId,
-        userId,
-        relationship: relationship || undefined
-      })
+      // First, create the patient
+      const { data: patient, error: patientError } = await supabase
+        .from('patients')
+        .insert([{
+          name,
+          date_of_birth: dateOfBirth,
+          user_id: user.id
+        }])
+        .select()
+        .single()
 
-      toast.success('Member added to family group')
+      if (patientError) throw patientError
+
+      // Then, add them to the family group
+      const { error: groupError } = await supabase
+        .from('patient_family_group')
+        .insert([{
+          patient_id: patient.id,
+          family_group_id: groupId,
+          relationship
+        }])
+
+      if (groupError) throw groupError
+
+      toast.success('Family member added')
       onSuccess()
-      setSelectedPatient('')
-      setRelationship('')
+      onClose()
     } catch (error) {
       console.error('Error adding family member:', error)
       toast.error('Failed to add family member')
@@ -101,43 +82,49 @@ export function AddFamilyMemberDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Family Member</DialogTitle>
+          <DialogDescription>
+            Add a new member to your family group.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Select Patient
-            </label>
-            <Select value={selectedPatient} onValueChange={setSelectedPatient}>
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="dateOfBirth">Date of Birth</Label>
+            <Input
+              id="dateOfBirth"
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="relationship">Relationship</Label>
+            <Select value={relationship} onValueChange={setRelationship}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a patient" />
+                <SelectValue placeholder="Select relationship" />
               </SelectTrigger>
               <SelectContent>
-                {patients.map((patient) => (
-                  <SelectItem key={patient.id} value={patient.id.toString()}>
-                    {patient.name} ({new Date(patient.date_of_birth).toLocaleDateString()})
-                  </SelectItem>
-                ))}
+                <SelectItem value="parent">Parent</SelectItem>
+                <SelectItem value="child">Child</SelectItem>
+                <SelectItem value="spouse">Spouse</SelectItem>
+                <SelectItem value="sibling">Sibling</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Relationship (optional)
-            </label>
-            <Input
-              value={relationship}
-              onChange={(e) => setRelationship(e.target.value)}
-              placeholder="e.g., Child, Spouse, Parent"
-            />
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading || !selectedPatient}>
-              Add Member
-            </Button>
-          </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Adding...' : 'Add Member'}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

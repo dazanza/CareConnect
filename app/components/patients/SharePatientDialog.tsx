@@ -1,70 +1,74 @@
 'use client'
 
 import { useState } from 'react'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { useAuth } from '@clerk/nextjs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { toast } from 'react-hot-toast'
-import { sharePatient, AccessLevel } from '@/app/lib/patient-sharing'
-import { Calendar } from '@/components/ui/calendar'
-import { format } from 'date-fns'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface SharePatientDialogProps {
   isOpen: boolean
   onClose: () => void
-  patientId: number
-  patientName: string
+  patientId: string
+  onSuccess: () => void
 }
 
 export function SharePatientDialog({
   isOpen,
   onClose,
   patientId,
-  patientName
+  onSuccess,
 }: SharePatientDialogProps) {
+  const { user } = useAuth()
   const { supabase } = useSupabase()
-  const { userId } = useAuth()
   const [email, setEmail] = useState('')
-  const [accessLevel, setAccessLevel] = useState<AccessLevel>('read')
-  const [expiresAt, setExpiresAt] = useState<Date | undefined>()
+  const [accessLevel, setAccessLevel] = useState('read')
   const [isLoading, setIsLoading] = useState(false)
 
-  async function handleShare() {
-    if (!supabase || !userId || !email) return
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.id || !patientId) return
 
+    setIsLoading(true)
     try {
-      setIsLoading(true)
-
-      // First, get the user ID for the email
+      // First, find the user by email
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id')
         .eq('email', email)
         .single()
 
-      if (userError || !userData) {
+      if (userError) {
         toast.error('User not found')
         return
       }
 
-      await sharePatient(supabase, {
-        patientId,
-        sharedByUserId: userId,
-        sharedWithUserId: userData.id,
-        accessLevel,
-        expiresAt
-      })
+      // Then, create the share record
+      const { error: shareError } = await supabase
+        .from('patient_shares')
+        .insert([
+          {
+            patient_id: patientId,
+            shared_by_user_id: user.id,
+            shared_with_user_id: userData.id,
+            access_level: accessLevel,
+          },
+        ])
 
-      toast.success(`Successfully shared ${patientName} with ${email}`)
+      if (shareError) throw shareError
+
+      toast.success('Patient shared successfully')
+      onSuccess()
       onClose()
     } catch (error) {
       console.error('Error sharing patient:', error)
@@ -78,59 +82,40 @@ export function SharePatientDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Share {patientName}</DialogTitle>
+          <DialogTitle>Share Patient Record</DialogTitle>
+          <DialogDescription>
+            Share this patient's record with another user by entering their email address.
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Share with (email)
-            </label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">User Email</Label>
             <Input
+              id="email"
               type="email"
-              placeholder="user@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter user's email"
+              required
             />
           </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Access Level
-            </label>
-            <Select value={accessLevel} onValueChange={(value) => setAccessLevel(value as AccessLevel)}>
+          <div className="space-y-2">
+            <Label htmlFor="accessLevel">Access Level</Label>
+            <Select value={accessLevel} onValueChange={setAccessLevel}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select access level" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="read">Read Only</SelectItem>
-                <SelectItem value="write">Can Edit</SelectItem>
-                <SelectItem value="admin">Full Access</SelectItem>
+                <SelectItem value="write">Read & Write</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Expires (optional)
-            </label>
-            <Calendar
-              mode="single"
-              selected={expiresAt}
-              onSelect={setExpiresAt}
-              disabled={(date) => date < new Date()}
-              initialFocus
-            />
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleShare} 
-              disabled={!email || isLoading}
-            >
-              Share
-            </Button>
-          </div>
-        </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Sharing...' : 'Share Patient'}
+          </Button>
+        </form>
       </DialogContent>
     </Dialog>
   )

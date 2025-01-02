@@ -1,13 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { useAuth } from '@clerk/nextjs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { toast } from 'react-hot-toast'
-import { createFamilyGroup } from '@/lib/family-service'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 
 interface CreateFamilyGroupDialogProps {
   isOpen: boolean
@@ -18,23 +24,28 @@ interface CreateFamilyGroupDialogProps {
 export function CreateFamilyGroupDialog({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
 }: CreateFamilyGroupDialogProps) {
+  const { user } = useAuth()
   const { supabase } = useSupabase()
-  const { userId } = useAuth()
   const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supabase || !userId || !name.trim()) return
+    if (!user?.id) return
 
+    setIsLoading(true)
     try {
-      setIsLoading(true)
-      await createFamilyGroup(supabase, name.trim(), userId)
+      const { error } = await supabase
+        .from('family_groups')
+        .insert([{ name, user_id: user.id }])
+
+      if (error) throw error
+
       toast.success('Family group created')
       onSuccess()
-      setName('')
+      onClose()
     } catch (error) {
       console.error('Error creating family group:', error)
       toast.error('Failed to create family group')
@@ -48,27 +59,24 @@ export function CreateFamilyGroupDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create Family Group</DialogTitle>
+          <DialogDescription>
+            Create a new family group to manage related patients.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-1 block">
-              Group Name
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="name">Group Name</Label>
             <Input
+              id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Smith Family"
+              placeholder="Enter group name"
               required
             />
           </div>
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading || !name.trim()}>
-              Create Group
-            </Button>
-          </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Creating...' : 'Create Group'}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

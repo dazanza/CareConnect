@@ -1,7 +1,6 @@
 "use client"
 
-import { useClerk } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
 
@@ -10,27 +9,16 @@ interface SignOutButtonProps {
 }
 
 export function SignOutButton({ className }: SignOutButtonProps) {
-  const { signOut } = useClerk()
-  const router = useRouter()
-
-  const handleSignOut = () => {
-    signOut().then(() => {
-      // Only redirect after signOut completes
-      router.push("/")
-      router.refresh()
-    }).catch((error) => {
-      console.error('Error signing out:', error)
-    })
-  }
+  const { signOut } = useAuth()
 
   return (
-    <Button 
-      variant="ghost" 
+    <Button
+      variant="ghost"
       className={className}
-      onClick={handleSignOut}
+      onClick={() => signOut()}
     >
-      <LogOut className="w-4 h-4 mr-2" />
-      Sign out
+      <LogOut className="mr-2 h-4 w-4" />
+      Sign Out
     </Button>
   )
 }

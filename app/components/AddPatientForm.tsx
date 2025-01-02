@@ -1,151 +1,123 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSupabase } from '@/app/lib/supabase'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
+import { useSupabase } from '@/app/hooks/useSupabase'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { toast } from 'react-hot-toast'
-import { useAuth } from "@clerk/nextjs"
-import { useQueryClient } from '@tanstack/react-query'
 
 interface AddPatientFormProps {
   onSuccess?: () => void
 }
 
 export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
+  const { user } = useAuth()
   const { supabase } = useSupabase()
-  const { userId: clerkUserId } = useAuth()
-  const queryClient = useQueryClient()
-  const [name, setName] = useState('')
-  const [dateOfBirth, setDateOfBirth] = useState('')
-  const [gender, setGender] = useState('')
-  const [contactNumber, setContactNumber] = useState('')
-  const [address, setAddress] = useState('')
-  const [medicalHistory, setMedicalHistory] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    dateOfBirth: '',
+    email: '',
+    phone: '',
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user?.id) return
+
     setIsLoading(true)
-    setError(null)
     try {
-      if (!supabase) {
-        throw new Error('Supabase client not initialized')
-      }
-
-      if (!clerkUserId) {
-        throw new Error('User not authenticated')
-      }
-
-      const { data, error } = await supabase
-        .from('patients')
-        .insert({
-          name,
-          date_of_birth: dateOfBirth,
-          gender,
-          contact_number: contactNumber,
-          address,
-          medical_history: medicalHistory || null,
-          user_id: clerkUserId.toString(),
-          created_at: new Date().toISOString()
-        })
-        .select()
+      const { error } = await supabase.from('patients').insert([
+        {
+          user_id: user.id,
+          name: `${formData.firstName} ${formData.lastName}`,
+          date_of_birth: formData.dateOfBirth,
+          email: formData.email,
+          phone: formData.phone,
+        },
+      ])
 
       if (error) throw error
 
-      // Invalidate and refetch patients query
-      queryClient.invalidateQueries({ queryKey: ['patients'] })
-
-      toast.success("Patient added successfully")
-
-      if (onSuccess) {
-        onSuccess()
-      } else {
-        router.push('/patients')
-      }
+      toast.success('Patient added successfully')
+      onSuccess?.()
+      setFormData({
+        firstName: '',
+        lastName: '',
+        dateOfBirth: '',
+        email: '',
+        phone: '',
+      })
     } catch (error) {
       console.error('Error adding patient:', error)
-      setError(error instanceof Error ? error.message : 'An unknown error occurred')
-      toast.error("Failed to add patient. Please try again.")
+      toast.error('Failed to add patient')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="name">Name</Label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="firstName">First Name</Label>
           <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            id="firstName"
+            value={formData.firstName}
+            onChange={(e) =>
+              setFormData({ ...formData, firstName: e.target.value })
+            }
             required
           />
         </div>
-        <div>
-          <Label htmlFor="dateOfBirth">Date of Birth</Label>
+        <div className="space-y-2">
+          <Label htmlFor="lastName">Last Name</Label>
           <Input
-            id="dateOfBirth"
-            type="date"
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
+            id="lastName"
+            value={formData.lastName}
+            onChange={(e) =>
+              setFormData({ ...formData, lastName: e.target.value })
+            }
             required
           />
         </div>
-        <div>
-          <Label htmlFor="gender">Gender</Label>
-          <select
-            id="gender"
-            value={gender}
-            onChange={(e) => setGender(e.target.value)}
-            required
-            className="w-full p-2 border rounded"
-          >
-            <option value="">Select gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div>
-          <Label htmlFor="contactNumber">Contact Number</Label>
-          <Input
-            id="contactNumber"
-            value={contactNumber}
-            onChange={(e) => setContactNumber(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="address">Address</Label>
-          <Input
-            id="address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="medicalHistory">Medical History (Optional)</Label>
-          <Textarea
-            id="medicalHistory"
-            value={medicalHistory}
-            onChange={(e) => setMedicalHistory(e.target.value)}
-            rows={4}
-          />
-        </div>
-        {error && <p className="text-red-500">{error}</p>}
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Adding...' : 'Add Patient'}
-        </Button>
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="dateOfBirth">Date of Birth</Label>
+        <Input
+          id="dateOfBirth"
+          type="date"
+          value={formData.dateOfBirth}
+          onChange={(e) =>
+            setFormData({ ...formData, dateOfBirth: e.target.value })
+          }
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone</Label>
+        <Input
+          id="phone"
+          type="tel"
+          value={formData.phone}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+        />
+      </div>
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? 'Adding...' : 'Add Patient'}
+      </Button>
     </form>
   )
 }

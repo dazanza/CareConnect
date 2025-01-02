@@ -645,3 +645,43 @@ L081:
 
 L082:
 ...
+
+L083:
+- Context: Migration from Clerk to Supabase Auth
+- Insight: Consistent pattern for auth migration across components
+- Application: 
+  - Replace Clerk's useAuth with Supabase's useAuth from SupabaseAuthProvider
+  - Update user ID access from userId to user.id
+  - Remove Clerk-specific hooks and imports
+- Impact: Ensures consistent authentication handling across the application
+- Related: L010, L061
+
+L084:
+- Context: /app/lib/dataFetching.ts
+- Insight: Proper pattern for Supabase query filters with searchTerm
+- Application: Use ilike for main condition and or for additional conditions:
+  ```typescript
+  query = query
+    .ilike('first_field', `%${searchTerm}%`)
+    .or(`second_field.ilike.%${searchTerm}%`)
+  ```
+- Impact: Enables efficient text search across multiple fields
+- Related: L062, L066
+
+L085:
+- Context: /app/lib/dataFetching.ts
+- Insight: Proper structure for cached data fetching with options
+- Application: Pass options object with spread operator to maintain type safety:
+  ```typescript
+  getCachedAppointments(
+    supabase: SupabaseClient,
+    userId: string,
+    options: {
+      searchTerm?: string
+      limit?: number
+      upcoming?: boolean
+    } = {}
+  )
+  ```
+- Impact: Ensures type-safe data fetching with optional parameters
+- Related: L084, L062
