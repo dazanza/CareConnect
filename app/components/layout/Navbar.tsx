@@ -1,7 +1,7 @@
 'use client'
 
-import { UserButton } from "@clerk/nextjs"
-import { NotificationsPopover } from '@/components/notifications/NotificationsPopover'
+import { UserNav } from '@/app/components/layout/UserNav'
+import { NotificationsPopover } from '@/app/components/notifications/NotificationsPopover'
 
 export function Navbar() {
   return (
@@ -9,7 +9,7 @@ export function Navbar() {
       <div className="flex h-16 items-center px-4">
         <div className="ml-auto flex items-center space-x-4">
           <NotificationsPopover />
-          <UserButton afterSignOutUrl="/" />
+          <UserNav />
         </div>
       </div>
     </nav>
