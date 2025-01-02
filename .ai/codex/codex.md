@@ -685,3 +685,53 @@ L085:
   ```
 - Impact: Ensures type-safe data fetching with optional parameters
 - Related: L084, L062
+
+L086: Next.js Route Group Organization
+- Context: Organizing public vs authenticated routes
+- Insight: Route groups provide clean separation without affecting URL structure
+- Application: Used `(public)` and `(authenticated)` groups with middleware control
+- Impact: Better code organization and cleaner routing logic
+- Related: L087
+
+L087: Middleware Path Control
+- Context: Next.js middleware for route protection
+- Insight: Middleware can handle both route groups and root paths
+- Application:
+  - Allow public routes with `path.startsWith('/(public)')`
+  - Special case for root path `path === '/'`
+  - Redirect authenticated users from public routes
+- Impact: Centralized auth control with clean route organization
+- Related: L086
+
+L088: Landing Page Bento Box Design Pattern
+- Context: Modern landing page layout
+- Insight: Bento box grid with hover effects creates engaging UI
+- Application: 
+  - Grid layout with responsive columns
+  - Card hover effects with gradient overlays
+  - Color-coded sections for visual hierarchy
+  - Consistent spacing and typography
+- Impact: More visually appealing and interactive user experience
+- Related: L089, L090
+
+L089: Interactive Card Design Patterns
+- Context: Feature showcase in landing page
+- Insight: Combining multiple hover effects creates engaging interactions
+- Application:
+  - Layered hover effects (shadow, translation, opacity)
+  - Gradient overlays with opacity transitions
+  - Icon containers with semi-transparent backgrounds
+  - Consistent color themes per feature category
+- Impact: Enhanced visual hierarchy and user engagement
+- Related: L088
+
+L090: Responsive Typography Scaling
+- Context: Landing page text hierarchy
+- Insight: Using responsive font size modifiers improves readability
+- Application:
+  - Gradient text for main headings
+  - Size scaling with viewport: sm:text-5xl md:text-6xl lg:text-7xl
+  - Consistent text colors for dark/light modes
+  - Max-width constraints for readability
+- Impact: Better text hierarchy and responsive design
+- Related: L088

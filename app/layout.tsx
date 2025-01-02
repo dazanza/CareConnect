@@ -1,10 +1,7 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
-import toast, { Toaster } from 'react-hot-toast';
-import { Suspense } from 'react'
+import { Toaster } from 'react-hot-toast'
 import { Providers } from './providers'
-import AppSidebar from '@/app/components/layout/Sidebar'
-import Header from '@/app/components/layout/Header'
 import { SupabaseProvider } from './components/auth/SupabaseProvider'
 import { SupabaseAuthProvider } from './components/auth/SupabaseAuthProvider'
 
@@ -22,21 +19,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className}>
         <SupabaseProvider>
           <SupabaseAuthProvider>
             <Providers>
-              <div className="flex min-h-screen">
-                <div className="w-60 shrink-0">
-                  <AppSidebar />
-                </div>
-                <div className="flex-1 flex flex-col">
-                  <Header />
-                  <div className="p-4 flex-1">
-                    {children}
-                  </div>
-                </div>
-              </div>
+              {children}
               <Toaster position="top-right" />
             </Providers>
           </SupabaseAuthProvider>

@@ -5,25 +5,33 @@ import type { NextRequest } from 'next/server'
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
+  const { data: { session } } = await supabase.auth.getSession()
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  const path = req.nextUrl.pathname
+  console.log('Current path:', path)
 
-  // If there is no session and the user is trying to access a protected route,
+  // Allow all paths in the public route group and root path
+  if (path.startsWith('/(public)') || path === '/') {
+    console.log('Public route accessed:', path)
+    return res
+  }
+
+  // If there is no session and trying to access a non-public route,
   // redirect to the sign-in page
-  if (!session && !req.nextUrl.pathname.startsWith('/sign-')) {
+  if (!session) {
+    console.log('No session, redirecting to sign-in')
     const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/sign-in'
-    redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname)
+    redirectUrl.pathname = '/(public)/sign-in'
+    redirectUrl.searchParams.set('redirectedFrom', path)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // If there is a session and the user is trying to access auth pages,
+  // If there is a session and trying to access auth pages,
   // redirect to the patients page
-  if (session && req.nextUrl.pathname.startsWith('/sign-')) {
+  if (session && (path.includes('/sign-') || path.startsWith('/(public)'))) {
+    console.log('Session exists, redirecting to patients')
     const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/patients'
+    redirectUrl.pathname = '/(authenticated)/patients'
     return NextResponse.redirect(redirectUrl)
   }
 
@@ -32,13 +40,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     '/((?!_next/static|_next/image|favicon.ico|public/).*)',
   ],
 }
