@@ -735,3 +735,30 @@ L090: Responsive Typography Scaling
   - Max-width constraints for readability
 - Impact: Better text hierarchy and responsive design
 - Related: L088
+
+L091: Next.js Route Group URL Patterns
+- Context: Navigation with route groups
+- Insight: Route group names in parentheses are for organization only and should not be included in URLs
+- Application: Use clean paths in Link components:
+  ```typescript
+  // Correct:   <Link href="/sign-in">
+  // Incorrect: <Link href="/(public)/sign-in">
+  ```
+- Impact: Prevents 404 errors and maintains clean URLs
+- Related: L086, L087
+
+L092: Middleware Path Handling with Route Groups
+- Context: Next.js middleware with route groups
+- Insight: Middleware should use clean paths without route group prefixes
+- Application:
+  ```typescript
+  // Correct:
+  if (path === '/sign-in' || path === '/sign-up') { ... }
+  redirectUrl.pathname = '/patients'
+  
+  // Incorrect:
+  if (path.startsWith('/(public)')) { ... }
+  redirectUrl.pathname = '/(authenticated)/patients'
+  ```
+- Impact: Ensures correct routing and prevents 404 errors
+- Related: L086, L087, L091

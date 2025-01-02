@@ -10,8 +10,8 @@ export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname
   console.log('Current path:', path)
 
-  // Allow all paths in the public route group and root path
-  if (path.startsWith('/(public)') || path === '/') {
+  // Allow all paths in the public route group
+  if (path === '/' || path === '/sign-in' || path === '/sign-up') {
     console.log('Public route accessed:', path)
     return res
   }
@@ -21,17 +21,17 @@ export async function middleware(req: NextRequest) {
   if (!session) {
     console.log('No session, redirecting to sign-in')
     const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/(public)/sign-in'
+    redirectUrl.pathname = '/sign-in'
     redirectUrl.searchParams.set('redirectedFrom', path)
     return NextResponse.redirect(redirectUrl)
   }
 
   // If there is a session and trying to access auth pages,
   // redirect to the patients page
-  if (session && (path.includes('/sign-') || path.startsWith('/(public)'))) {
+  if (session && (path === '/sign-in' || path === '/sign-up')) {
     console.log('Session exists, redirecting to patients')
     const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/(authenticated)/patients'
+    redirectUrl.pathname = '/patients'
     return NextResponse.redirect(redirectUrl)
   }
 

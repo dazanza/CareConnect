@@ -19,7 +19,7 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="space-x-4">
-                <Link href="/(public)/sign-in">
+                <Link href="/sign-in">
                   <Button size="lg" className="bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white px-8 py-6 text-lg">
                     Get Started <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
