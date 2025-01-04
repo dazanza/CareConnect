@@ -26,7 +26,6 @@ import {
   MedicalDocument, 
   DoctorOption,
   PatientDoctor,
-  PatientDoctorResponse,
   TimelineEvent
 } from '@/app/types'
 import {
@@ -44,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 
 interface Doctor {
   id: string
@@ -159,6 +159,25 @@ interface Prescription {
   }
 }
 
+interface DatabaseDoctor {
+  id: string
+  first_name: string
+  last_name: string
+  specialization: string
+}
+
+interface PatientDoctorJoin {
+  doctor_id: string
+  doctors: DatabaseDoctor
+}
+
+interface AssignedDoctor {
+  id: string
+  first_name: string
+  last_name: string
+  specialization: string
+}
+
 export default function PatientDetailsPage({ params }: { params: { id: string } }) {
   const { supabase } = useSupabase()
   const { user } = useAuth()
@@ -175,10 +194,14 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [medications, setMedications] = useState<Medication[]>([])
   const [immunizations, setImmunizations] = useState<Immunization[]>([])
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([])
-  const [patientDoctors, setPatientDoctors] = useState<PatientDoctor[]>([])
+  const [patientDoctors, setPatientDoctors] = useState<AssignedDoctor[]>([])
   const [isAssignDoctorOpen, setIsAssignDoctorOpen] = useState(false)
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'specialization', direction: 'asc' | 'desc' }>({
+    key: 'name',
+    direction: 'asc'
+  })
 
   // Add loading states for each data type
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(false)
@@ -249,25 +272,11 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     try {
       const { data, error } = await supabase
         .from('doctors')
-        .select('id, first_name, last_name')
-  
+        .select('*')
+        .order('first_name')
+
       if (error) throw error
-      
-      const formattedDoctors = data.map(doc => ({
-        id: doc.id,
-        first_name: doc.first_name,
-        last_name: doc.last_name,
-        name: `${doc.first_name} ${doc.last_name}`,
-        specialization: '',
-        contact_number: null,
-        email: null,
-        address: null,
-        user_id: null,
-        created_at: new Date().toISOString(),
-        assistant: null
-      }))
-      
-      setDoctors(formattedDoctors)
+      setDoctors(data)
     } catch (error) {
       console.error('Error fetching doctors:', error)
       toast.error('Failed to load doctors')
@@ -282,33 +291,35 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       const { data, error } = await supabase
         .from('patient_doctors')
         .select(`
-          id,
-          doctor:doctor_id (
+          doctor_id,
+          doctors (
             id,
             first_name,
             last_name,
-            specialization,
-            contact_number,
-            email
+            specialization
           )
         `)
         .eq('patient_id', params.id)
+        .returns<PatientDoctorJoin[]>()
 
       if (error) throw error
 
-      const formattedDoctors: PatientDoctor[] = data.map(item => ({
-        id: item.doctor.id,
-        name: `${item.doctor.first_name} ${item.doctor.last_name}`,
-        specialty: item.doctor.specialization || '',
-        phone: item.doctor.contact_number || '',
-        email: item.doctor.email || '',
-        primary: false
+      if (!data) {
+        setPatientDoctors([])
+        return
+      }
+
+      const formattedDoctors: AssignedDoctor[] = data.map(item => ({
+        id: item.doctors.id,
+        first_name: item.doctors.first_name,
+        last_name: item.doctors.last_name,
+        specialization: item.doctors.specialization
       }))
 
       setPatientDoctors(formattedDoctors)
     } catch (error) {
       console.error('Error fetching patient doctors:', error)
-      toast.error('Failed to load patient doctors')
+      toast.error('Failed to load assigned doctors')
     } finally {
       setIsLoadingPatientDoctors(false)
     }
@@ -672,6 +683,27 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     }
   }
 
+  const handleSort = (key: 'name' | 'specialization') => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
+
+  const sortedDoctors = [...patientDoctors].sort((a: AssignedDoctor, b: AssignedDoctor) => {
+    if (sortConfig.key === 'name') {
+      const nameA = `${a.first_name} ${a.last_name}`
+      const nameB = `${b.first_name} ${b.last_name}`
+      return sortConfig.direction === 'asc' 
+        ? nameA.localeCompare(nameB)
+        : nameB.localeCompare(nameA)
+    } else {
+      return sortConfig.direction === 'asc'
+        ? a.specialization.localeCompare(b.specialization)
+        : b.specialization.localeCompare(a.specialization)
+    }
+  })
+
   if (isLoading) {
     return <PatientCardSkeleton />
   }
@@ -742,44 +774,51 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           <Card className="border-t-4 border-t-blue-500 shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
               <CardTitle className="text-lg font-semibold text-blue-950">Assigned Doctors</CardTitle>
+              <Button 
+                onClick={() => setIsAssignDoctorOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Assign Doctor
+              </Button>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="space-y-4">
-                {patientDoctors.length === 0 ? (
-                  <p className="text-muted-foreground">No doctors assigned</p>
-                ) : (
-                  patientDoctors.map((doctor) => (
-                    <div 
-                      key={doctor.id} 
-                      className="flex items-start justify-between p-3 border rounded-lg hover:bg-blue-50/50 transition-colors"
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleSort('name')}
                     >
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-medium text-blue-950 truncate">Dr. {doctor.name}</h4>
-                        {doctor.specialty && (
-                          <p className="text-sm text-blue-950/70 truncate">{doctor.specialty}</p>
-                        )}
-                        {doctor.phone && (
-                          <p className="text-sm text-blue-950/70 truncate">{doctor.phone}</p>
-                        )}
-                        {doctor.email && (
-                          <p className="text-sm text-blue-950/70 truncate">{doctor.email}</p>
-                        )}
-                      </div>
-                      {doctor.primary && (
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-150 ml-2 shrink-0">Primary</Badge>
+                      Name {sortConfig.key === 'name' && (
+                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                       )}
-                    </div>
-                  ))
-                )}
-                <Button 
-                  variant="outline" 
-                  className="w-full hover:bg-blue-50 hover:text-blue-700 border-blue-200"
-                  onClick={() => setIsAssignDoctorOpen(true)}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Assign Doctor
-                </Button>
-              </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleSort('specialization')}
+                    >
+                      Specialty {sortConfig.key === 'specialization' && (
+                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                      )}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedDoctors.map((doctor: AssignedDoctor) => (
+                    <TableRow key={doctor.id}>
+                      <TableCell>{doctor.first_name} {doctor.last_name}</TableCell>
+                      <TableCell>{doctor.specialization}</TableCell>
+                    </TableRow>
+                  ))}
+                  {sortedDoctors.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center text-muted-foreground">
+                        No doctors assigned
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
 
@@ -856,9 +895,12 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
                       .filter(doc => !patientDoctors.some(pd => pd.id === doc.id))
                       .map((doctor) => (
                         <SelectItem key={doctor.id} value={doctor.id}>
-                          Dr. {doctor.first_name} {doctor.last_name}
+                          Dr. {doctor.first_name} {doctor.last_name} - {doctor.specialization}
                         </SelectItem>
                       ))}
+                    {doctors.length === 0 && (
+                      <SelectItem value="" disabled>No doctors available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

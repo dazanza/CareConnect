@@ -22,6 +22,8 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
     specialty: '',
     email: '',
     phone: '',
+    address: '',
+    assistant: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,9 +37,12 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
           user_id: user.id,
           first_name: formData.firstName,
           last_name: formData.lastName,
-          specialty: formData.specialty,
+          specialization: formData.specialty,
           email: formData.email,
-          phone: formData.phone,
+          contact_number: formData.phone,
+          address: formData.address,
+          assistant: formData.assistant,
+          created_at: new Date().toISOString(),
         },
       ])
 
@@ -51,6 +56,8 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
         specialty: '',
         email: '',
         phone: '',
+        address: '',
+        assistant: '',
       })
     } catch (error) {
       console.error('Error adding doctor:', error)
@@ -64,7 +71,7 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="firstName">First Name</Label>
+          <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
           <Input
             id="firstName"
             value={formData.firstName}
@@ -72,10 +79,11 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
               setFormData({ ...formData, firstName: e.target.value })
             }
             required
+            placeholder="Enter first name"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="lastName">Last Name</Label>
+          <Label htmlFor="lastName">Last Name <span className="text-red-500">*</span></Label>
           <Input
             id="lastName"
             value={formData.lastName}
@@ -83,11 +91,12 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
               setFormData({ ...formData, lastName: e.target.value })
             }
             required
+            placeholder="Enter last name"
           />
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="specialty">Specialty</Label>
+        <Label htmlFor="specialty">Specialty <span className="text-red-500">*</span></Label>
         <Input
           id="specialty"
           value={formData.specialty}
@@ -95,6 +104,7 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
             setFormData({ ...formData, specialty: e.target.value })
           }
           required
+          placeholder="Enter specialty"
         />
       </div>
       <div className="space-y-2">
@@ -104,7 +114,7 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
           type="email"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          required
+          placeholder="Enter email address"
         />
       </div>
       <div className="space-y-2">
@@ -114,10 +124,28 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
           type="tel"
           value={formData.phone}
           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          required
+          placeholder="Enter phone number"
         />
       </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <div className="space-y-2">
+        <Label htmlFor="address">Address</Label>
+        <Input
+          id="address"
+          value={formData.address}
+          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          placeholder="Enter address"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="assistant">Assistant</Label>
+        <Input
+          id="assistant"
+          value={formData.assistant}
+          onChange={(e) => setFormData({ ...formData, assistant: e.target.value })}
+          placeholder="Enter assistant name"
+        />
+      </div>
+      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
         {isLoading ? 'Adding...' : 'Add Doctor'}
       </Button>
     </form>
