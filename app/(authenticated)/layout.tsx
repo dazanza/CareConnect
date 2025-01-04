@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import AppSidebar from '@/app/components/layout/Sidebar'
 import Header from '@/app/components/layout/Header'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 
 export default function AuthenticatedLayout({
@@ -14,6 +14,8 @@ export default function AuthenticatedLayout({
 }) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const isPatientRoute = pathname.startsWith('/patients')
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -39,8 +41,8 @@ export default function AuthenticatedLayout({
         <AppSidebar />
       </div>
       <div className="flex-1 flex flex-col">
-        <Header />
-        <div className="p-4 flex-1">
+        {!isPatientRoute && <Header />}
+        <div className="flex-1">
           {children}
         </div>
       </div>

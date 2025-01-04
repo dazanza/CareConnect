@@ -89,7 +89,7 @@ export async function GET(request: Request) {
         .from('patients')
         .select('*')
         .eq('user_id', userData.user.id.toString())
-        .order('name')
+        .order('first_name')
 
       if (ownedError) throw ownedError
 

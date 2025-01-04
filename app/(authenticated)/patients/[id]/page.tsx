@@ -6,7 +6,7 @@ import { useSupabase } from '@/app/hooks/useSupabase'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Phone, Mail, Trash2 } from 'lucide-react'
+import { Plus, Phone, Mail, Trash2, Pencil } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { MedicalHistoryTimeline } from '@/app/components/MedicalHistoryTimeline'
 import { AddMedicalHistoryForm } from '@/app/components/AddMedicalHistoryForm'
@@ -29,6 +29,21 @@ import {
   PatientDoctorResponse,
   TimelineEvent
 } from '@/app/types'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 
 interface Doctor {
   id: string
@@ -163,6 +178,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [patientDoctors, setPatientDoctors] = useState<PatientDoctor[]>([])
   const [isAssignDoctorOpen, setIsAssignDoctorOpen] = useState(false)
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // Add loading states for each data type
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(false)
@@ -665,164 +681,306 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{patient.name}</h1>
-        <Button onClick={() => setShowAddHistory(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Medical Record
-        </Button>
-      </div>
+    <div className="flex-1">
+      <header className="bg-white border-b">
+        <div className="py-4 pl-6">
+          <h2 className="text-2xl font-semibold text-blue-800">Patient Details</h2>
+        </div>
+      </header>
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-2xl font-bold">
+            {patient.first_name} {patient.last_name}
+            {patient.nickname && (
+              <span className="text-lg font-normal text-muted-foreground ml-2">
+                ({patient.nickname})
+              </span>
+            )}
+          </h1>
+          <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto" onClick={() => setShowAddHistory(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Medical Record
+          </Button>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Patient Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p><strong>Date of Birth:</strong> {new Date(patient.date_of_birth).toLocaleDateString()}</p>
-              <p><strong>Contact:</strong> {patient.phone}</p>
-              <p><strong>Email:</strong> {patient.email}</p>
-              <p><strong>Address:</strong> {patient.address}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="border-t-4 border-t-blue-500 shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
+              <CardTitle className="text-lg font-semibold text-blue-950">Patient Information</CardTitle>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-8 w-8 hover:bg-blue-50"
+                onClick={() => setIsEditModalOpen(true)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <dl className="grid grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr] gap-3 text-sm">
+                <dt className="font-medium text-blue-950/70">Date of Birth</dt>
+                <dd>{new Date(patient.date_of_birth).toLocaleDateString()}</dd>
+                
+                <dt className="font-medium text-blue-950/70">Contact</dt>
+                <dd className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-blue-500" />
+                  {patient.contact_number}
+                </dd>
+                
+                <dt className="font-medium text-blue-950/70">Email</dt>
+                <dd className="flex items-center gap-2 break-all">
+                  <Mail className="h-4 w-4 text-blue-500 shrink-0" />
+                  {patient.email}
+                </dd>
+                
+                <dt className="font-medium text-blue-950/70">Address</dt>
+                <dd className="break-words">{patient.address}</dd>
+              </dl>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Assigned Doctors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {patientDoctors.length === 0 ? (
-                <p className="text-muted-foreground">No doctors assigned</p>
-              ) : (
-                patientDoctors.map((doctor) => (
-                  <div 
-                    key={doctor.id} 
-                    className="flex items-start justify-between p-3 border rounded-lg"
-                  >
-                    <div>
-                      <h4 className="font-medium">Dr. {doctor.name}</h4>
-                      {doctor.specialty && (
-                        <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
-                      )}
-                      {doctor.phone && (
-                        <p className="text-sm text-muted-foreground">{doctor.phone}</p>
-                      )}
-                      {doctor.email && (
-                        <p className="text-sm text-muted-foreground">{doctor.email}</p>
+          <Card className="border-t-4 border-t-blue-500 shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
+              <CardTitle className="text-lg font-semibold text-blue-950">Assigned Doctors</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-4">
+                {patientDoctors.length === 0 ? (
+                  <p className="text-muted-foreground">No doctors assigned</p>
+                ) : (
+                  patientDoctors.map((doctor) => (
+                    <div 
+                      key={doctor.id} 
+                      className="flex items-start justify-between p-3 border rounded-lg hover:bg-blue-50/50 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-medium text-blue-950 truncate">Dr. {doctor.name}</h4>
+                        {doctor.specialty && (
+                          <p className="text-sm text-blue-950/70 truncate">{doctor.specialty}</p>
+                        )}
+                        {doctor.phone && (
+                          <p className="text-sm text-blue-950/70 truncate">{doctor.phone}</p>
+                        )}
+                        {doctor.email && (
+                          <p className="text-sm text-blue-950/70 truncate">{doctor.email}</p>
+                        )}
+                      </div>
+                      {doctor.primary && (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-150 ml-2 shrink-0">Primary</Badge>
                       )}
                     </div>
-                    {doctor.primary && (
-                      <Badge variant="secondary">Primary</Badge>
-                    )}
-                  </div>
-                ))
-              )}
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setIsAssignDoctorOpen(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
+                  ))
+                )}
+                <Button 
+                  variant="outline" 
+                  className="w-full hover:bg-blue-50 hover:text-blue-700 border-blue-200"
+                  onClick={() => setIsAssignDoctorOpen(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Assign Doctor
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <MedicalHistoryTimeline 
+            events={medicalHistory} 
+            className="lg:col-span-2"
+          />
+
+          <VitalsTracker
+            patientId={params.id}
+            initialVitals={initialVitals}
+          />
+
+          <DocumentManager
+            patientId={params.id}
+            initialDocuments={documents}
+          />
+
+          <PrescriptionManager
+            patientId={params.id}
+            doctors={doctors}
+            initialPrescriptions={prescriptions}
+          />
+
+          <LabResultsManager
+            patientId={params.id}
+            doctors={doctors}
+            initialLabResults={labResults}
+          />
+
+          <AllergiesManager
+            patientId={params.id}
+            initialAllergies={allergies}
+          />
+
+          <MedicationsTracker
+            patientId={params.id}
+            doctors={doctors}
+            initialMedications={medications}
+          />
+
+          <ImmunizationTracker
+            patientId={params.id}
+            doctors={doctors}
+            initialImmunizations={immunizations}
+          />
+        </div>
+
+        <AddMedicalHistoryForm
+          isOpen={showAddHistory}
+          onClose={() => setShowAddHistory(false)}
+          patientId={params.id}
+          doctors={doctors}
+          onSuccess={fetchMedicalHistory}
+        />
+
+        <Dialog open={isAssignDoctorOpen} onOpenChange={setIsAssignDoctorOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign Doctor</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Select Doctor</label>
+                <Select
+                  value={selectedDoctorId}
+                  onValueChange={setSelectedDoctorId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors
+                      .filter(doc => !patientDoctors.some(pd => pd.id === doc.id))
+                      .map((doctor) => (
+                        <SelectItem key={doctor.id} value={doctor.id}>
+                          Dr. {doctor.first_name} {doctor.last_name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAssignDoctorOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleAssignDoctor}>
                 Assign Doctor
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-        <MedicalHistoryTimeline 
-          events={medicalHistory} 
-          className="lg:col-span-2"
-        />
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Patient Information</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              const formData = new FormData(e.currentTarget)
+              try {
+                const { error } = await supabase
+                  .from('patients')
+                  .update({
+                    first_name: formData.get('first_name'),
+                    last_name: formData.get('last_name'),
+                    nickname: formData.get('nickname'),
+                    date_of_birth: formData.get('date_of_birth'),
+                    contact_number: formData.get('contact_number'),
+                    email: formData.get('email'),
+                    address: formData.get('address'),
+                  })
+                  .eq('id', params.id)
 
-        <VitalsTracker
-          patientId={params.id}
-          initialVitals={initialVitals}
-        />
-
-        <DocumentManager
-          patientId={params.id}
-          initialDocuments={documents}
-        />
-
-        <PrescriptionManager
-          patientId={params.id}
-          doctors={doctors}
-          initialPrescriptions={prescriptions}
-        />
-
-        <LabResultsManager
-          patientId={params.id}
-          doctors={doctors}
-          initialLabResults={labResults}
-        />
-
-        <AllergiesManager
-          patientId={params.id}
-          initialAllergies={allergies}
-        />
-
-        <MedicationsTracker
-          patientId={params.id}
-          doctors={doctors}
-          initialMedications={medications}
-        />
-
-        <ImmunizationTracker
-          patientId={params.id}
-          doctors={doctors}
-          initialImmunizations={immunizations}
-        />
+                if (error) throw error
+                
+                toast.success('Patient information updated')
+                fetchPatientData() // Refresh the data
+                setIsEditModalOpen(false)
+              } catch (error) {
+                console.error('Error updating patient:', error)
+                toast.error('Failed to update patient information')
+              }
+            }}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">First Name</label>
+                    <input
+                      name="first_name"
+                      defaultValue={patient.first_name}
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Last Name</label>
+                    <input
+                      name="last_name"
+                      defaultValue={patient.last_name}
+                      className="w-full p-2 border rounded-md"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nickname</label>
+                  <input
+                    name="nickname"
+                    defaultValue={patient.nickname}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Date of Birth</label>
+                  <input
+                    type="date"
+                    name="date_of_birth"
+                    defaultValue={patient.date_of_birth}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Contact Number</label>
+                  <input
+                    name="contact_number"
+                    defaultValue={patient.contact_number}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    defaultValue={patient.email}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Address</label>
+                  <textarea
+                    name="address"
+                    defaultValue={patient.address}
+                    className="w-full p-2 border rounded-md"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditModalOpen(false)} type="button">
+                  Cancel
+                </Button>
+                <Button className="bg-blue-600 hover:bg-blue-700" type="submit">
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      <AddMedicalHistoryForm
-        isOpen={showAddHistory}
-        onClose={() => setShowAddHistory(false)}
-        patientId={params.id}
-        doctors={doctors}
-        onSuccess={fetchMedicalHistory}
-      />
-
-      <Dialog open={isAssignDoctorOpen} onOpenChange={setIsAssignDoctorOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Assign Doctor</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Select Doctor</label>
-              <Select
-                value={selectedDoctorId}
-                onValueChange={setSelectedDoctorId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select doctor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctors
-                    .filter(doc => !patientDoctors.some(pd => pd.id === doc.id))
-                    .map((doctor) => (
-                      <SelectItem key={doctor.id} value={doctor.id}>
-                        Dr. {doctor.first_name} {doctor.last_name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAssignDoctorOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAssignDoctor}>
-              Assign Doctor
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -55,7 +55,7 @@ export default function AppSidebar() {
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="w-60 h-screen">
+      <div className="w-56 h-screen">
         <Sidebar className="border-r border-border bg-card">
           <SidebarHeader className="border-b border-border bg-card px-4 py-3">
             <div className="flex items-center justify-between">

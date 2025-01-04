@@ -18,12 +18,14 @@ interface DashboardData {
     date: string
     patient: {
       id: string
-      name: string
+      first_name: string
+      last_name: string
     }
   }>
   recentPatients: Array<{
     id: string
-    name: string
+    first_name: string
+    last_name: string
     date_of_birth: string
   }>
 }
@@ -62,7 +64,8 @@ export default function DashboardContent() {
             date,
             patient:patients (
               id,
-              name
+              first_name,
+              last_name
             )
           `)
           .eq('user_id', user.id.toString())
@@ -75,9 +78,9 @@ export default function DashboardContent() {
         // Get recent patients
         const { data: recentPatients, error: recentError } = await supabase
           .from('patients')
-          .select('id, name, date_of_birth')
+          .select('id, first_name, last_name, date_of_birth')
           .eq('user_id', user.id.toString())
-          .order('name')
+          .order('first_name')
           .limit(5)
 
         if (recentError) throw recentError
@@ -119,7 +122,7 @@ export default function DashboardContent() {
   if (!dashboardData) return null
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mx-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -154,7 +157,7 @@ export default function DashboardContent() {
                     <div>
                       <Link href={`/patients/${appointment.patient?.id}`}>
                         <Button variant="link" className="p-0 h-auto font-medium">
-                          {appointment.patient?.name}
+                          {`${appointment.patient?.first_name} ${appointment.patient?.last_name}`}
                         </Button>
                       </Link>
                       <p className="text-sm text-muted-foreground">
@@ -182,7 +185,7 @@ export default function DashboardContent() {
                     <div>
                       <Link href={`/patients/${patient.id}`}>
                         <Button variant="link" className="p-0 h-auto font-medium">
-                          {patient.name}
+                          {`${patient.first_name} ${patient.last_name}`}
                         </Button>
                       </Link>
                       <p className="text-sm text-muted-foreground">
