@@ -14,6 +14,90 @@
     "column_default": null
   },
   {
+    "table_name": "active_patients",
+    "column_name": "id",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "first_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "date_of_birth",
+    "data_type": "date",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "gender",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "contact_number",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "address",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "last_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "nickname",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "email",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
     "table_name": "admin_users",
     "column_name": "id",
     "data_type": "integer",
@@ -1079,13 +1163,6 @@
   },
   {
     "table_name": "patients",
-    "column_name": "medical_history",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "patients",
     "column_name": "user_id",
     "data_type": "uuid",
     "is_nullable": "YES",
@@ -1111,6 +1188,20 @@
     "data_type": "text",
     "is_nullable": "YES",
     "column_default": null
+  },
+  {
+    "table_name": "patients",
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "patients",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": "'active'::text"
   },
   {
     "table_name": "pending_shares",

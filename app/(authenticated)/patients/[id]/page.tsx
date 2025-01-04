@@ -216,6 +216,10 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [isLoadingTimeline, setIsLoadingTimeline] = useState(false)
   const [isLoadingPatientDoctors, setIsLoadingPatientDoctors] = useState(false)
 
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [deleteConfirmName, setDeleteConfirmName] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+
   // Primary useEffect for patient data
   useEffect(() => {
     if (supabase && params.id) {
@@ -704,6 +708,40 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     }
   })
 
+  const handleDeletePatient = async () => {
+    if (deleteConfirmName !== `${patient.first_name} ${patient.last_name}`) {
+      toast.error('Please type the patient name correctly to confirm deletion')
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      // Soft delete the patient
+      const { error: updateError } = await supabase
+        .from('patients')
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          status: 'deleted'
+        })
+        .eq('id', params.id)
+
+      if (updateError) throw updateError
+
+      toast.success('Patient deleted successfully')
+      setIsDeleteConfirmOpen(false)
+      setIsEditModalOpen(false)
+      // Redirect to patients list after a short delay
+      setTimeout(() => {
+        window.location.href = '/patients'
+      }, 2000)
+    } catch (error) {
+      console.error('Error deleting patient:', error)
+      toast.error('Failed to delete patient')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (isLoading) {
     return <PatientCardSkeleton />
   }
@@ -1020,6 +1058,69 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
                 </Button>
               </DialogFooter>
             </form>
+            <div className="mt-6 pt-6 border-t">
+              <Button
+                variant="destructive"
+                onClick={() => setIsDeleteConfirmOpen(true)}
+                className="w-full bg-red-600 hover:bg-red-700"
+              >
+                Delete Patient
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-red-600">Delete Patient</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <h4 className="font-semibold text-red-900 mb-2">⚠️ Warning: This action cannot be undone</h4>
+                <ul className="text-sm text-red-800 space-y-1">
+                  <li>• All patient data will be archived</li>
+                  <li>• Medical records will be preserved for compliance</li>
+                  <li>• Associated appointments will be cancelled</li>
+                  <li>• Patient access will be revoked immediately</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-red-600">
+                  Type patient's full name to confirm: {patient.first_name} {patient.last_name}
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmName}
+                  onChange={(e) => setDeleteConfirmName(e.target.value)}
+                  className="w-full p-2 border border-red-200 rounded-md"
+                  placeholder="Type full name to confirm"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteConfirmOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeletePatient}
+                disabled={deleteConfirmName !== `${patient.first_name} ${patient.last_name}` || isDeleting}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="animate-pulse">Deleting</span>
+                    <span className="ml-1 animate-pulse">...</span>
+                  </>
+                ) : (
+                  'Permanently Delete Patient'
+                )}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
