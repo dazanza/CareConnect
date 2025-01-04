@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Phone, Mail, Trash2 } from 'lucide-react'
@@ -23,28 +24,132 @@ import { TimelineView } from '@/app/components/medical-history/TimelineView'
 import { getPatientTimeline } from '@/app/lib/timeline-service'
 import { 
   MedicalDocument, 
-  Doctor, 
-  MedicalEvent, 
-  Prescription, 
-  LabResult,
-  Allergy,
-  Medication,
-  Immunization,
-  TimelineEvent,
+  DoctorOption,
   PatientDoctor,
   PatientDoctorResponse,
-  DoctorOption
+  TimelineEvent
 } from '@/app/types'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { DialogFooter } from "@/components/ui/dialog"
+
+interface Doctor {
+  id: string
+  first_name: string
+  last_name: string
+  name: string
+  specialization: string
+  contact_number: string | null
+  email: string | null
+}
+
+interface MedicalEvent {
+  id: string
+  date: string
+  type: 'test' | 'appointment' | 'prescription' | 'diagnosis'
+  title: string
+  description: string
+  doctor_id: string
+  doctor: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+}
+
+interface Allergy {
+  id: string
+  patient_id: string
+  allergen: string
+  reaction: string
+  severity: string
+  date_identified: string
+  notes?: string
+  status: 'active' | 'inactive'
+}
+
+interface Medication {
+  id: string
+  name: string
+  dosage: string
+  frequency: string
+  start_date: string
+  end_date: string
+  notes?: string
+  patient_id: string
+  doctor_id: string
+  created_at: string
+  doctor: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+  instructions: string
+  status: 'active' | 'discontinued'
+}
+
+interface Immunization {
+  id: string
+  patient_id: string
+  vaccine_name: string
+  vaccine_type: string
+  dose_number: number
+  date_administered: string
+  next_due_date: string | null
+  administered_by: string
+  batch_number: string
+  manufacturer: string
+  location: string
+  notes?: string
+  status: 'completed' | 'scheduled' | 'overdue'
+  side_effects?: string
+  doctor: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+}
+
+interface LabResult {
+  id: string
+  test_name: string
+  test_type: string
+  result_value: string
+  reference_range: string
+  unit: string
+  date: string
+  notes: string
+  status: 'normal' | 'abnormal' | 'critical'
+  doctor_id: string
+  patient_id: string
+  doctor: {
+    id: string
+    name: string
+  }
+}
+
+interface Prescription {
+  id: string
+  patient_id: string
+  medication_name: string
+  dosage: string
+  frequency: string
+  start_date: string
+  end_date: string
+  notes?: string
+  doctor_id: string
+  created_at: string
+  status: 'active' | 'completed' | 'cancelled'
+  doctor?: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+}
 
 export default function PatientDetailsPage({ params }: { params: { id: string } }) {
   const { supabase } = useSupabase()
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const [patient, setPatient] = useState<any>(null)
-  const [doctors, setDoctors] = useState<DoctorOption[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [medicalHistory, setMedicalHistory] = useState<MedicalEvent[]>([])
   const [showAddHistory, setShowAddHistory] = useState(false)
   const [initialVitals, setInitialVitals] = useState<any[]>([])
@@ -102,6 +207,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         .from('patients')
         .select('*')
         .eq('id', params.id)
+        .eq('user_id', user.id.toString())
         .single()
 
       if (error) {
@@ -296,12 +402,12 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           access_level,
           expires_at,
           shared_by:shared_by_user_id (
-            clerk_id,
+            id,
             first_name,
             last_name
           ),
           shared_with:shared_with_user_id (
-            clerk_id,
+            id,
             first_name,
             last_name
           )

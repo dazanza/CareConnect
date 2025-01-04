@@ -2,7 +2,6 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { Providers } from './providers'
-import { SupabaseProvider } from './components/auth/SupabaseProvider'
 import { SupabaseAuthProvider } from './components/auth/SupabaseAuthProvider'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -20,14 +19,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <SupabaseProvider>
-          <SupabaseAuthProvider>
-            <Providers>
-              {children}
-              <Toaster position="top-right" />
-            </Providers>
-          </SupabaseAuthProvider>
-        </SupabaseProvider>
+        <SupabaseAuthProvider>
+          <Providers>
+            {children}
+            <Toaster position="top-right" />
+          </Providers>
+        </SupabaseAuthProvider>
       </body>
     </html>
   )

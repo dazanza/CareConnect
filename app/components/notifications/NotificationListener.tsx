@@ -22,7 +22,7 @@ export function NotificationListener() {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${user.id.toString()}`,
         },
         (payload) => {
           const notification = payload.new as any

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import { Loader2 } from 'lucide-react'
 
 interface DashboardData {
   patientCount: number
@@ -31,26 +32,30 @@ export default function DashboardContent() {
   const { user } = useAuth()
   const { supabase } = useSupabase()
 
-  const { data: dashboardData } = useQuery({
+  const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['dashboard', user?.id],
     queryFn: async () => {
       if (!supabase || !user?.id) return null
 
-      const [
-        { count: patientCount, error: patientError },
-        { count: appointmentCount, error: appointmentError },
-        { data: upcomingAppointments, error: upcomingError },
-        { data: recentPatients, error: recentError }
-      ] = await Promise.all([
-        supabase
+      try {
+        // Get patient count
+        const { data: patients, error: patientError } = await supabase
           .from('patients')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id),
-        supabase
+          .select('id')
+          .eq('user_id', user.id.toString())
+
+        if (patientError) throw patientError
+
+        // Get appointment count
+        const { data: appointments, error: appointmentError } = await supabase
           .from('appointments')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id),
-        supabase
+          .select('id')
+          .eq('user_id', user.id.toString())
+
+        if (appointmentError) throw appointmentError
+
+        // Get upcoming appointments
+        const { data: upcomingAppointments, error: upcomingError } = await supabase
           .from('appointments')
           .select(`
             id,
@@ -60,34 +65,56 @@ export default function DashboardContent() {
               name
             )
           `)
-          .eq('user_id', user.id)
+          .eq('user_id', user.id.toString())
           .gte('date', new Date().toISOString())
           .order('date')
-          .limit(5),
-        supabase
+          .limit(5)
+
+        if (upcomingError) throw upcomingError
+
+        // Get recent patients
+        const { data: recentPatients, error: recentError } = await supabase
           .from('patients')
           .select('id, name, date_of_birth')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
+          .eq('user_id', user.id.toString())
+          .order('name')
           .limit(5)
-      ])
 
-      if (patientError || appointmentError || upcomingError || recentError) {
+        if (recentError) throw recentError
+
+        return {
+          patientCount: patients?.length || 0,
+          appointmentCount: appointments?.length || 0,
+          upcomingAppointments: upcomingAppointments || [],
+          recentPatients: recentPatients || []
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error)
         toast.error('Failed to load dashboard data')
-        throw new Error('Failed to load dashboard data')
-      }
-
-      return {
-        patientCount: patientCount || 0,
-        appointmentCount: appointmentCount || 0,
-        upcomingAppointments: upcomingAppointments || [],
-        recentPatients: recentPatients || []
+        throw error
       }
     },
+    enabled: !!user?.id && !!supabase,
     staleTime: 5 * 60 * 1000, // Data considered fresh for 5 minutes
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchOnWindowFocus: false
   })
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500 py-8">
+        Failed to load dashboard data. Please try refreshing the page.
+      </div>
+    )
+  }
 
   if (!dashboardData) return null
 
@@ -125,9 +152,9 @@ export default function DashboardContent() {
                 {dashboardData.upcomingAppointments.map((appointment) => (
                   <div key={appointment.id} className="flex justify-between items-center">
                     <div>
-                      <Link href={`/patients/${appointment.patient.id}`}>
+                      <Link href={`/patients/${appointment.patient?.id}`}>
                         <Button variant="link" className="p-0 h-auto font-medium">
-                          {appointment.patient.name}
+                          {appointment.patient?.name}
                         </Button>
                       </Link>
                       <p className="text-sm text-muted-foreground">

@@ -24,7 +24,7 @@ export default function PatientsContent() {
       const { data, error } = await supabase
         .from('patients')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id.toString())
         .order('name')
 
       if (error) {

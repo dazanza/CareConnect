@@ -1,19 +1,36 @@
 'use client'
 
+import { useEffect } from 'react'
 import AppSidebar from '@/app/components/layout/Sidebar'
 import Header from '@/app/components/layout/Header'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 
 export default function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/sign-in')
+    }
+  }, [user, isLoading, router])
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    )
+  }
 
   if (!user) {
-    redirect('/sign-in')
+    return null // Don't render anything while redirecting
   }
 
   return (

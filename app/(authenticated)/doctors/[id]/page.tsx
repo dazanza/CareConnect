@@ -22,7 +22,7 @@ export default function DoctorPage() {
         .from('doctors')
         .select('*')
         .eq('id', doctorId)
-        .eq('user_id', user.id)
+        .eq('user_id', user.id.toString())
         .single()
 
       if (error) {

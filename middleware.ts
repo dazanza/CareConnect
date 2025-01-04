@@ -4,42 +4,66 @@ import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
-  const { data: { session } } = await supabase.auth.getSession()
-
   const path = req.nextUrl.pathname
-  console.log('Current path:', path)
 
-  // Allow all paths in the public route group
-  if (path === '/' || path === '/sign-in' || path === '/sign-up') {
-    console.log('Public route accessed:', path)
+  // Create Supabase client with response for setting cookies
+  const supabase = createMiddlewareClient({ req, res })
+
+  try {
+    // Refresh session if expired - this will set the cookie if successful
+    const { data: { session }, error } = await supabase.auth.getSession()
+
+    if (error) {
+      console.error('Session error:', error)
+    }
+
+    // Allow all public routes without any auth check
+    if (path === '/' || 
+        path === '/sign-in' || 
+        path === '/sign-up' || 
+        path === '/reset-password' || 
+        path === '/update-password') {
+      
+      // If user is signed in and trying to access auth pages, redirect to dashboard
+      if (session && (path === '/sign-in' || path === '/sign-up')) {
+        const redirectUrl = req.nextUrl.clone()
+        redirectUrl.pathname = '/dashboard'
+        return NextResponse.redirect(redirectUrl)
+      }
+      
+      return res
+    }
+
+    // For protected routes, check for session
+    if (!session) {
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = '/sign-in'
+      redirectUrl.searchParams.set('redirectedFrom', path)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    // Return response with refreshed session cookie
     return res
-  }
 
-  // If there is no session and trying to access a non-public route,
-  // redirect to the sign-in page
-  if (!session) {
-    console.log('No session, redirecting to sign-in')
+  } catch (e) {
+    // If there's an error, redirect to sign-in
+    console.error('Middleware error:', e)
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/sign-in'
-    redirectUrl.searchParams.set('redirectedFrom', path)
     return NextResponse.redirect(redirectUrl)
   }
-
-  // If there is a session and trying to access auth pages,
-  // redirect to the patients page
-  if (session && (path === '/sign-in' || path === '/sign-up')) {
-    console.log('Session exists, redirecting to patients')
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/patients'
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  return res
 }
 
+// Ensure middleware runs on auth-related paths
 export const config = {
   matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public (public files)
+     */
     '/((?!_next/static|_next/image|favicon.ico|public/).*)',
   ],
 }

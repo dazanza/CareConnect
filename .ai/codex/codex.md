@@ -762,3 +762,114 @@ L092: Middleware Path Handling with Route Groups
   ```
 - Impact: Ensures correct routing and prevents 404 errors
 - Related: L086, L087, L091
+
+L093: Migrating SSO Users to Password Auth
+- Context: Migration from Clerk SSO to Supabase password-based auth
+- Insight: Use password reset flow to let users set up passwords
+- Application:
+  ```typescript
+  // Send reset link
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/update-password`
+  })
+  
+  // Update password after clicking link
+  await supabase.auth.updateUser({
+    password: newPassword
+  })
+  ```
+- Impact: Smooth transition for users from SSO to password-based auth
+- Related: L083
+
+L094: Form State Management in Next.js
+- Context: Sign-in and password reset forms
+- Insight: Forms need complete state management and proper event handling
+- Application:
+  ```typescript
+  // Connect form to submit handler
+  <form onSubmit={handleSubmit}>
+    <Input
+      value={state}
+      onChange={(e) => setState(e.target.value)}
+      disabled={isLoading}
+    />
+    <Button disabled={isLoading}>
+      {isLoading ? 'Processing...' : 'Submit'}
+    </Button>
+  </form>
+  ```
+- Impact: Ensures forms work correctly with loading states and validation
+- Related: L093
+
+L095: Public Routes in Auth Middleware
+- Context: Password reset flow with Next.js middleware
+- Insight: Password reset routes must be public but not redirect authenticated users
+- Application:
+  ```typescript
+  // Allow public routes without auth check
+  if (path === '/reset-password' || path === '/update-password') {
+    return res
+  }
+
+  // Only redirect auth users from sign-in/sign-up
+  if (session && (path === '/sign-in' || path === '/sign-up')) {
+    redirectUrl.pathname = '/patients'
+  }
+  ```
+- Impact: Ensures password reset flow works for both auth and unauth users
+- Related: L092, L093
+
+L096: Supabase Email Configuration
+- Context: Password reset and email verification flows
+- Insight: Supabase requires SMTP configuration for sending emails
+- Application:
+  - Enable Email provider in Authentication > Providers
+  - Configure SMTP in Authentication > Email Templates
+  - Options:
+    1. Supabase's built-in email (limited)
+    2. Custom SMTP (SendGrid, SES, etc.)
+  - Required for:
+    - Password reset
+    - Email verification
+    - Magic link auth
+- Impact: Enables email-based authentication features
+- Related: L093, L095
+
+L097: Supabase Auth URL Configuration
+- Context: Password reset and OAuth flows
+- Insight: Supabase requires proper Site URL configuration for auth flows
+- Application:
+  - Set Site URL in Authentication > URL Configuration
+  - Must match your app's domain
+  - Add development URLs for local testing
+  - Example config:
+    ```
+    Site URL: https://your-domain.com
+    Redirect URLs:
+    - https://localhost:3000
+    - https://dev.your-domain.com
+    ```
+- Impact: Ensures auth flows and redirects work correctly
+- Related: L093, L096
+
+L098: Supabase Email Verification Requirements
+- Context: Email-based auth flows (reset password, magic links)
+- Insight: Emails only sent to verified users in auth.users table
+- Application:
+  ```sql
+  -- Verify user emails
+  UPDATE auth.users
+  SET 
+    email_confirmed_at = NOW(),
+    raw_user_meta_data = jsonb_set(
+      CASE 
+        WHEN raw_user_meta_data IS NULL THEN '{}'::jsonb
+        ELSE raw_user_meta_data 
+      END,
+      '{email_verified}',
+      'true'
+    )
+  WHERE email_confirmed_at IS NULL;
+  ```
+- Impact: Ensures email-based auth flows work for all users
+- Related: L093, L096
