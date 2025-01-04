@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'react-hot-toast'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface AddPatientFormProps {
   onSuccess?: () => void
@@ -16,6 +17,7 @@ interface AddPatientFormProps {
 export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
   const { user } = useAuth()
   const { supabase } = useSupabase()
+  const queryClient = useQueryClient()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     firstName: '',
@@ -50,6 +52,8 @@ export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
 
       if (error) throw error
 
+      await queryClient.invalidateQueries({ queryKey: ['patients'] })
+      
       toast.success('Patient added successfully')
       onSuccess?.()
       setFormData({
