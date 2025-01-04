@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Phone, Mail, Trash2, Pencil } from 'lucide-react'
+import { Plus, Phone, Mail, Trash2, Pencil, UserMinus, UserPlus } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { MedicalHistoryTimeline } from '@/app/components/MedicalHistoryTimeline'
 import { AddMedicalHistoryForm } from '@/app/components/AddMedicalHistoryForm'
@@ -14,7 +14,6 @@ import { PatientCardSkeleton } from '@/app/components/ui/skeletons'
 import { VitalsTracker } from '@/app/components/VitalsTracker'
 import { DocumentManager } from '@/app/components/documents/DocumentManager'
 import { PrescriptionManager } from '@/app/components/PrescriptionManager'
-import { LabResultsManager } from '@/app/components/LabResultsManager'
 import { AllergiesManager } from '@/app/components/AllergiesManager'
 import { MedicationsTracker } from '@/app/components/MedicationsTracker'
 import { ImmunizationTracker } from '@/app/components/ImmunizationTracker'
@@ -45,15 +44,18 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table"
 import { AppointmentsList } from '@/app/components/AppointmentsList'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface Doctor {
-  id: string
+  id: number
   first_name: string
   last_name: string
-  name: string
   specialization: string
   contact_number: string | null
   email: string | null
+  created_at: string
+  address: string
+  user_id: string
 }
 
 interface MedicalEvent {
@@ -123,24 +125,6 @@ interface Immunization {
   }
 }
 
-interface LabResult {
-  id: string
-  test_name: string
-  test_type: string
-  result_value: string
-  reference_range: string
-  unit: string
-  date: string
-  notes: string
-  status: 'normal' | 'abnormal' | 'critical'
-  doctor_id: string
-  patient_id: string
-  doctor: {
-    id: string
-    name: string
-  }
-}
-
 interface Prescription {
   id: string
   patient_id: string
@@ -167,16 +151,20 @@ interface DatabaseDoctor {
   specialization: string
 }
 
-interface PatientDoctorJoin {
-  doctor_id: string
-  doctors: DatabaseDoctor
-}
-
 interface AssignedDoctor {
-  id: string
+  id: number
   first_name: string
   last_name: string
   specialization: string
+}
+
+interface PatientDoctorResponse {
+  doctors: {
+    id: number
+    first_name: string
+    last_name: string
+    specialization: string
+  }
 }
 
 export default function PatientDetailsPage({ params }: { params: { id: string } }) {
@@ -190,7 +178,6 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [initialVitals, setInitialVitals] = useState<any[]>([])
   const [documents, setDocuments] = useState<MedicalDocument[]>([])
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
-  const [labResults, setLabResults] = useState<LabResult[]>([])
   const [allergies, setAllergies] = useState<Allergy[]>([])
   const [medications, setMedications] = useState<Medication[]>([])
   const [immunizations, setImmunizations] = useState<Immunization[]>([])
@@ -210,7 +197,6 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [isLoadingVitals, setIsLoadingVitals] = useState(false)
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false)
   const [isLoadingPrescriptions, setIsLoadingPrescriptions] = useState(false)
-  const [isLoadingLabResults, setIsLoadingLabResults] = useState(false)
   const [isLoadingAllergies, setIsLoadingAllergies] = useState(false)
   const [isLoadingMedications, setIsLoadingMedications] = useState(false)
   const [isLoadingImmunizations, setIsLoadingImmunizations] = useState(false)
@@ -237,7 +223,6 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       fetchVitals()
       fetchDocuments()
       fetchPrescriptions()
-      fetchLabResults()
       fetchAllergies()
       fetchMedications()
       fetchImmunizations()
@@ -303,14 +288,16 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
             specialization
           )
         `)
-        .eq('patient_id', params.id)
+        .eq('patient_id', parseInt(params.id))
 
       if (error) {
         console.error('Error fetching patient doctors:', error)
         return
       }
 
-      const formattedDoctors: AssignedDoctor[] = data.map(item => ({
+      // Type assertion for the response data
+      const responseData = data as unknown as PatientDoctorResponse[]
+      const formattedDoctors: AssignedDoctor[] = responseData.map(item => ({
         id: item.doctors.id,
         first_name: item.doctors.first_name,
         last_name: item.doctors.last_name,
@@ -448,59 +435,6 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       console.error('Error fetching patient shares:', error)
       toast.error('Failed to load patient shares')
       return []
-    }
-  }
-
-  const fetchLabResults = async () => {
-    setIsLoadingLabResults(true)
-    try {
-      const { data, error } = await supabase
-        .from('lab_results')
-        .select(`
-          id,
-          test_name,
-          test_type,
-          result_value,
-          reference_range,
-          unit,
-          date,
-          notes,
-          status,
-          doctor:doctor_id (
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('patient_id', params.id)
-        .order('date', { ascending: false })
-
-      if (error) throw error
-
-      const formattedResults: LabResult[] = data.map(item => ({
-        id: item.id,
-        test_name: item.test_name,
-        test_type: item.test_type,
-        result_value: item.result_value,
-        reference_range: item.reference_range,
-        unit: item.unit,
-        date: item.date,
-        notes: item.notes,
-        status: item.status,
-        doctor_id: item.doctor.id,
-        patient_id: params.id,
-        doctor: {
-          id: item.doctor.id,
-          name: `${item.doctor.first_name} ${item.doctor.last_name}`
-        }
-      }))
-
-      setLabResults(formattedResults)
-    } catch (error) {
-      console.error('Error fetching lab results:', error)
-      toast.error('Failed to load lab results')
-    } finally {
-      setIsLoadingLabResults(false)
     }
   }
 
@@ -660,16 +594,11 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     }
 
     try {
-      const patientId = parseInt(params.id)
-      if (isNaN(patientId)) {
-        throw new Error('Invalid patient ID')
-      }
-
       const { error } = await supabase
         .from('patient_doctors')
         .insert({
-          patient_id: patientId,
-          doctor_id: selectedDoctorId,
+          patient_id: parseInt(params.id),
+          doctor_id: parseInt(selectedDoctorId),
         })
 
       if (error) throw error
@@ -739,12 +668,12 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     }
   }
 
-  const handleUnassignDoctor = async (doctorId: string) => {
+  const handleUnassignDoctor = async (doctorId: number) => {
     try {
       const { error } = await supabase
         .from('patient_doctors')
         .delete()
-        .eq('patient_id', params.id)
+        .eq('patient_id', parseInt(params.id))
         .eq('doctor_id', doctorId)
 
       if (error) throw error
@@ -767,10 +696,20 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      {isLoading ? (
-        <PatientCardSkeleton />
-      ) : patient ? (
-        <>
+      <div className="flex flex-col space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Patient Details</h1>
+        <p className="text-muted-foreground">
+          Manage patient information, medical records, and documents
+        </p>
+      </div>
+
+      <Tabs defaultValue="main" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="main">Main</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="main" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Patient Info Card */}
             <Card>
@@ -858,38 +797,147 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
             </Card>
           </div>
 
+          {/* Assigned Doctors Card */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle>Assigned Doctors</CardTitle>
+                <CardDescription>Manage doctors assigned to this patient</CardDescription>
+              </div>
+              <Button onClick={() => setIsAssignDoctorOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Assign Doctor
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isLoadingPatientDoctors ? (
+                <div>Loading doctors...</div>
+              ) : patientDoctors.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex justify-end">
+                    <Select
+                      value={sortConfig.key}
+                      onValueChange={(value: 'name' | 'specialization') => 
+                        handleSort(value)
+                      }
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="name">Sort by Name</SelectItem>
+                        <SelectItem value="specialization">Sort by Specialty</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-4">
+                    {sortedDoctors.map((doctor) => (
+                      <div
+                        key={doctor.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            Dr. {doctor.first_name} {doctor.last_name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {doctor.specialization}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleUnassignDoctor(doctor.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  No doctors assigned yet
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Rest of the components */}
           <VitalsTracker patientId={params.id} initialVitals={initialVitals} />
-          <TimelineView events={timelineEvents} isLoading={isLoadingTimeline} />
-          <PatientShares patientId={params.id} />
-          <DocumentManager patientId={params.id} documents={documents} />
+          <TimelineView timeline={timelineEvents} isLoading={isLoadingTimeline} />
+          <PatientShares 
+            patientId={params.id} 
+            patientName={`${patient.first_name} ${patient.last_name}`}
+          />
           <PrescriptionManager 
             patientId={params.id} 
-            prescriptions={prescriptions} 
             doctors={doctors}
+            initialPrescriptions={prescriptions}
           />
-          <LabResultsManager 
+          <AllergiesManager 
             patientId={params.id} 
-            labResults={labResults}
-            doctors={doctors}
+            initialAllergies={allergies.map(allergy => ({
+              ...allergy,
+              severity: allergy.severity as 'mild' | 'moderate' | 'severe'
+            }))}
           />
-          <AllergiesManager patientId={params.id} allergies={allergies} />
           <MedicationsTracker 
             patientId={params.id} 
-            medications={medications}
             doctors={doctors}
+            initialMedications={medications}
           />
           <ImmunizationTracker 
             patientId={params.id} 
-            immunizations={immunizations}
             doctors={doctors}
+            initialImmunizations={immunizations.map(immunization => ({
+              ...immunization,
+              doctor_id: immunization.doctor?.id || ''
+            }))}
           />
-        </>
-      ) : (
-        <div>Patient not found</div>
-      )}
+        </TabsContent>
 
-      {/* Existing modals and dialogs */}
+        <TabsContent value="documents" className="space-y-6">
+          <DocumentManager patientId={params.id} initialDocuments={documents} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Assign Doctor Dialog */}
+      <Dialog open={isAssignDoctorOpen} onOpenChange={setIsAssignDoctorOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Doctor</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Select
+              value={selectedDoctorId}
+              onValueChange={setSelectedDoctorId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a doctor" />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors
+                  .filter(doctor => !patientDoctors.find(pd => pd.id === doctor.id))
+                  .map((doctor) => (
+                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                      Dr. {doctor.first_name} {doctor.last_name} - {doctor.specialization}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignDoctorOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignDoctor}>
+              Assign Doctor
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

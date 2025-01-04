@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -41,11 +41,24 @@ export function DocumentManager({ patientId, initialDocuments = [] }: DocumentMa
   const { supabase } = useSupabase()
   const [documents, setDocuments] = useState<Document[]>(initialDocuments)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<Document['category'] | 'all'>('all')
   const [uploadData, setUploadData] = useState({
     file: null as File | null,
     category: '' as Document['category'],
     name: ''
   })
+
+  const filteredDocuments = documents.filter(doc => 
+    selectedCategory === 'all' ? true : doc.category === selectedCategory
+  )
+
+  const documentsByCategory = filteredDocuments.reduce((acc, doc) => {
+    if (!acc[doc.category]) {
+      acc[doc.category] = []
+    }
+    acc[doc.category].push(doc)
+    return acc
+  }, {} as Record<Document['category'], Document[]>)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -134,58 +147,90 @@ export function DocumentManager({ patientId, initialDocuments = [] }: DocumentMa
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Documents</CardTitle>
-        <Button onClick={() => setIsUploadDialogOpen(true)}>
-          <FileUp className="w-4 h-4 mr-2" />
-          Upload Document
-        </Button>
+        <div>
+          <CardTitle>Documents</CardTitle>
+          <CardDescription>View and manage patient documents</CardDescription>
+        </div>
+        <div className="flex items-center gap-4">
+          <Select
+            value={selectedCategory}
+            onValueChange={(value) => setSelectedCategory(value as Document['category'] | 'all')}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Documents</SelectItem>
+              <SelectItem value="lab_result">Lab Results</SelectItem>
+              <SelectItem value="prescription">Prescriptions</SelectItem>
+              <SelectItem value="imaging">Imaging</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setIsUploadDialogOpen(true)}>
+            <FileUp className="w-4 h-4 mr-2" />
+            Upload Document
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {documents.length === 0 ? (
             <p className="text-muted-foreground">No documents uploaded yet.</p>
+          ) : filteredDocuments.length === 0 ? (
+            <p className="text-muted-foreground">No documents found in this category.</p>
           ) : (
-            documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center justify-between p-4 border rounded-lg"
-              >
-                <div className="flex items-center space-x-4">
-                  <File className="w-8 h-8 text-blue-500" />
-                  <div>
-                    <h4 className="font-medium">{doc.name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(doc.uploaded_at).toLocaleDateString()} • {(doc.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => window.open(doc.url, '_blank')}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      const link = document.createElement('a')
-                      link.href = doc.url
-                      link.download = doc.name
-                      link.click()
-                    }}
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(doc.id, doc.url)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+            Object.entries(documentsByCategory).map(([category, docs]) => (
+              <div key={category} className="space-y-4">
+                <h3 className="font-semibold capitalize">
+                  {category.split('_').join(' ')}
+                  <span className="ml-2 text-muted-foreground font-normal">({docs.length})</span>
+                </h3>
+                <div className="grid gap-4">
+                  {docs.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <File className="w-8 h-8 text-blue-500" />
+                        <div>
+                          <h4 className="font-medium">{doc.name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(doc.uploaded_at).toLocaleDateString()} • {(doc.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => window.open(doc.url, '_blank')}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const link = document.createElement('a')
+                            link.href = doc.url
+                            link.download = doc.name
+                            link.click()
+                          }}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(doc.id, doc.url)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))
