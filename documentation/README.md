@@ -6,6 +6,7 @@ A modern web application for managing patient records and appointments.
 
 - Secure authentication via Supabase Auth
 - Patient management
+- Patient sharing with granular access control
 - Appointment scheduling
 - Medical records tracking
 - Real-time updates
@@ -52,12 +53,22 @@ The application uses Supabase Auth for user authentication. Features include:
 - Session management
 - Automatic redirects
 
+## Patient Sharing
+
+The application supports sharing patient data with other users:
+
+- Share patients with specific access levels (read/write/admin)
+- Time-limited access with expiration dates
+- Granular control over shared data
+- Real-time notifications for shared access
+
 ## Database Schema
 
 The application uses Supabase as its database. Key tables include:
 
-- users
+- users (auth.users)
 - patients
+- patient_shares
 - appointments
 - medical_records
 

@@ -23,7 +23,7 @@ import { Pill, Plus, Calendar, Clock, AlertCircle, Trash2 } from 'lucide-react'
 import { toast } from "react-hot-toast"
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { format, addDays } from 'date-fns'
-import { Doctor, Prescription } from '@/app/types'
+import { Doctor, Prescription, Medication } from '@/types'
 
 interface PrescriptionManagerProps {
   patientId: string
@@ -40,53 +40,56 @@ export function PrescriptionManager({
   const [prescriptions, setPrescriptions] = useState<Prescription[]>(initialPrescriptions)
   const [showAddPrescription, setShowAddPrescription] = useState(false)
   const [newPrescription, setNewPrescription] = useState({
+    medication_id: 0,
     medication: '',
     dosage: '',
     frequency: '',
-    duration: '',
-    instructions: '',
-    doctor_id: '',
-    start_date: format(new Date(), 'yyyy-MM-dd')
+    duration: 0,
+    refills: 0,
+    prescribed_by: 0,
+    start_date: format(new Date(), 'yyyy-MM-dd'),
+    notes: ''
   })
 
   const handleAddPrescription = async () => {
     if (!supabase) return
 
     try {
-      const endDate = addDays(new Date(newPrescription.start_date), parseInt(newPrescription.duration))
+      const endDate = addDays(new Date(newPrescription.start_date), newPrescription.duration)
       
       const { data, error } = await supabase
         .from('prescriptions')
         .insert({
-          ...newPrescription,
-          patient_id: patientId,
+          medication_id: newPrescription.medication_id,
+          medication: newPrescription.medication,
+          dosage: newPrescription.dosage,
+          frequency: newPrescription.frequency,
+          duration: newPrescription.duration,
+          refills: newPrescription.refills,
+          prescribed_by: newPrescription.prescribed_by,
+          patient_id: parseInt(patientId),
+          start_date: newPrescription.start_date,
           end_date: format(endDate, 'yyyy-MM-dd'),
-          status: 'active',
-          duration: parseInt(newPrescription.duration)
+          notes: newPrescription.notes,
+          status: 'active'
         })
         .select('*, doctor:doctors(id, first_name, last_name)')
         .single()
 
       if (error) throw error
 
-      const formattedPrescription = {
-        ...data,
-        doctor: {
-          id: data.doctor.id,
-          name: `${data.doctor.first_name} ${data.doctor.last_name}`
-        }
-      }
-
-      setPrescriptions([formattedPrescription, ...prescriptions])
+      setPrescriptions([data, ...prescriptions])
       setShowAddPrescription(false)
       setNewPrescription({
+        medication_id: 0,
         medication: '',
         dosage: '',
         frequency: '',
-        duration: '',
-        instructions: '',
-        doctor_id: '',
-        start_date: format(new Date(), 'yyyy-MM-dd')
+        duration: 0,
+        refills: 0,
+        prescribed_by: 0,
+        start_date: format(new Date(), 'yyyy-MM-dd'),
+        notes: ''
       })
       toast.success('Prescription added successfully')
     } catch (error) {
@@ -95,7 +98,7 @@ export function PrescriptionManager({
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     try {
       const { error } = await supabase
         .from('prescriptions')
@@ -134,7 +137,9 @@ export function PrescriptionManager({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Pill className="w-5 h-5 text-blue-500" />
-                    <h3 className="font-medium">{prescription.medication}</h3>
+                    <h3 className="font-medium">
+                      {prescription.medication_details?.name || prescription.medication}
+                    </h3>
                   </div>
                   <Button
                     variant="ghost"
@@ -144,20 +149,26 @@ export function PrescriptionManager({
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {prescription.dosage} • {prescription.frequency}
-                </p>
+                <div className="flex flex-col space-y-1">
+                  <span className="text-sm text-gray-500">
+                    {prescription.dosage} - {prescription.frequency}
+                  </span>
+                  {prescription.doctor && (
+                    <span className="text-sm text-gray-500">
+                      Prescribed by: Dr. {prescription.doctor.first_name} {prescription.doctor.last_name}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4 mr-1" />
-                  {format(new Date(prescription.start_date), 'MMM d, yyyy')} - {format(new Date(prescription.end_date), 'MMM d, yyyy')}
+                  {format(new Date(prescription.start_date), 'MMM d, yyyy')} - {prescription.end_date && format(new Date(prescription.end_date), 'MMM d, yyyy')}
                 </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {prescription.instructions}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Prescribed by Dr. {prescription.doctor.name}
-                </p>
+                {prescription.notes && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {prescription.notes}
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -198,9 +209,18 @@ export function PrescriptionManager({
               <label className="text-sm font-medium">Duration (days)</label>
               <Input
                 type="number"
-                value={newPrescription.duration}
-                onChange={(e) => setNewPrescription({ ...newPrescription, duration: e.target.value })}
+                value={newPrescription.duration.toString()}
+                onChange={(e) => setNewPrescription({ ...newPrescription, duration: parseInt(e.target.value) || 0 })}
                 placeholder="Enter number of days"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Refills</label>
+              <Input
+                type="number"
+                value={newPrescription.refills}
+                onChange={(e) => setNewPrescription({ ...newPrescription, refills: parseInt(e.target.value) })}
+                placeholder="Number of refills"
               />
             </div>
             <div>
@@ -212,18 +232,18 @@ export function PrescriptionManager({
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Instructions</label>
+              <label className="text-sm font-medium">Notes</label>
               <Textarea
-                value={newPrescription.instructions}
-                onChange={(e) => setNewPrescription({ ...newPrescription, instructions: e.target.value })}
-                placeholder="Enter special instructions"
+                value={newPrescription.notes}
+                onChange={(e) => setNewPrescription({ ...newPrescription, notes: e.target.value })}
+                placeholder="Enter any additional notes"
               />
             </div>
             <div>
               <label className="text-sm font-medium">Doctor</label>
               <Select
-                value={newPrescription.doctor_id}
-                onValueChange={(value) => setNewPrescription({ ...newPrescription, doctor_id: value })}
+                value={newPrescription.prescribed_by.toString()}
+                onValueChange={(value) => setNewPrescription({ ...newPrescription, prescribed_by: parseInt(value) })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select doctor" />
@@ -231,7 +251,7 @@ export function PrescriptionManager({
                 <SelectContent>
                   {doctors.map((doctor) => (
                     <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                      Dr. {doctor.name}
+                      Dr. {doctor.first_name} {doctor.last_name}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from 'next/link'
 import { CalendarIcon, ClockIcon, MapPinIcon } from 'lucide-react'
-import { convertUTCToLocal, formatLocalDate } from '@/app/lib/dateUtils'
+import { convertUTCToLocal, formatters } from '@/app/lib/dateUtils'
 import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog'
 import { CancelAppointmentDialog } from './CancelAppointmentDialog'
 import { fetchAppointments as fetchAppointmentsApi } from '@/app/lib/dataFetching'
@@ -40,7 +40,8 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
 
     setIsLoading(true)
     try {
-      const appointmentsData = await fetchAppointmentsApi(supabase, userId, {
+      const appointmentsData = await fetchAppointmentsApi(supabase, {
+        userId,
         patientId: patientId?.toString(),
         doctorId: doctorId?.toString(),
         limit: showAll ? undefined : limit,
@@ -93,12 +94,12 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
                   <div className="flex items-center space-x-2">
                     <CalendarIcon className="w-4 h-4" />
                     <p className="font-semibold">
-                      {formatLocalDate(convertUTCToLocal(appointment.date), 'MMMM d, yyyy')}
+                      {formatters.appointment(convertUTCToLocal(appointment.date))}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2 mt-1">
                     <ClockIcon className="w-4 h-4" />
-                    <p>{formatLocalDate(convertUTCToLocal(appointment.date), 'h:mm a')}</p>
+                    <p>{formatters.time(convertUTCToLocal(appointment.date))}</p>
                   </div>
                   <div className="flex items-center space-x-2 mt-1">
                     <MapPinIcon className="w-4 h-4" />
@@ -108,10 +109,10 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
                     <p className="mt-2">
                       Patient: {appointment.patients?.id ? (
                         <Link href={`/patients/${appointment.patients.id}`} className="text-blue-600 hover:underline">
-                          {appointment.patients?.name || 'N/A'}
+                          {appointment.patients?.first_name} {appointment.patients?.last_name}
                         </Link>
                       ) : (
-                        appointment.patients?.name || 'N/A'
+                        `${appointment.patients?.first_name} ${appointment.patients?.last_name}`
                       )}
                     </p>
                   )}
@@ -119,10 +120,10 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
                     <p>
                       Doctor: {appointment.doctors?.id ? (
                         <Link href={`/doctors/${appointment.doctors.id}`} className="text-blue-600 hover:underline">
-                          Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name}
+                          Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name} - {appointment.doctors?.specialization}
                         </Link>
                       ) : (
-                        `Dr. ${appointment.doctors?.first_name} ${appointment.doctors?.last_name}`
+                        `Dr. ${appointment.doctors?.first_name} ${appointment.doctors?.last_name} - ${appointment.doctors?.specialization}`
                       )}
                     </p>
                   )}
@@ -146,14 +147,14 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
 
       <RescheduleAppointmentDialog
         isOpen={isRescheduleDialogOpen}
-        onOpenChange={setIsRescheduleDialogOpen}
+        onClose={() => setIsRescheduleDialogOpen(false)}
         appointmentId={selectedAppointment?.id || 0}
         onSuccess={handleRescheduleSuccess}
       />
 
       <CancelAppointmentDialog
         isOpen={isCancelDialogOpen}
-        onOpenChange={setIsCancelDialogOpen}
+        onClose={() => setIsCancelDialogOpen(false)}
         appointment={selectedAppointment}
         onCancel={handleCancelSuccess}
       />

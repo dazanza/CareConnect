@@ -54,20 +54,15 @@ export function AddAppointmentForm({
 
   useEffect(() => {
     if (initialData && mode === 'reschedule') {
-      setDate(formatLocalDate(initialData.date, 'yyyy-MM-dd'))
-      setTime(formatLocalDate(initialData.date, 'HH:mm'))
+      setDate(new Date(initialData.date).toISOString().split('T')[0])
+      setTime(new Date(initialData.date).toLocaleTimeString('en-US', { hour12: false }).slice(0, 5))
       setType(initialData.type)
       setLocation(initialData.location)
       setNotes(initialData.notes || '')
       setSelectedPatient(initialData.patient_id.toString())
       setSelectedDoctor(initialData.doctor_id.toString())
       
-      if (initialData.patient) {
-        setPatients([initialData.patient])
-      }
-      if (initialData.doctor) {
-        setDoctors([initialData.doctor])
-      }
+      fetchPatientAndDoctor(initialData.patient_id, initialData.doctor_id)
     } else {
       if (patientId) setSelectedPatient(patientId)
       if (doctorId) setSelectedDoctor(doctorId)
@@ -90,11 +85,31 @@ export function AddAppointmentForm({
     if (!supabase) return
 
     try {
-      const { data, error } = await supabase.from('patients').select('*').order('name')
+      const { data, error } = await supabase.from('patients').select('*').order('last_name')
       if (error) throw error
       setPatients(data)
     } catch (error) {
       console.error('Error fetching patients:', error)
+    }
+  }
+
+  const fetchPatientAndDoctor = async (patientId: number, doctorId: number) => {
+    if (!supabase) return
+
+    try {
+      const [patientResult, doctorResult] = await Promise.all([
+        supabase.from('patients').select('*').eq('id', patientId).single(),
+        supabase.from('doctors').select('*').eq('id', doctorId).single()
+      ])
+
+      if (patientResult.data) {
+        setPatients([patientResult.data])
+      }
+      if (doctorResult.data) {
+        setDoctors([doctorResult.data])
+      }
+    } catch (error) {
+      console.error('Error fetching patient/doctor:', error)
     }
   }
 
@@ -177,7 +192,7 @@ export function AddAppointmentForm({
           <SelectContent>
             {patients.map((patient) => (
               <SelectItem key={patient.id} value={patient.id.toString()}>
-                {patient.name}
+                {patient.first_name} {patient.last_name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -197,7 +212,7 @@ export function AddAppointmentForm({
           <SelectContent>
             {doctors.map((doctor) => (
               <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                Dr. {doctor.first_name} {doctor.last_name}
+                Dr. {doctor.first_name} {doctor.last_name} - {doctor.specialization}
               </SelectItem>
             ))}
           </SelectContent>

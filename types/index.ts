@@ -1,12 +1,16 @@
 export interface Patient {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string;
   date_of_birth: string;
   gender: string;
   contact_number: string;
   address: string;
-  medical_history: string;
   user_id: string;
+  nickname?: string;
+  email?: string;
+  deleted_at?: string | null;
+  status: string;
 }
 
 export interface Doctor {
@@ -32,12 +36,14 @@ export interface Appointment {
   status: 'scheduled' | 'cancelled' | 'completed';
   patients?: {
     id: number;
-    name: string;
+    first_name: string;
+    last_name: string;
   };
   doctors?: {
     id: number;
     first_name: string;
     last_name: string;
+    specialization: string;
   };
 }
 

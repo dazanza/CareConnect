@@ -23,7 +23,7 @@ graph TD
 
 ### Core Tables
 
-#### users
+#### users (auth.users)
 - id (UUID, PK)
 - email (string)
 - created_at (timestamp)
@@ -32,10 +32,20 @@ graph TD
 #### patients
 - id (UUID, PK)
 - user_id (UUID, FK)
-- name (string)
+- first_name (string)
+- last_name (string)
 - date_of_birth (date)
 - created_at (timestamp)
 - updated_at (timestamp)
+
+#### patient_shares
+- id (UUID, PK)
+- patient_id (UUID, FK)
+- shared_by_user_id (UUID, FK to auth.users)
+- shared_with_user_id (UUID, FK to auth.users)
+- access_level (enum: 'read', 'write', 'admin')
+- expires_at (timestamp, nullable)
+- created_at (timestamp)
 
 #### appointments
 - id (UUID, PK)
@@ -59,8 +69,9 @@ graph TD
 
 All tables are protected by RLS policies:
 - Users can only access their own data
-- Data access is controlled by user_id relationships
+- Data access is controlled by user_id relationships and patient_shares
 - Policies are enforced at the database level
+- Patient sharing is controlled through the patient_shares table
 
 ### Authentication
 
@@ -83,6 +94,12 @@ All tables are protected by RLS policies:
 - PUT /api/patients/[id]
 - DELETE /api/patients/[id]
 
+### Patient Sharing
+- POST /api/patients/[id]/share
+- DELETE /api/patients/[id]/share/[shareId]
+- GET /api/patients/[id]/shares
+- GET /api/shared-patients
+
 ### Appointments
 - GET /api/appointments
 - POST /api/appointments
@@ -103,6 +120,7 @@ All tables are protected by RLS policies:
 - Layout components
 - Authentication components
 - Patient management components
+- Patient sharing components
 - Appointment components
 - Medical record components
 
@@ -110,6 +128,11 @@ All tables are protected by RLS policies:
 - React Query for server state
 - React Context for auth state
 - Local state for UI components
+
+### Data Fetching Patterns
+- Direct database queries for simple data
+- Two-step queries for auth.users data
+- In-memory data combination for complex joins
 
 ### Routing
 - Next.js App Router

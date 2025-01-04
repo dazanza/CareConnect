@@ -71,13 +71,39 @@ export async function getPatientShares(
   const { data, error } = await supabase
     .from('patient_shares')
     .select(`
-      *,
-      shared_by:shared_by_user_id(email),
-      shared_with:shared_with_user_id(email)
+      id,
+      patient_id,
+      shared_by_user_id,
+      shared_with_user_id,
+      access_level,
+      expires_at,
+      created_at
     `)
     .eq('patient_id', patientId)
 
   if (error) throw error
+
+  // Get the user emails in a separate query
+  if (data && data.length > 0) {
+    const sharedByIds = data.map(share => share.shared_by_user_id)
+    const sharedWithIds = data.map(share => share.shared_with_user_id)
+    const uniqueUserIds = Array.from(new Set([...sharedByIds, ...sharedWithIds]))
+
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, email')
+      .in('id', uniqueUserIds)
+
+    if (userError) throw userError
+
+    // Map user data to shares
+    return data.map(share => ({
+      ...share,
+      shared_by: userData.find(u => u.id === share.shared_by_user_id),
+      shared_with: userData.find(u => u.id === share.shared_with_user_id)
+    }))
+  }
+
   return data
 }
 
@@ -88,12 +114,35 @@ export async function getSharedPatients(
   const { data, error } = await supabase
     .from('patient_shares')
     .select(`
-      *,
-      patient:patient_id(*),
-      shared_by:shared_by_user_id(email)
+      id,
+      patient_id,
+      shared_by_user_id,
+      shared_with_user_id,
+      access_level,
+      expires_at,
+      created_at,
+      patient:patients(*)
     `)
     .eq('shared_with_user_id', userId)
 
   if (error) throw error
+
+  // Get the shared by user emails in a separate query
+  if (data && data.length > 0) {
+    const sharedByIds = data.map(share => share.shared_by_user_id)
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, email')
+      .in('id', sharedByIds)
+
+    if (userError) throw userError
+
+    // Map user data to shares
+    return data.map(share => ({
+      ...share,
+      shared_by: userData.find(u => u.id === share.shared_by_user_id)
+    }))
+  }
+
   return data
 }

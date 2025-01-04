@@ -12,6 +12,8 @@ export async function fetchAppointments(
     limit?: number
     userId: string
     upcoming?: boolean
+    patientId?: string
+    doctorId?: string
   }
 ) {
   try {
@@ -19,14 +21,16 @@ export async function fetchAppointments(
       .from('appointments')
       .select(`
         *,
-        patient:patients (
-          id,
-          name
-        ),
-        doctor:doctors (
+        patients (
           id,
           first_name,
           last_name
+        ),
+        doctors (
+          id,
+          first_name,
+          last_name,
+          specialization
         )
       `)
       .eq('user_id', options.userId)
@@ -37,9 +41,15 @@ export async function fetchAppointments(
 
     if (options.searchTerm) {
       query = query
-        .ilike('patient.name', `%${options.searchTerm}%`)
-        .or(`doctor.first_name.ilike.%${options.searchTerm}%`)
-        .or(`doctor.last_name.ilike.%${options.searchTerm}%`)
+        .or(`patients.first_name.ilike.%${options.searchTerm}%,patients.last_name.ilike.%${options.searchTerm}%,doctors.first_name.ilike.%${options.searchTerm}%,doctors.last_name.ilike.%${options.searchTerm}%`)
+    }
+
+    if (options.patientId) {
+      query = query.eq('patient_id', options.patientId)
+    }
+
+    if (options.doctorId) {
+      query = query.eq('doctor_id', options.doctorId)
     }
 
     if (options.limit) {
@@ -66,6 +76,8 @@ export async function getCachedAppointments(
     searchTerm?: string
     limit?: number
     upcoming?: boolean
+    patientId?: string
+    doctorId?: string
   } = {}
 ) {
   return unstable_cache(
@@ -91,14 +103,14 @@ export async function fetchPatients(
       .eq('user_id', options.userId)
 
     if (options.searchTerm) {
-      query = query.ilike('name', `%${options.searchTerm}%`)
+      query = query.or(`first_name.ilike.%${options.searchTerm}%,last_name.ilike.%${options.searchTerm}%`)
     }
 
     if (options.limit) {
       query = query.limit(options.limit)
     }
 
-    const { data, error } = await query.order('name')
+    const { data, error } = await query.order('last_name')
 
     if (error) throw error
 

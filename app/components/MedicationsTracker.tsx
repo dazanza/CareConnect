@@ -24,6 +24,7 @@ import { toast } from "react-hot-toast"
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { format } from 'date-fns'
 import { Badge } from "@/components/ui/badge"
+import { Doctor } from '@/types'
 
 interface Medication {
   id: string
@@ -39,15 +40,16 @@ interface Medication {
   adherence_rate?: number
   doctor_id: string
   patient_id: string
-  doctor: {
+  doctor?: {
     id: string
-    name: string
+    first_name: string
+    last_name: string
   }
 }
 
 interface MedicationsTrackerProps {
   patientId: string
-  doctors: Array<{ id: string; name: string }>
+  doctors: Doctor[]
   initialMedications?: Medication[]
 }
 
@@ -67,14 +69,22 @@ export function MedicationsTracker({
   const [showAddMedication, setShowAddMedication] = useState(false)
   const [showDiscontinue, setShowDiscontinue] = useState(false)
   const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null)
-  const [newMedication, setNewMedication] = useState({
+  const [newMedication, setNewMedication] = useState<{
+    name: string
+    dosage: string
+    frequency: string
+    start_date: string
+    end_date: string | null
+    instructions: string
+    doctor_id: string
+  }>({
     name: '',
     dosage: '',
     frequency: '',
     start_date: format(new Date(), 'yyyy-MM-dd'),
+    end_date: null,
     instructions: '',
-    doctor_id: '',
-    status: 'active' as const
+    doctor_id: ''
   })
   const [discontinueReason, setDiscontinueReason] = useState('')
 
@@ -86,15 +96,33 @@ export function MedicationsTracker({
         .from('medications')
         .insert({
           ...newMedication,
-          patient_id: patientId
+          patient_id: parseInt(patientId),
+          doctor_id: parseInt(newMedication.doctor_id),
+          status: 'active'
         })
-        .select('*, doctor:doctors(id, name)')
+        .select(`
+          *,
+          doctor:doctors (
+            id,
+            first_name,
+            last_name
+          )
+        `)
         .single()
 
       if (error) throw error
 
       setMedications([data, ...medications])
       setShowAddMedication(false)
+      setNewMedication({
+        name: '',
+        dosage: '',
+        frequency: '',
+        start_date: format(new Date(), 'yyyy-MM-dd'),
+        end_date: null,
+        instructions: '',
+        doctor_id: ''
+      })
       toast.success('Medication added successfully')
     } catch (error) {
       console.error('Error adding medication:', error)
@@ -180,7 +208,7 @@ export function MedicationsTracker({
                   </div>
                 )}
                 <p className="text-sm text-muted-foreground">
-                  Prescribed by Dr. {medication.doctor.name}
+                  Prescribed by Dr. {medication.doctor?.first_name} {medication.doctor?.last_name}
                 </p>
                 {medication.status === 'active' && (
                   <Button
@@ -259,8 +287,8 @@ export function MedicationsTracker({
                 </SelectTrigger>
                 <SelectContent>
                   {doctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>
-                      Dr. {doctor.name}
+                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                      Dr. {doctor.first_name} {doctor.last_name}
                     </SelectItem>
                   ))}
                 </SelectContent>

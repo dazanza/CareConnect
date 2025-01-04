@@ -24,6 +24,7 @@ import { toast } from "react-hot-toast"
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { format, addMonths } from 'date-fns'
 import { Badge } from "@/components/ui/badge"
+import { Doctor } from '@/types'
 
 interface Immunization {
   id: string
@@ -41,15 +42,16 @@ interface Immunization {
   side_effects?: string
   patient_id: string
   doctor_id: string
-  doctor: {
+  doctor?: {
     id: string
-    name: string
+    first_name: string
+    last_name: string
   }
 }
 
 interface ImmunizationTrackerProps {
   patientId: string
-  doctors: Array<{ id: string; name: string }>
+  doctors: Doctor[]
   initialImmunizations?: Immunization[]
 }
 
@@ -77,50 +79,75 @@ export function ImmunizationTracker({
   const { supabase } = useSupabase()
   const [immunizations, setImmunizations] = useState<Immunization[]>(initialImmunizations)
   const [showAddImmunization, setShowAddImmunization] = useState(false)
-  const [newImmunization, setNewImmunization] = useState({
+  const [newImmunization, setNewImmunization] = useState<{
+    vaccine_name: string
+    vaccine_type: string
+    dose_number: number
+    date_administered: string
+    next_due_date: string | null
+    administered_by: string
+    batch_number: string
+    manufacturer: string
+    location: string
+    notes: string
+    doctor_id: string
+  }>({
     vaccine_name: '',
     vaccine_type: '',
     dose_number: 1,
     date_administered: format(new Date(), 'yyyy-MM-dd'),
+    next_due_date: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
     administered_by: '',
     batch_number: '',
     manufacturer: '',
     location: '',
     notes: '',
-    doctor_id: '',
-    status: 'completed' as const
+    doctor_id: ''
   })
 
   const handleAddImmunization = async () => {
     if (!supabase) return
 
     try {
-      // Calculate next due date based on vaccine type
-      let nextDueDate = null
-      if (newImmunization.vaccine_type === 'Influenza') {
-        nextDueDate = format(addMonths(new Date(), 12), 'yyyy-MM-dd')
-      } else if (newImmunization.vaccine_type === 'Tetanus') {
-        nextDueDate = format(addMonths(new Date(), 120), 'yyyy-MM-dd')
-      }
-
       const { data, error } = await supabase
         .from('immunizations')
         .insert({
           ...newImmunization,
-          patient_id: patientId,
-          next_due_date: nextDueDate
+          patient_id: parseInt(patientId),
+          doctor_id: parseInt(newImmunization.doctor_id),
+          status: 'completed'
         })
-        .select('*, doctor:doctors(id, name)')
+        .select(`
+          *,
+          doctor:doctors (
+            id,
+            first_name,
+            last_name
+          )
+        `)
         .single()
 
       if (error) throw error
 
       setImmunizations([data, ...immunizations])
       setShowAddImmunization(false)
-      toast.success('Immunization recorded successfully')
+      setNewImmunization({
+        vaccine_name: '',
+        vaccine_type: '',
+        dose_number: 1,
+        date_administered: format(new Date(), 'yyyy-MM-dd'),
+        next_due_date: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+        administered_by: '',
+        batch_number: '',
+        manufacturer: '',
+        location: '',
+        notes: '',
+        doctor_id: ''
+      })
+      toast.success('Immunization added successfully')
     } catch (error) {
-      console.error('Error recording immunization:', error)
-      toast.error('Failed to record immunization')
+      console.error('Error adding immunization:', error)
+      toast.error('Failed to add immunization')
     }
   }
 
@@ -181,7 +208,7 @@ export function ImmunizationTracker({
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Recorded by Dr. {immunization.doctor.name}
+                  Recorded by Dr. {immunization.doctor?.first_name} {immunization.doctor?.last_name}
                 </p>
               </div>
             ))
@@ -293,8 +320,8 @@ export function ImmunizationTracker({
                 </SelectTrigger>
                 <SelectContent>
                   {doctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>
-                      Dr. {doctor.name}
+                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                      Dr. {doctor.first_name} {doctor.last_name}
                     </SelectItem>
                   ))}
                 </SelectContent>

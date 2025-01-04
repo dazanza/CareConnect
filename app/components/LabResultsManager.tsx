@@ -23,6 +23,7 @@ import { FileText, Plus, AlertCircle, Calendar } from 'lucide-react'
 import { toast } from "react-hot-toast"
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { format } from 'date-fns'
+import { Doctor } from '@/types'
 
 interface LabResult {
   id: string
@@ -36,15 +37,16 @@ interface LabResult {
   status: 'normal' | 'abnormal' | 'critical'
   doctor_id: string
   patient_id: string
-  doctor: {
+  doctor?: {
     id: string
-    name: string
+    first_name: string
+    last_name: string
   }
 }
 
 interface LabResultsManagerProps {
   patientId: string
-  doctors: Array<{ id: string; name: string }>
+  doctors: Doctor[]
   initialLabResults?: LabResult[]
 }
 
@@ -66,7 +68,17 @@ export function LabResultsManager({
   const { supabase } = useSupabase()
   const [labResults, setLabResults] = useState<LabResult[]>(initialLabResults)
   const [showAddResult, setShowAddResult] = useState(false)
-  const [newResult, setNewResult] = useState({
+  const [newResult, setNewResult] = useState<{
+    test_name: string
+    test_type: string
+    result_value: string
+    reference_range: string
+    unit: string
+    date: string
+    notes: string
+    status: 'normal' | 'abnormal' | 'critical'
+    doctor_id: string
+  }>({
     test_name: '',
     test_type: '',
     result_value: '',
@@ -86,15 +98,34 @@ export function LabResultsManager({
         .from('lab_results')
         .insert({
           ...newResult,
-          patient_id: patientId
+          patient_id: parseInt(patientId),
+          doctor_id: parseInt(newResult.doctor_id)
         })
-        .select('*, doctor:doctors(id, name)')
+        .select(`
+          *,
+          doctor:doctors (
+            id,
+            first_name,
+            last_name
+          )
+        `)
         .single()
 
       if (error) throw error
 
       setLabResults([data, ...labResults])
       setShowAddResult(false)
+      setNewResult({
+        test_name: '',
+        test_type: '',
+        result_value: '',
+        reference_range: '',
+        unit: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        notes: '',
+        status: 'normal',
+        doctor_id: ''
+      })
       toast.success('Lab result added successfully')
     } catch (error) {
       console.error('Error adding lab result:', error)
@@ -160,7 +191,7 @@ export function LabResultsManager({
                   </p>
                 )}
                 <p className="text-sm text-muted-foreground">
-                  Ordered by Dr. {result.doctor.name}
+                  Ordered by Dr. {result.doctor?.first_name} {result.doctor?.last_name}
                 </p>
               </div>
             ))
@@ -269,8 +300,8 @@ export function LabResultsManager({
                 </SelectTrigger>
                 <SelectContent>
                   {doctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>
-                      Dr. {doctor.name}
+                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                      Dr. {doctor.first_name} {doctor.last_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
