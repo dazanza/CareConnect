@@ -295,7 +295,6 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       const { data, error } = await supabase
         .from('patient_doctors')
         .select(`
-          doctor_id,
           doctors (
             id,
             first_name,
@@ -304,12 +303,9 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
           )
         `)
         .eq('patient_id', params.id)
-        .returns<PatientDoctorJoin[]>()
 
-      if (error) throw error
-
-      if (!data) {
-        setPatientDoctors([])
+      if (error) {
+        console.error('Error fetching patient doctors:', error)
         return
       }
 
@@ -742,6 +738,24 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     }
   }
 
+  const handleUnassignDoctor = async (doctorId: string) => {
+    try {
+      const { error } = await supabase
+        .from('patient_doctors')
+        .delete()
+        .eq('patient_id', params.id)
+        .eq('doctor_id', doctorId)
+
+      if (error) throw error
+
+      toast.success('Doctor unassigned successfully')
+      fetchPatientDoctors() // Refresh the list
+    } catch (error) {
+      console.error('Error unassigning doctor:', error)
+      toast.error('Failed to unassign doctor')
+    }
+  }
+
   if (isLoading) {
     return <PatientCardSkeleton />
   }
@@ -759,13 +773,16 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
       </header>
       <div className="p-6 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold text-blue-950">
             {patient.first_name} {patient.last_name}
             {patient.nickname && (
-              <span className="text-lg font-normal text-muted-foreground ml-2">
+              <span className="text-xl font-normal text-muted-foreground ml-2">
                 ({patient.nickname})
               </span>
             )}
+            <span className="text-xl font-normal text-muted-foreground ml-2">
+              ({Math.floor((new Date().getTime() - new Date(patient.date_of_birth).getTime()) / 31557600000)} years old)
+            </span>
           </h1>
           <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto" onClick={() => setShowAddHistory(true)}>
             <Plus className="w-4 h-4 mr-2" />
@@ -774,38 +791,47 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-t-4 border-t-blue-500 shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
-              <CardTitle className="text-lg font-semibold text-blue-950">Patient Information</CardTitle>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-8 w-8 hover:bg-blue-50"
-                onClick={() => setIsEditModalOpen(true)}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <dl className="grid grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr] gap-3 text-sm">
-                <dt className="font-medium text-blue-950/70">Date of Birth</dt>
-                <dd>{new Date(patient.date_of_birth).toLocaleDateString()}</dd>
-                
-                <dt className="font-medium text-blue-950/70">Contact</dt>
-                <dd className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-blue-500" />
-                  {patient.contact_number}
-                </dd>
-                
-                <dt className="font-medium text-blue-950/70">Email</dt>
-                <dd className="flex items-center gap-2 break-all">
-                  <Mail className="h-4 w-4 text-blue-500 shrink-0" />
-                  {patient.email}
-                </dd>
-                
-                <dt className="font-medium text-blue-950/70">Address</dt>
-                <dd className="break-words">{patient.address}</dd>
-              </dl>
+          <Card className="border-t-4 border-t-blue-500 shadow-md hover:shadow-lg transition-shadow lg:col-span-2">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 gap-6">
+                <dl className="grid grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr] gap-3 text-sm">
+                  <dt className="font-medium text-blue-950/70">Date of Birth</dt>
+                  <dd>
+                    {new Date(patient.date_of_birth).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </dd>
+                  
+                  <dt className="font-medium text-blue-950/70">Contact</dt>
+                  <dd className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-blue-500" />
+                    {patient.contact_number}
+                  </dd>
+
+                  <dt className="font-medium text-blue-950/70">Email</dt>
+                  <dd className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-blue-500 shrink-0" />
+                    <span className="break-all">{patient.email}</span>
+                  </dd>
+                </dl>
+
+                <dl className="grid grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr] gap-3 text-sm relative">
+                  <div className="absolute top-0 right-0">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8 hover:bg-blue-50"
+                      onClick={() => setIsEditModalOpen(true)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <dt className="font-medium text-blue-950/70">Address</dt>
+                  <dd className="break-words">{patient.address}</dd>
+                </dl>
+              </div>
             </CardContent>
           </Card>
 
@@ -824,7 +850,7 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
                 <TableHeader>
                   <TableRow>
                     <TableHead 
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="cursor-pointer hover:bg-muted/50 text-blue-950 font-semibold"
                       onClick={() => handleSort('name')}
                     >
                       Name {sortConfig.key === 'name' && (
@@ -832,25 +858,37 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
                       )}
                     </TableHead>
                     <TableHead 
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="cursor-pointer hover:bg-muted/50 text-blue-950 font-semibold"
                       onClick={() => handleSort('specialization')}
                     >
                       Specialty {sortConfig.key === 'specialization' && (
                         <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </TableHead>
+                    <TableHead className="w-[100px] text-blue-950 font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sortedDoctors.map((doctor: AssignedDoctor) => (
-                    <TableRow key={doctor.id}>
-                      <TableCell>{doctor.first_name} {doctor.last_name}</TableCell>
+                    <TableRow key={doctor.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">Dr. {doctor.first_name} {doctor.last_name}</TableCell>
                       <TableCell>{doctor.specialization}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleUnassignDoctor(doctor.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Unassign doctor</span>
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {sortedDoctors.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center text-muted-foreground">
+                      <TableCell colSpan={3} className="text-center text-muted-foreground h-24">
                         No doctors assigned
                       </TableCell>
                     </TableRow>
@@ -859,11 +897,6 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
               </Table>
             </CardContent>
           </Card>
-
-          <MedicalHistoryTimeline 
-            events={medicalHistory} 
-            className="lg:col-span-2"
-          />
 
           <VitalsTracker
             patientId={params.id}
@@ -902,6 +935,11 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
             patientId={params.id}
             doctors={doctors}
             initialImmunizations={immunizations}
+          />
+
+          <MedicalHistoryTimeline 
+            events={medicalHistory} 
+            className="lg:col-span-2"
           />
         </div>
 
