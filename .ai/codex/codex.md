@@ -342,14 +342,18 @@ L042:
 - Related: L041
 
 L043:
-- Context: app/components/dashboard/DashboardContent.tsx, app/doctors/[id]/page.tsx
-- Insight: Integration of calendar view with appointment list
-- Application: Display a calendar alongside the appointment list to provide date context and selection
-- Impact: Improves date-based navigation and visualization of appointment schedules
-- Related: L041, L042
+- Context: app/(authenticated)/patients/[id]/page.tsx
+- Insight: Improved organization of patient details page using tabs
+- Application: 
+  1. Split content into logical sections (Main and Documents)
+  2. Use shadcn-ui Tabs component for better UX
+  3. Move DocumentManager to dedicated tab to reduce cognitive load
+  4. Add descriptive page header for better navigation context
+- Impact: Enhanced user experience through better content organization and reduced information overload
+- Related: L040, L041
 
 L044:
-- Context: app/doctors/[id]/page.tsx
+- Context: app/patients/[id]/page.tsx
 - Insight: Display of assigned patients in doctor's profile
 - Application: Show a list of patients assigned to a doctor to provide an overview of their patient load
 - Impact: Facilitates better patient management and quick access to patient information from the doctor's view
@@ -873,3 +877,32 @@ L098: Supabase Email Verification Requirements
   ```
 - Impact: Ensures email-based auth flows work for all users
 - Related: L093, L096
+
+L099:
+- Context: /app/(authenticated)/patients/[id]/page.tsx
+- Insight: Tab-based organization improves content density and navigation
+- Application: 
+  1. Use shadcn-ui Tabs for content organization
+  2. Group related content into logical tabs (Main, Documents)
+  3. Add descriptive page header above tabs
+  4. Keep primary content in main tab
+  5. Move secondary features to dedicated tabs
+- Impact: Reduces cognitive load and improves content accessibility while maintaining functionality
+- Related: L029, L043
+
+## L099 - Patient Details Page Organization
+
+**Context**: The patient details page contains a lot of information that needs to be organized in a clear and intuitive way.
+
+**Insight**: Using a combination of tabs, grid layouts, and visual hierarchy helps organize complex medical information effectively.
+
+**Application**:
+1. Use a prominent header with patient name and quick actions (share, edit)
+2. Organize content into logical tabs (main info vs documents)
+3. Place most important/frequently accessed info (patient details, vitals) in a 2-column grid at the top
+4. Use consistent card styling with clear headers and descriptions
+5. Place destructive actions (delete) at the bottom to prevent accidental clicks
+
+**Impact**: Improves information density while maintaining clarity and usability. Makes it easier for healthcare providers to find and manage patient information.
+
+**Related**: L029 (UI Components), L043 (Patient Page Organization)

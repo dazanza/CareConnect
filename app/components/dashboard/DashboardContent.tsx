@@ -9,6 +9,8 @@ import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { Loader2 } from 'lucide-react'
+import { Calendar } from "@/components/ui/calendar"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 
 interface DashboardData {
   patientCount: number
@@ -16,7 +18,14 @@ interface DashboardData {
   upcomingAppointments: Array<{
     id: string
     date: string
+    type: string
+    notes?: string
     patient: {
+      id: string
+      first_name: string
+      last_name: string
+    }
+    doctor: {
       id: string
       first_name: string
       last_name: string
@@ -62,7 +71,15 @@ export default function DashboardContent() {
           .select(`
             id,
             date,
+            type,
+            notes,
             patient:patients (
+              id,
+              first_name,
+              last_name,
+              nickname
+            ),
+            doctor:doctors (
               id,
               first_name,
               last_name
@@ -74,6 +91,8 @@ export default function DashboardContent() {
           .limit(5)
 
         if (upcomingError) throw upcomingError
+
+        console.log('Upcoming appointments:', upcomingAppointments)
 
         // Get recent patients
         const { data: recentPatients, error: recentError } = await supabase
@@ -148,26 +167,85 @@ export default function DashboardContent() {
             <CardTitle>Upcoming Appointments</CardTitle>
           </CardHeader>
           <CardContent>
-            {dashboardData.upcomingAppointments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No upcoming appointments</p>
-            ) : (
-              <div className="space-y-2">
-                {dashboardData.upcomingAppointments.map((appointment) => (
-                  <div key={appointment.id} className="flex justify-between items-center">
-                    <div>
-                      <Link href={`/patients/${appointment.patient?.id}`}>
-                        <Button variant="link" className="p-0 h-auto font-medium">
-                          {`${appointment.patient?.first_name} ${appointment.patient?.last_name}`}
-                        </Button>
-                      </Link>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(appointment.date), 'PPp')}
-                      </p>
-                    </div>
+            <div className="grid md:grid-cols-5 gap-6">
+              <div className="md:col-span-3">
+                {dashboardData.upcomingAppointments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                    <p>No upcoming appointments</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-2">
+                    {dashboardData.upcomingAppointments.map((appointment) => (
+                      <div key={appointment.id} className="flex justify-between items-center">
+                        <div>
+                          <Link href={`/patients/${appointment.patient?.id}`}>
+                            <Button variant="link" className="p-0 h-auto font-medium">
+                              {(appointment.patient as any).nickname || `${(appointment.patient as any).first_name} ${(appointment.patient as any).last_name}`} with Dr. {(appointment.doctor as any).first_name} {(appointment.doctor as any).last_name} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
+                            </Button>
+                          </Link>
+                          {appointment.notes && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Note: {appointment.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+              <div className="md:col-span-2">
+                <Calendar 
+                  mode="single"
+                  selected={new Date()}
+                  className="inline-block border rounded-md p-0"
+                  modifiers={{
+                    appointment: dashboardData.upcomingAppointments.map(apt => new Date(apt.date))
+                  }}
+                  modifiersStyles={{
+                    appointment: {
+                      backgroundColor: "hsl(142.1 76.2% 36.3%)",
+                      color: "white",
+                      borderRadius: "0"
+                    }
+                  }}
+                  classNames={{
+                    day_today: "bg-black text-white hover:bg-black/90"
+                  }}
+                  components={{
+                    DayContent: ({ date }) => {
+                      const dayAppointments = dashboardData.upcomingAppointments.filter(
+                        apt => new Date(apt.date).toDateString() === date.toDateString()
+                      )
+                      
+                      return dayAppointments.length > 0 ? (
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <div className="w-full h-full flex items-center justify-center cursor-pointer">
+                              {date.getDate()}
+                            </div>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80">
+                            <div className="space-y-2">
+                              <h4 className="font-semibold">Appointments on {format(date, "MMMM d, yyyy")}</h4>
+                              {dayAppointments.map(apt => (
+                                <div key={apt.id} className="text-sm">
+                                  {(apt.patient as any).nickname || `${(apt.patient as any).first_name} ${(apt.patient as any).last_name}`} with Dr. {(apt.doctor as any).first_name} {(apt.doctor as any).last_name} at {format(new Date(apt.date), "h:mm a")}
+                                </div>
+                              ))}
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          {date.getDate()}
+                        </div>
+                      )
+                    }
+                  }}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
