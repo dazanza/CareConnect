@@ -906,3 +906,31 @@ L099:
 **Impact**: Improves information density while maintaining clarity and usability. Makes it easier for healthcare providers to find and manage patient information.
 
 **Related**: L029 (UI Components), L043 (Patient Page Organization)
+
+L100:
+- Context: /app/lib/prescriptions.ts
+- Insight: Timeline-based event tracking for medical records
+- Application: Use timeline events table to track all prescription changes with metadata
+- Impact: Provides complete audit trail and history for medical records
+- Related: L050, L051
+
+L101:
+- Context: /app/components/prescriptions/PrescriptionCard.tsx
+- Insight: Reusable medical record display components with conditional patient info
+- Application: Create flexible components that can show/hide patient details based on context
+- Impact: Improves component reusability across different views (list vs details)
+- Related: L029, L045
+
+L102:
+- Context: /app/(authenticated)/prescriptions/[id]/page.tsx
+- Insight: Soft deletion pattern for medical records
+- Application: Use status field ('active', 'discontinued') instead of deleting records
+- Impact: Maintains complete medical history while allowing logical deletion
+- Related: L100
+
+L103:
+- Context: /app/lib/prescriptions.ts
+- Insight: Structured approach to medical record updates
+- Application: Track reason and metadata for each prescription change
+- Impact: Enables detailed audit trails and better decision tracking
+- Related: L100, L102
