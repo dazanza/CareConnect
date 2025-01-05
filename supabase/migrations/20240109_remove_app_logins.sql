@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS \"Users can view their app_logins\" ON app_logins; DROP POLICY IF EXISTS \"Users can insert app_logins\" ON app_logins; DROP POLICY IF EXISTS \"Users can update app_logins\" ON app_logins; DROP POLICY IF EXISTS \"Users can delete app_logins\" ON app_logins; ALTER TABLE IF EXISTS app_logins DISABLE ROW LEVEL SECURITY; DROP TABLE IF EXISTS app_logins;

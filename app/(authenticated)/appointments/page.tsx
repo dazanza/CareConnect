@@ -2,16 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Clock, MapPin, RefreshCw, Trash2 } from 'lucide-react'
+import { Calendar, Clock, MapPin, RefreshCw, Trash2, ArrowUpDown, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'react-hot-toast'
 import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointmentDialog'
 import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
 import { AppointmentSkeleton } from '@/app/components/ui/skeletons'
 import { AppointmentCalendar } from '@/app/components/AppointmentCalendar'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Link from 'next/link'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 interface Appointment {
   id: string
@@ -19,6 +26,7 @@ interface Appointment {
   patient: {
     id: string
     name: string
+    nickname?: string
   }
   doctor: {
     id: string
@@ -27,7 +35,10 @@ interface Appointment {
   location: string
 }
 
-export default function AppointmentsPage() {
+type SortField = 'patient' | 'doctor' | 'date'
+type SortOrder = 'asc' | 'desc'
+
+function AppointmentsContent() {
   const { supabase } = useSupabase()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -35,6 +46,8 @@ export default function AppointmentsPage() {
   const [showReschedule, setShowReschedule] = useState(false)
   const [showCancel, setShowCancel] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [sortField, setSortField] = useState<SortField>('date')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
 
   useEffect(() => {
     fetchAppointments()
@@ -52,7 +65,9 @@ export default function AppointmentsPage() {
           location,
           patient:patients!patient_id (
             id, 
-            name
+            first_name,
+            last_name,
+            nickname
           ),
           doctor:doctors!doctor_id (
             id, 
@@ -64,14 +79,14 @@ export default function AppointmentsPage() {
   
       if (error) throw error
       
-      // Transform the data to match the Appointment interface
       const transformedData: Appointment[] = data.map(apt => ({
         id: apt.id,
         date: apt.date,
         location: apt.location,
         patient: {
           id: apt.patient.id,
-          name: apt.patient.name
+          name: `${apt.patient.first_name} ${apt.patient.last_name}`,
+          nickname: apt.patient.nickname
         },
         doctor: {
           id: apt.doctor.id,
@@ -87,6 +102,29 @@ export default function AppointmentsPage() {
       setIsLoading(false)
     }
   }
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+  }
+
+  const sortedAppointments = [...appointments].sort((a, b) => {
+    const multiplier = sortOrder === 'asc' ? 1 : -1
+    switch (sortField) {
+      case 'patient':
+        return multiplier * (a.patient.nickname || a.patient.name).localeCompare(b.patient.nickname || b.patient.name)
+      case 'doctor':
+        return multiplier * a.doctor.name.localeCompare(b.doctor.name)
+      case 'date':
+        return multiplier * (new Date(a.date).getTime() - new Date(b.date).getTime())
+      default:
+        return 0
+    }
+  })
 
   const handleReschedule = async (date: string, time: string) => {
     if (!selectedAppointment || !supabase) return
@@ -137,80 +175,133 @@ export default function AppointmentsPage() {
     return <AppointmentSkeleton />
   }
 
-  const formatAppointmentDate = (date: string) => {
-    return format(new Date(date), 'MMMM d, yyyy')
-  }
-
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Appointments</h1>
-      
-      <Tabs defaultValue="list" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="list">List View</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar View</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="list">
-          <div className="grid gap-4">
-            {appointments.length === 0 ? (
-              <p className="text-muted-foreground">No appointments scheduled.</p>
-            ) : (
-              appointments.map((appointment) => (
-                <Card key={appointment.id}>
-                  <CardContent className="flex items-center justify-between p-6">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{appointment.patient.name}</h3>
-                      <div className="flex items-center text-muted-foreground mt-1">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {formatAppointmentDate(appointment.date)}
-                      </div>
-                      <div className="flex items-center text-muted-foreground mt-1">
-                        <Clock className="w-4 h-4 mr-2" />
-                        {format(new Date(appointment.date), 'HH:mm')}
-                      </div>
-                      <div className="flex items-center text-muted-foreground mt-1">
-                        <MapPin className="w-4 h-4 mr-2" />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Appointment
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => handleSort('patient')}
+                    className="text-sm font-medium"
+                  >
+                    Patient <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => handleSort('doctor')}
+                    className="text-sm font-medium"
+                  >
+                    Doctor <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => handleSort('date')}
+                    className="text-sm font-medium"
+                  >
+                    Date & Time <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedAppointments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    No appointments scheduled.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedAppointments.map((appointment) => (
+                  <TableRow key={appointment.id} className="group hover:bg-accent/50 transition-colors">
+                    <TableCell>
+                      <Link href={`/appointments/${appointment.id}`} className="block">
+                        <div className="hover:underline">
+                          {appointment.patient.nickname || appointment.patient.name}
+                        </div>
+                        {appointment.patient.nickname && (
+                          <div className="text-sm text-muted-foreground">
+                            {appointment.patient.name}
+                          </div>
+                        )}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/appointments/${appointment.id}`} className="block">
+                        Dr. {appointment.doctor.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/appointments/${appointment.id}`} className="block">
+                        <div className="flex flex-col">
+                          <span>{format(new Date(appointment.date), 'MMMM d, yyyy')}</span>
+                          <span className="text-muted-foreground">
+                            {format(new Date(appointment.date), 'h:mm a')}
+                          </span>
+                        </div>
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/appointments/${appointment.id}`} className="block">
                         {appointment.location}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedAppointment(appointment)
+                            setShowReschedule(true)
+                          }}
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedAppointment(appointment)
+                            setShowCancel(true)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedAppointment(appointment)
-                          setShowReschedule(true)
-                        }}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedAppointment(appointment)
-                          setShowCancel(true)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="calendar">
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="lg:col-span-2">
           <AppointmentCalendar
             appointments={appointments}
             onDateSelect={setSelectedDate}
-            className="min-h-[600px]"
+            className="sticky top-6"
           />
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       {selectedAppointment && (
         <>
@@ -231,10 +322,18 @@ export default function AppointmentsPage() {
               setSelectedAppointment(null)
             }}
             onCancel={handleCancel}
-            appointmentDate={formatAppointmentDate(selectedAppointment.date)}
+            appointmentDate={format(new Date(selectedAppointment.date), 'MMMM d, yyyy')}
           />
         </>
       )}
+    </div>
+  )
+}
+
+export default function AppointmentsPage() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <AppointmentsContent />
     </div>
   )
 }

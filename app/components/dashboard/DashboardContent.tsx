@@ -198,7 +198,7 @@ export default function DashboardContent() {
                 <Calendar 
                   mode="single"
                   selected={new Date()}
-                  className="inline-block border rounded-md p-0"
+                  className="rounded-md border px-4 py-3"
                   modifiers={{
                     appointment: dashboardData.upcomingAppointments.map(apt => new Date(apt.date))
                   }}
@@ -210,7 +210,27 @@ export default function DashboardContent() {
                     }
                   }}
                   classNames={{
-                    day_today: "bg-black text-white hover:bg-black/90"
+                    months: "space-y-4",
+                    month: "space-y-4",
+                    caption: "flex justify-center pt-1 relative items-center mb-4",
+                    caption_label: "text-sm font-medium",
+                    nav: "space-x-1 flex items-center",
+                    nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                    nav_button_previous: "absolute left-1",
+                    nav_button_next: "absolute right-1",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex justify-between mb-2",
+                    head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+                    row: "flex w-full justify-between mt-2",
+                    cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
+                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+                    day_range_end: "day-range-end",
+                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                    day_today: "bg-accent text-accent-foreground hover:bg-accent/90",
+                    day_outside: "text-muted-foreground opacity-50",
+                    day_disabled: "text-muted-foreground opacity-50",
+                    day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                    day_hidden: "invisible"
                   }}
                   components={{
                     DayContent: ({ date }) => {
@@ -229,9 +249,11 @@ export default function DashboardContent() {
                             <div className="space-y-2">
                               <h4 className="font-semibold">Appointments on {format(date, "MMMM d, yyyy")}</h4>
                               {dayAppointments.map(apt => (
-                                <div key={apt.id} className="text-sm">
-                                  {(apt.patient as any).nickname || `${(apt.patient as any).first_name} ${(apt.patient as any).last_name}`} with Dr. {(apt.doctor as any).first_name} {(apt.doctor as any).last_name} at {format(new Date(apt.date), "h:mm a")}
-                                </div>
+                                <Link key={apt.id} href={`/appointments/${apt.id}`} className="block hover:underline">
+                                  <div className="text-sm">
+                                    {(apt.patient as any).nickname || `${(apt.patient as any).first_name} ${(apt.patient as any).last_name}`} with Dr. {(apt.doctor as any).first_name} {(apt.doctor as any).last_name} at {format(new Date(apt.date), "h:mm a")}
+                                  </div>
+                                </Link>
                               ))}
                             </div>
                           </HoverCardContent>

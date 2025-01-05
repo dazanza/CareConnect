@@ -15,7 +15,7 @@ export default function AuthenticatedLayout({
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const isPatientRoute = pathname.startsWith('/patients')
+  const isDashboard = pathname === '/dashboard'
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -41,7 +41,7 @@ export default function AuthenticatedLayout({
         <AppSidebar />
       </div>
       <div className="flex-1 flex flex-col">
-        {!isPatientRoute && <Header />}
+        {isDashboard && <Header />}
         <div className="flex-1">
           {children}
         </div>

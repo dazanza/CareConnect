@@ -182,27 +182,6 @@
     "column_default": "CURRENT_TIMESTAMP"
   },
   {
-    "table_name": "app_logins",
-    "column_name": "id",
-    "data_type": "bigint",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "app_logins",
-    "column_name": "user_id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": "auth.uid()"
-  },
-  {
-    "table_name": "app_logins",
-    "column_name": "timestamp",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
     "table_name": "appointments",
     "column_name": "id",
     "data_type": "integer",

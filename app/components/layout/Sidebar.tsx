@@ -67,21 +67,22 @@ export default function AppSidebar() {
             </div>
           </SidebarHeader>
 
-          <SidebarContent className="px-2 py-2">
+          <SidebarContent className="px-1 py-2">
             <SidebarMenu>
               <SidebarMenuItem>
-                <Link href="/dashboard" passHref>
-                  <SidebarMenuButton 
-                    isActive={pathname === '/dashboard'}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                      "hover:bg-blue-50 hover:text-blue-600",
-                      pathname === '/dashboard' && "bg-blue-50 text-blue-600 font-medium"
-                    )}
-                  >
+                <Link 
+                  href="/dashboard" 
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                    "hover:bg-blue-50 hover:text-blue-600",
+                    pathname === '/dashboard' && "bg-blue-50 text-blue-600 font-medium"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
                     <Home className="h-4 w-4" />
                     <span>Dashboard</span>
-                  </SidebarMenuButton>
+                  </div>
+                  <div className="w-4" />
                 </Link>
               </SidebarMenuItem>
 
@@ -93,7 +94,7 @@ export default function AppSidebar() {
                   <SidebarMenuButton 
                     isActive={pathname === '/patients'}
                     className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                      "w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors",
                       "hover:bg-blue-50 hover:text-blue-600",
                       pathname === '/patients' && "bg-blue-50 text-blue-600 font-medium"
                     )}
@@ -118,7 +119,7 @@ export default function AppSidebar() {
                   <SidebarMenuButton 
                     isActive={pathname === '/doctors'}
                     className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                      "w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors",
                       "hover:bg-blue-50 hover:text-blue-600",
                       pathname === '/doctors' && "bg-blue-50 text-blue-600 font-medium"
                     )}
@@ -136,26 +137,36 @@ export default function AppSidebar() {
               </Collapsible>
 
               <SidebarMenuItem>
-                <Link href="/appointments" passHref>
-                  <SidebarMenuButton 
-                    isActive={pathname === '/appointments'}
-                    tooltip="Appointments"
-                  >
+                <Link 
+                  href="/appointments"
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                    "hover:bg-blue-50 hover:text-blue-600",
+                    pathname === '/appointments' && "bg-blue-50 text-blue-600 font-medium"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     <span>Appointments</span>
-                  </SidebarMenuButton>
+                  </div>
+                  <div className="w-4" />
                 </Link>
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <Link href="/prescriptions" passHref>
-                  <SidebarMenuButton 
-                    isActive={pathname === '/prescriptions'}
-                    tooltip="Prescriptions"
-                  >
+                <Link 
+                  href="/prescriptions"
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                    "hover:bg-blue-50 hover:text-blue-600",
+                    pathname === '/prescriptions' && "bg-blue-50 text-blue-600 font-medium"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
                     <span>Prescriptions</span>
-                  </SidebarMenuButton>
+                  </div>
+                  <div className="w-4" />
                 </Link>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -206,14 +217,19 @@ export default function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <Link href="/settings" passHref>
-                    <SidebarMenuButton 
-                      isActive={pathname === '/settings'}
-                      tooltip="Settings"
-                    >
+                  <Link 
+                    href="/settings"
+                    className={cn(
+                      "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                      "hover:bg-blue-50 hover:text-blue-600",
+                      pathname === '/settings' && "bg-blue-50 text-blue-600 font-medium"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
                       <Settings className="h-4 w-4" />
                       <span>Settings</span>
-                    </SidebarMenuButton>
+                    </div>
+                    <div className="w-4" />
                   </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>

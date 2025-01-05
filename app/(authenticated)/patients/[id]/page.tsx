@@ -947,17 +947,19 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                           {appointments.map((appointment) => (
                             <TableRow key={appointment.id}>
                               <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  className="w-full justify-start p-0 h-auto font-normal hover:bg-transparent"
-                                >
-                                  Dr. {appointment.doctor.first_name} {appointment.doctor.last_name} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
-                                  {appointment.notes && (
-                                    <div className="mt-1 text-sm text-muted-foreground">
-                                      Note: {appointment.notes}
-                                    </div>
-                                  )}
-                                </Button>
+                                <Link href={`/appointments/${appointment.id}`}>
+                                  <Button
+                                    variant="ghost"
+                                    className="w-full justify-start p-0 h-auto font-normal hover:bg-transparent"
+                                  >
+                                    Dr. {appointment.doctor.first_name} {appointment.doctor.last_name} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
+                                    {appointment.notes && (
+                                      <div className="mt-1 text-sm text-muted-foreground">
+                                        Note: {appointment.notes}
+                                      </div>
+                                    )}
+                                  </Button>
+                                </Link>
                               </TableCell>
                               <TableCell>
                                 <DropdownMenu>
@@ -972,13 +974,6 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                                         <Pencil className="h-4 w-4 mr-2" />
                                         Edit Appointment
                                       </Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => {
-                                      setSelectedAppointment(appointment)
-                                      setIsAddNoteOpen(true)
-                                    }}>
-                                      <MessageSquare className="h-4 w-4 mr-2" />
-                                      Add Note
                                     </DropdownMenuItem>
                                     <DropdownMenuItem 
                                       className="text-destructive"
