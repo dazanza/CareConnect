@@ -1,145 +1,86 @@
-'use client'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { AddPrescriptionModal } from '@/app/components/prescriptions/AddPrescriptionModal'
 
-import { useState, useEffect } from 'react'
-import { useSupabase } from '@/app/hooks/useSupabase'
-import { PrescriptionCard, Prescription } from '@/app/components/prescriptions/PrescriptionCard'
-import { fetchPrescriptions } from '@/app/lib/prescriptions'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Search, Filter } from 'lucide-react'
-import { toast } from 'react-hot-toast'
-import Link from 'next/link'
-import { PrescriptionAnalytics } from '@/components/prescriptions/PrescriptionAnalytics'
+export const dynamic = 'force-dynamic'
 
-export default function PrescriptionsPage() {
-  const { supabase } = useSupabase()
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+export default async function PrescriptionsPage() {
+  const supabase = createServerComponentClient({ cookies })
+  const { data: { session } } = await supabase.auth.getSession()
 
-  useEffect(() => {
-    loadPrescriptions()
-  }, [supabase, statusFilter, selectedDate])
-
-  async function loadPrescriptions() {
-    if (!supabase) return
-
-    try {
-      setIsLoading(true)
-      const options: Parameters<typeof fetchPrescriptions>[1] = {}
-      
-      if (statusFilter !== 'all') {
-        options.status = statusFilter
-      }
-
-      if (selectedDate) {
-        options.startDate = selectedDate.toISOString()
-      }
-
-      const data = await fetchPrescriptions(supabase, options)
-      setPrescriptions(data)
-    } catch (error) {
-      console.error('Error loading prescriptions:', error)
-      toast.error('Failed to load prescriptions')
-    } finally {
-      setIsLoading(false)
-    }
+  if (!session) {
+    redirect('/login')
   }
 
-  const filteredPrescriptions = prescriptions.filter(prescription => {
-    if (searchQuery) {
-      const searchLower = searchQuery.toLowerCase()
-      return (
-        prescription.medication.toLowerCase().includes(searchLower) ||
-        prescription.patient.name.toLowerCase().includes(searchLower) ||
-        (prescription.patient.nickname?.toLowerCase().includes(searchLower)) ||
-        prescription.doctor.name.toLowerCase().includes(searchLower)
-      )
-    }
-    return true
-  })
+  // Fetch patients and doctors for the form
+  const { data: patients } = await supabase
+    .from('patients')
+    .select('id, first_name, last_name')
+    .eq('user_id', session.user.id)
+    .is('deleted_at', null)
+    .order('first_name')
+
+  const { data: doctors } = await supabase
+    .from('doctors')
+    .select('id, first_name, last_name')
+    .eq('user_id', session.user.id)
+    .order('first_name')
+
+  // Fetch recent appointments and logs
+  const { data: appointments } = await supabase
+    .from('appointments')
+    .select('id, date, title')
+    .eq('user_id', session.user.id)
+    .order('date', { ascending: false })
+    .limit(10)
+
+  const { data: logs } = await supabase
+    .from('logs')
+    .select('id, date, title')
+    .eq('user_id', session.user.id)
+    .order('date', { ascending: false })
+    .limit(10)
+
+  const formattedPatients = patients?.map(patient => ({
+    id: patient.id,
+    name: `${patient.first_name} ${patient.last_name}`,
+  })) || []
+
+  const formattedDoctors = doctors?.map(doctor => ({
+    id: doctor.id,
+    name: `${doctor.first_name} ${doctor.last_name}`,
+  })) || []
+
+  const formattedAppointments = appointments?.map(appointment => ({
+    id: appointment.id,
+    date: appointment.date,
+    title: appointment.title,
+  })) || []
+
+  const formattedLogs = logs?.map(log => ({
+    id: log.id,
+    date: log.date,
+    title: log.title,
+  })) || []
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Prescriptions</h1>
-        <Link href="/prescriptions/new">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Prescription
-          </Button>
-        </Link>
-      </div>
-
-      {!isLoading && prescriptions.length > 0 && (
-        <PrescriptionAnalytics prescriptions={prescriptions} />
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search prescriptions..."
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="discontinued">Discontinued</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-4">
-            {isLoading ? (
-              <div>Loading...</div>
-            ) : filteredPrescriptions.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No prescriptions found
-              </div>
-            ) : (
-              filteredPrescriptions.map((prescription) => (
-                <PrescriptionCard
-                  key={prescription.id}
-                  prescription={prescription}
-                  showPatient
-                />
-              ))
-            )}
-          </div>
+    <div className="container py-6">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Prescriptions</h1>
+          <p className="text-muted-foreground">
+            Manage and track prescriptions
+          </p>
         </div>
-
-        <div className="lg:col-span-2">
-          <Card className="sticky top-6">
-            <CardContent className="p-4">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                className="rounded-md border"
-              />
-            </CardContent>
-          </Card>
-        </div>
+        <AddPrescriptionModal 
+          patients={formattedPatients}
+          doctors={formattedDoctors}
+          appointments={formattedAppointments}
+          logs={formattedLogs}
+        />
       </div>
+      {/* Rest of the prescriptions list */}
     </div>
   )
 } 

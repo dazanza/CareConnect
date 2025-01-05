@@ -1,14 +1,17 @@
 # Patient Portal
 
-A modern web application for managing patient records and appointments.
+A modern web application for managing patient records, prescriptions, and appointments.
 
 ## Features
 
 - Secure authentication via Supabase Auth
 - Patient management
 - Patient sharing with granular access control
+- Doctor management
+- Prescription management with multiple medications
 - Appointment scheduling
-- Medical records tracking
+- Medical logs tracking
+- Timeline events
 - Real-time updates
 - Responsive design
 
@@ -18,6 +21,8 @@ A modern web application for managing patient records and appointments.
 - TypeScript
 - Supabase (Auth & Database)
 - TanStack Query
+- React Hook Form
+- Zod
 - Shadcn UI
 - Tailwind CSS
 
@@ -53,6 +58,17 @@ The application uses Supabase Auth for user authentication. Features include:
 - Session management
 - Automatic redirects
 
+## Prescription Management
+
+The application provides comprehensive prescription management:
+
+- Create prescriptions with multiple medications
+- Track medication dosages and frequencies
+- Connect prescriptions to appointments and logs
+- Monitor prescription status and refills
+- View prescription history in timeline
+- Generate prescription analytics
+
 ## Patient Sharing
 
 The application supports sharing patient data with other users:
@@ -68,9 +84,13 @@ The application uses Supabase as its database. Key tables include:
 
 - users (auth.users)
 - patients
+- doctors
+- prescription_groups
+- prescriptions
+- timeline_events
 - patient_shares
 - appointments
-- medical_records
+- logs
 
 ## Contributing
 

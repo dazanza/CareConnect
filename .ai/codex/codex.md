@@ -934,3 +934,32 @@ L103:
 - Application: Track reason and metadata for each prescription change
 - Impact: Enables detailed audit trails and better decision tracking
 - Related: L100, L102
+
+L104:
+- Context: /app/lib/prescription-analytics.ts
+- Insight: Efficient prescription statistics calculation with single data pass
+- Application: Use Map for counting and single forEach loop for multiple metrics
+- Impact: Optimizes performance for large prescription datasets
+- Related: L100, L101
+
+L105:
+- Context: /app/components/prescriptions/PrescriptionAnalytics.tsx
+- Insight: Card-based analytics dashboard with consistent metrics display
+- Application: 
+  - Use grid layout for responsive card arrangement
+  - Show key metrics with icons and descriptive text
+  - Include trend indicators where relevant
+  - Group related metrics together
+- Impact: Provides clear overview of prescription data with good visual hierarchy
+- Related: L029, L104
+
+L106:
+- Context: /app/components/prescriptions/AddPrescriptionForm.tsx
+- Insight: Form organization for medical data entry
+- Application:
+  - Group related fields (patient/doctor selection)
+  - Use grid layout for paired fields (dosage/frequency)
+  - Implement date validation (end date after start date)
+  - Pre-fill related fields when possible
+- Impact: Improves data entry efficiency and reduces errors
+- Related: L101, L102

@@ -2,7 +2,7 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { AddPrescriptionForm } from '@/components/prescriptions/AddPrescriptionForm'
+import { AddPrescriptionForm } from '@/app/components/prescriptions/AddPrescriptionForm'
 
 export const dynamic = 'force-dynamic'
 

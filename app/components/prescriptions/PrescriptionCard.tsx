@@ -15,7 +15,7 @@ export interface Prescription {
   end_date?: string
   duration?: string
   refills: number
-  status: string
+  status: 'active' | 'completed' | 'discontinued'
   notes?: string
   patient: {
     id: number

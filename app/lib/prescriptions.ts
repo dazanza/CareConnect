@@ -9,74 +9,20 @@ export async function fetchPrescriptions(supabase: SupabaseClient, options?: {
   endDate?: string
   prescriptionId?: number
 }) {
-  let query = supabase
-    .from('prescriptions')
-    .select(`
-      id,
-      medication,
-      dosage,
-      frequency,
-      start_date,
-      end_date,
-      duration,
-      refills,
-      status,
-      notes,
-      patient:patients!patient_id (
-        id,
-        first_name,
-        last_name,
-        nickname
-      ),
-      doctor:doctors!prescribed_by (
-        id,
-        first_name,
-        last_name
-      )
-    `)
+  // Build query params
+  const params = new URLSearchParams()
+  if (options?.patientId) params.set('patientId', options.patientId.toString())
+  if (options?.status) params.set('status', options.status)
+  if (options?.startDate) params.set('startDate', options.startDate)
 
-  if (options?.prescriptionId) {
-    query = query.eq('id', options.prescriptionId)
+  // Fetch from API route
+  const response = await fetch(`/api/prescriptions?${params.toString()}`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch prescriptions')
   }
 
-  if (options?.patientId) {
-    query = query.eq('patient_id', options.patientId)
-  }
-
-  if (options?.doctorId) {
-    query = query.eq('prescribed_by', options.doctorId)
-  }
-
-  if (options?.status) {
-    query = query.eq('status', options.status)
-  }
-
-  if (options?.startDate) {
-    query = query.gte('start_date', options.startDate)
-  }
-
-  if (options?.endDate) {
-    query = query.lte('end_date', options.endDate)
-  }
-
-  const { data: prescriptionsData, error } = await query.order('start_date', { ascending: false })
-
-  if (error) {
-    throw error
-  }
-
-  return prescriptionsData.map(prescription => ({
-    ...prescription,
-    patient: {
-      id: prescription.patient.id,
-      name: `${prescription.patient.first_name} ${prescription.patient.last_name}`,
-      nickname: prescription.patient.nickname
-    },
-    doctor: {
-      id: prescription.doctor.id,
-      name: `${prescription.doctor.first_name} ${prescription.doctor.last_name}`
-    }
-  })) as Prescription[]
+  const data = await response.json()
+  return data as Prescription[]
 }
 
 export async function fetchPrescriptionHistory(supabase: SupabaseClient, prescriptionId: number) {
@@ -241,7 +187,7 @@ export async function refillPrescription(
 }
 
 export async function deletePrescription(supabase: SupabaseClient, id: number, reason?: string) {
-  // Fetch prescription before deletion
+  // Fetch current prescription data
   const { data: prescription, error: fetchError } = await supabase
     .from('prescriptions')
     .select('*')
@@ -252,7 +198,19 @@ export async function deletePrescription(supabase: SupabaseClient, id: number, r
     throw fetchError
   }
 
-  // Create timeline event for deletion
+  // Update prescription status to discontinued
+  const { data: updatedPrescription, error: updateError } = await supabase
+    .from('prescriptions')
+    .update({ status: 'discontinued' })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (updateError) {
+    throw updateError
+  }
+
+  // Create timeline event for discontinuation
   const { error: eventError } = await supabase
     .from('timeline_events')
     .insert([{
@@ -260,7 +218,7 @@ export async function deletePrescription(supabase: SupabaseClient, id: number, r
       prescription_id: id,
       type: 'discontinued',
       title: `Prescription discontinued: ${prescription.medication}`,
-      description: reason,
+      description: reason || 'No reason provided',
       date: new Date().toISOString(),
       metadata: {
         old_value: prescription,
@@ -272,13 +230,5 @@ export async function deletePrescription(supabase: SupabaseClient, id: number, r
     throw eventError
   }
 
-  // Delete the prescription
-  const { error: deleteError } = await supabase
-    .from('prescriptions')
-    .delete()
-    .eq('id', id)
-
-  if (deleteError) {
-    throw deleteError
-  }
+  return updatedPrescription
 } 

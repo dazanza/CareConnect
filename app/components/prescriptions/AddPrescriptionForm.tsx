@@ -2,18 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
-
+import { toast } from 'react-hot-toast'
+import { useSupabase } from '@/app/hooks/useSupabase'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,20 +21,19 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { useToast } from '@/components/ui/use-toast'
-import { cn } from '@/lib/utils'
-import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { MedicationSearch } from './MedicationSearch'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
+import { CalendarIcon } from 'lucide-react'
 
 const prescriptionFormSchema = z.object({
   medication: z.string().min(1, 'Medication name is required'),
@@ -47,27 +45,34 @@ const prescriptionFormSchema = z.object({
   end_date: z.date().optional(),
   duration: z.string().optional(),
   refills: z.number().min(0).default(0),
-  status: z.enum(['active', 'discontinued', 'completed']).default('active'),
   notes: z.string().optional(),
   patient_id: z.number({
     required_error: 'Patient is required',
   }),
-  doctor_id: z.number({
+  prescribed_by: z.number({
     required_error: 'Doctor is required',
   }),
+  status: z.enum(['active', 'completed', 'discontinued']).default('active'),
 })
 
 type PrescriptionFormValues = z.infer<typeof prescriptionFormSchema>
 
 interface AddPrescriptionFormProps {
-  patients: { id: number; name: string }[]
-  doctors: { id: number; name: string }[]
+  patients?: Array<{
+    id: number
+    name: string
+    nickname?: string
+  }>
+  doctors?: Array<{
+    id: number
+    name: string
+  }>
 }
 
-export function AddPrescriptionForm({ patients, doctors }: AddPrescriptionFormProps) {
+export function AddPrescriptionForm({ patients = [], doctors = [] }: AddPrescriptionFormProps) {
   const router = useRouter()
+  const { supabase } = useSupabase()
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
 
   const form = useForm<PrescriptionFormValues>({
     resolver: zodResolver(prescriptionFormSchema),
@@ -78,8 +83,9 @@ export function AddPrescriptionForm({ patients, doctors }: AddPrescriptionFormPr
   })
 
   async function onSubmit(data: PrescriptionFormValues) {
-    setIsLoading(true)
     try {
+      setIsLoading(true)
+
       const response = await fetch('/api/prescriptions', {
         method: 'POST',
         headers: {
@@ -92,19 +98,12 @@ export function AddPrescriptionForm({ patients, doctors }: AddPrescriptionFormPr
         throw new Error('Failed to create prescription')
       }
 
-      const result = await response.json()
-      toast({
-        title: 'Success',
-        description: 'Prescription has been created',
-      })
-      router.push(`/prescriptions/${result.id}`)
+      toast.success('Prescription created successfully')
+      router.push('/prescriptions')
       router.refresh()
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to create prescription. Please try again.',
-        variant: 'destructive',
-      })
+      console.error('Error creating prescription:', error)
+      toast.error('Failed to create prescription')
     } finally {
       setIsLoading(false)
     }
@@ -113,79 +112,79 @@ export function AddPrescriptionForm({ patients, doctors }: AddPrescriptionFormPr
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="patient_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Patient</FormLabel>
-              <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="patient_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Patient</FormLabel>
+                <Select
+                  disabled={isLoading}
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  value={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select patient" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {patients.map((patient) => (
+                      <SelectItem key={patient.id} value={patient.id.toString()}>
+                        {patient.nickname || patient.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="prescribed_by"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Doctor</FormLabel>
+                <Select
+                  disabled={isLoading}
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  value={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select doctor" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {doctors.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                        Dr. {doctor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="medication"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Medication</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a patient" />
-                  </SelectTrigger>
+                  <Input disabled={isLoading} placeholder="Enter medication name" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {patients.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.id.toString()}>
-                      {patient.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="doctor_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Doctor</FormLabel>
-              <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a doctor" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {doctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                      {doctor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="medication"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Medication</FormLabel>
-              <FormControl>
-                <MedicationSearch 
-                  onSelect={(medication) => {
-                    field.onChange(medication.name)
-                    // Pre-fill dosage if available
-                    if (medication.strength) {
-                      form.setValue('dosage', medication.strength)
-                    }
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="dosage"
@@ -193,7 +192,7 @@ export function AddPrescriptionForm({ patients, doctors }: AddPrescriptionFormPr
               <FormItem>
                 <FormLabel>Dosage</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., 500mg" {...field} />
+                  <Input disabled={isLoading} placeholder="e.g., 500mg" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -207,15 +206,33 @@ export function AddPrescriptionForm({ patients, doctors }: AddPrescriptionFormPr
               <FormItem>
                 <FormLabel>Frequency</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Twice daily" {...field} />
+                  <Input disabled={isLoading} placeholder="e.g., Once daily" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="refills"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Refills</FormLabel>
+                <FormControl>
+                  <Input
+                    disabled={isLoading}
+                    type="number"
+                    min={0}
+                    {...field}
+                    onChange={(e) => field.onChange(parseInt(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="start_date"
@@ -246,9 +263,7 @@ export function AddPrescriptionForm({ patients, doctors }: AddPrescriptionFormPr
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) =>
-                        date < new Date()
-                      }
+                      disabled={isLoading}
                       initialFocus
                     />
                   </PopoverContent>
@@ -288,9 +303,7 @@ export function AddPrescriptionForm({ patients, doctors }: AddPrescriptionFormPr
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) =>
-                        date < form.getValues('start_date')
-                      }
+                      disabled={isLoading}
                       initialFocus
                     />
                   </PopoverContent>
@@ -303,33 +316,14 @@ export function AddPrescriptionForm({ patients, doctors }: AddPrescriptionFormPr
 
         <FormField
           control={form.control}
-          name="refills"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Number of Refills</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  min="0"
-                  {...field}
-                  onChange={e => field.onChange(parseInt(e.target.value))}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="notes"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Notes (Optional)</FormLabel>
               <FormControl>
-                <Textarea 
-                  placeholder="Add any additional notes or instructions"
-                  className="resize-none"
+                <Textarea
+                  disabled={isLoading}
+                  placeholder="Enter any additional notes"
                   {...field}
                 />
               </FormControl>

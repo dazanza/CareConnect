@@ -37,6 +37,69 @@ graph TD
 - date_of_birth (date)
 - created_at (timestamp)
 - updated_at (timestamp)
+- deleted_at (timestamp, nullable)
+
+#### doctors
+- id (UUID, PK)
+- user_id (UUID, FK)
+- first_name (string)
+- last_name (string)
+- specialty (string)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+#### medical_records
+- id (UUID, PK)
+- patient_id (UUID, FK)
+- date (timestamp)
+- record_type (string)
+- title (string)
+- description (text)
+- attachments (jsonb)
+- metadata (jsonb)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+#### prescription_groups
+- id (UUID, PK)
+- user_id (UUID, FK)
+- patient_id (UUID, FK)
+- prescribed_by (UUID, FK to doctors)
+- start_date (date)
+- end_date (date, nullable)
+- appointment_id (UUID, FK, nullable)
+- log_id (UUID, FK, nullable)
+- notes (text)
+- status (enum: 'active', 'completed', 'discontinued')
+- created_at (timestamp)
+- updated_at (timestamp)
+
+#### prescriptions
+- id (UUID, PK)
+- group_id (UUID, FK to prescription_groups)
+- user_id (UUID, FK)
+- patient_id (UUID, FK)
+- prescribed_by (UUID, FK to doctors)
+- medication (string)
+- dosage (string)
+- frequency (string)
+- duration (string, nullable)
+- refills (integer)
+- notes (text, nullable)
+- status (enum: 'active', 'completed', 'discontinued')
+- created_at (timestamp)
+- updated_at (timestamp)
+
+#### timeline_events
+- id (UUID, PK)
+- patient_id (UUID, FK)
+- prescription_id (UUID, FK, nullable)
+- type (string)
+- title (string)
+- description (text)
+- date (timestamp)
+- metadata (jsonb)
+- created_at (timestamp)
 
 #### patient_shares
 - id (UUID, PK)
@@ -51,15 +114,17 @@ graph TD
 - id (UUID, PK)
 - patient_id (UUID, FK)
 - date (timestamp)
+- title (string)
 - notes (text)
 - created_at (timestamp)
 - updated_at (timestamp)
 
-#### medical_records
+#### logs
 - id (UUID, PK)
 - patient_id (UUID, FK)
-- type (string)
-- content (jsonb)
+- date (timestamp)
+- title (string)
+- notes (text)
 - created_at (timestamp)
 - updated_at (timestamp)
 
@@ -94,11 +159,26 @@ All tables are protected by RLS policies:
 - PUT /api/patients/[id]
 - DELETE /api/patients/[id]
 
-### Patient Sharing
-- POST /api/patients/[id]/share
-- DELETE /api/patients/[id]/share/[shareId]
-- GET /api/patients/[id]/shares
-- GET /api/shared-patients
+### Medical Records
+- GET /api/medical-records
+- POST /api/medical-records
+- GET /api/medical-records/[id]
+- PUT /api/medical-records/[id]
+- DELETE /api/medical-records/[id]
+
+### Doctors
+- GET /api/doctors
+- POST /api/doctors
+- GET /api/doctors/[id]
+- PUT /api/doctors/[id]
+- DELETE /api/doctors/[id]
+
+### Prescriptions
+- GET /api/prescriptions
+- POST /api/prescriptions
+- GET /api/prescriptions/[id]
+- PATCH /api/prescriptions/[id]
+- DELETE /api/prescriptions/[id]
 
 ### Appointments
 - GET /api/appointments
@@ -107,12 +187,12 @@ All tables are protected by RLS policies:
 - PUT /api/appointments/[id]
 - DELETE /api/appointments/[id]
 
-### Medical Records
-- GET /api/medical-records
-- POST /api/medical-records
-- GET /api/medical-records/[id]
-- PUT /api/medical-records/[id]
-- DELETE /api/medical-records/[id]
+### Logs
+- GET /api/logs
+- POST /api/logs
+- GET /api/logs/[id]
+- PUT /api/logs/[id]
+- DELETE /api/logs/[id]
 
 ## Frontend Architecture
 
@@ -120,24 +200,36 @@ All tables are protected by RLS policies:
 - Layout components
 - Authentication components
 - Patient management components
-- Patient sharing components
+- Medical records components
+- Doctor management components
+- Prescription management components
 - Appointment components
-- Medical record components
+- Log components
+- Timeline components
 
 ### State Management
 - React Query for server state
 - React Context for auth state
 - Local state for UI components
+- Form state with React Hook Form
 
 ### Data Fetching Patterns
 - Direct database queries for simple data
 - Two-step queries for auth.users data
 - In-memory data combination for complex joins
+- Optimistic updates for better UX
+
+### Forms and Modals
+- Reusable form components
+- Modal-based forms for complex inputs
+- Form arrays for multiple items
+- Rich validation with Zod schemas
 
 ### Routing
 - Next.js App Router
 - Protected routes via middleware
 - Dynamic route parameters
+- Modal-based forms within pages
 
 ## Development Practices
 
@@ -146,14 +238,17 @@ All tables are protected by RLS policies:
 - Shared components and utilities
 - Type definitions
 - API route handlers
+- Reusable hooks
 
 ### Testing
 - Unit tests for utilities
 - Integration tests for API routes
 - E2E tests for critical flows
+- Component testing with Jest
 
 ### Performance
 - Server-side rendering
 - Static generation where possible
 - Optimized database queries
-- Caching strategies 
+- Caching strategies
+- Lazy loading of components 

@@ -3,34 +3,73 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const patientId = searchParams.get('patientId')
-  
-  if (!patientId) {
-    return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 })
-  }
-
-  const supabase = createRouteHandlerClient({ cookies })
-
   try {
-    const { data, error } = await supabase
+    const supabase = createRouteHandlerClient({ cookies })
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const patientId = searchParams.get('patientId')
+    const status = searchParams.get('status')
+    const startDate = searchParams.get('startDate')
+
+    let query = supabase
       .from('prescriptions')
       .select(`
         *,
-        doctor:doctors(id, name)
+        patient:patients(id, first_name, last_name, nickname),
+        doctor:doctors(id, first_name, last_name)
       `)
-      .eq('patient_id', patientId)
-      .order('created_at', { ascending: false })
+      .eq('user_id', session.user.id)
 
-    if (error) throw error
+    if (patientId) {
+      query = query.eq('patient_id', patientId)
+    }
 
-    return NextResponse.json(data)
+    if (status) {
+      query = query.eq('status', status)
+    }
+
+    if (startDate) {
+      query = query.gte('start_date', startDate)
+    }
+
+    const { data: prescriptions, error } = await query
+
+    if (error) {
+      console.error('Error fetching prescriptions:', error)
+      return new NextResponse('Failed to fetch prescriptions', { status: 500 })
+    }
+
+    // Transform the data to match the frontend expectations
+    const transformedPrescriptions = prescriptions.map((prescription: any) => ({
+      id: prescription.id,
+      medication: prescription.medication,
+      dosage: prescription.dosage,
+      frequency: prescription.frequency,
+      start_date: prescription.start_date,
+      end_date: prescription.end_date,
+      refills: prescription.refills,
+      status: prescription.status,
+      notes: prescription.notes,
+      patient: {
+        id: prescription.patient.id,
+        name: `${prescription.patient.first_name} ${prescription.patient.last_name}`,
+        nickname: prescription.patient.nickname
+      },
+      doctor: {
+        id: prescription.doctor.id,
+        name: `${prescription.doctor.first_name} ${prescription.doctor.last_name}`
+      }
+    }))
+
+    return NextResponse.json(transformedPrescriptions)
   } catch (error) {
-    console.error('Error fetching prescriptions:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch prescriptions' },
-      { status: 500 }
-    )
+    console.error('Error in prescription fetch:', error)
+    return new NextResponse('Internal Server Error', { status: 500 })
   }
 }
 
@@ -47,71 +86,100 @@ export async function POST(request: Request) {
 
     const json = await request.json()
     const {
-      medication,
-      dosage,
-      frequency,
+      medications,
+      patient_id,
+      prescribed_by,
       start_date,
       end_date,
-      duration,
-      refills,
-      status,
+      appointment_id,
+      log_id,
       notes,
-      patient_id,
-      doctor_id,
+      status = 'active'
     } = json
 
-    // Create the prescription
-    const { data: prescription, error: prescriptionError } = await supabase
-      .from('prescriptions')
-      .insert({
-        medication,
-        dosage,
-        frequency,
+    // Create the prescription group
+    const { data: prescriptionGroup, error: groupError } = await supabase
+      .from('prescription_groups')
+      .insert([{
+        user_id: session.user.id,
+        patient_id,
+        prescribed_by,
         start_date,
         end_date,
-        duration,
-        refills,
-        status,
+        appointment_id,
+        log_id,
         notes,
-        patient_id,
-        prescribed_by: doctor_id,
-        user_id: session.user.id,
-      })
+        status
+      }])
       .select()
       .single()
 
-    if (prescriptionError) {
-      console.error('Error creating prescription:', prescriptionError)
-      return new NextResponse('Error creating prescription', { status: 500 })
+    if (groupError) {
+      console.error('Error creating prescription group:', groupError)
+      return new NextResponse('Failed to create prescription group', { status: 500 })
     }
 
-    // Create a timeline event for the new prescription
-    const { error: timelineError } = await supabase
-      .from('timeline_events')
-      .insert({
-        patient_id,
-        user_id: session.user.id,
-        type: 'prescription_created',
-        date: new Date().toISOString(),
-        title: `New prescription added: ${medication}`,
-        description: `Prescribed ${medication} (${dosage}, ${frequency})`,
-        metadata: {
+    // Create individual prescriptions for each medication
+    const prescriptionPromises = medications.map(async (medication: any) => {
+      const { data: prescription, error: prescriptionError } = await supabase
+        .from('prescriptions')
+        .insert([{
+          group_id: prescriptionGroup.id,
+          user_id: session.user.id,
+          patient_id,
+          prescribed_by,
+          medication: medication.name,
+          dosage: medication.dosage,
+          frequency: medication.frequency,
+          duration: medication.duration,
+          refills: medication.refills,
+          notes: medication.notes,
+          status
+        }])
+        .select()
+        .single()
+
+      if (prescriptionError) {
+        throw prescriptionError
+      }
+
+      // Create timeline event for each prescription
+      const { error: eventError } = await supabase
+        .from('timeline_events')
+        .insert([{
+          patient_id,
           prescription_id: prescription.id,
-          medication,
-          dosage,
-          frequency,
-        },
-        created_by: session.user.id,
+          type: 'created',
+          title: `Prescription created: ${medication.name}`,
+          description: `${medication.dosage}, ${medication.frequency}`,
+          date: new Date().toISOString(),
+          metadata: {
+            prescription: {
+              ...prescription,
+              group_id: prescriptionGroup.id
+            }
+          }
+        }])
+
+      if (eventError) {
+        throw eventError
+      }
+
+      return prescription
+    })
+
+    try {
+      const prescriptions = await Promise.all(prescriptionPromises)
+      return NextResponse.json({ 
+        group: prescriptionGroup,
+        prescriptions 
       })
-
-    if (timelineError) {
-      console.error('Error creating timeline event:', timelineError)
-      // Don't fail the request if timeline event creation fails
+    } catch (error) {
+      console.error('Error creating prescriptions:', error)
+      return new NextResponse('Failed to create prescriptions', { status: 500 })
     }
-
-    return NextResponse.json(prescription)
   } catch (error) {
-    console.error('Error in POST /api/prescriptions:', error)
+    console.error('Error in prescription creation:', error)
     return new NextResponse('Internal Server Error', { status: 500 })
   }
 }

@@ -12,18 +12,28 @@
 │   │   ├── dashboard/
 │   │   ├── patients/
 │   │   │   └── [id]/
+│   │   ├── doctors/
+│   │   │   └── [id]/
+│   │   ├── prescriptions/
+│   │   │   └── [id]/
 │   │   ├── appointments/
+│   │   ├── logs/
 │   │   └── settings/
 │   ├── api/
 │   │   ├── auth/
 │   │   ├── patients/
+│   │   ├── doctors/
+│   │   ├── prescriptions/
 │   │   ├── appointments/
-│   │   └── medical-records/
+│   │   └── logs/
 │   ├── components/
 │   │   ├── ui/
 │   │   ├── patients/
+│   │   ├── doctors/
+│   │   ├── prescriptions/
 │   │   ├── appointments/
-│   │   ├── medical-records/
+│   │   ├── logs/
+│   │   ├── timeline/
 │   │   └── layout/
 │   ├── hooks/
 │   ├── lib/
@@ -79,14 +89,22 @@
 - `dashboard/page.tsx` - Main dashboard
 - `patients/page.tsx` - Patient list page
 - `patients/[id]/page.tsx` - Individual patient details
+- `doctors/page.tsx` - Doctor list page
+- `doctors/[id]/page.tsx` - Individual doctor details
+- `prescriptions/page.tsx` - Prescription list page
+- `prescriptions/[id]/page.tsx` - Prescription details
 - `appointments/page.tsx` - Appointments management
+- `logs/page.tsx` - Medical logs management
 - `settings/page.tsx` - User settings
 
 ### API Routes (`/app/api`)
 - `auth/[...route]/route.ts` - Authentication endpoints
 - `patients/route.ts` - Patient management endpoints
+- `doctors/route.ts` - Doctor management endpoints
+- `prescriptions/route.ts` - Prescription management endpoints
 - `appointments/route.ts` - Appointment management endpoints
 - `medical-records/route.ts` - Medical records endpoints
+- `logs/route.ts` - Medical logs endpoints
 
 ## Components (`/app/components`)
 
@@ -96,6 +114,9 @@
 - `dialog.tsx` - Modal dialog component
 - `input.tsx` - Form input components
 - `select.tsx` - Dropdown select component
+- `table.tsx` - Table components
+- `calendar.tsx` - Calendar components
+- `form.tsx` - Form components
 
 ### Patient Components (`/app/components/patients`)
 - `PatientList.tsx` - Patient list display
@@ -104,15 +125,36 @@
 - `PatientForm.tsx` - Patient creation/editing form
 - `PatientShares.tsx` - Patient sharing management
 
+### Doctor Components (`/app/components/doctors`)
+- `DoctorList.tsx` - Doctor list display
+- `DoctorCard.tsx` - Doctor summary card
+- `DoctorForm.tsx` - Doctor creation/editing form
+
+### Medical Records Components (`/app/components/medical-records`)
+- `MedicalRecordList.tsx` - Medical records list
+- `MedicalRecordForm.tsx` - Record creation/editing
+- `RecordViewer.tsx` - Record viewing component
+
+### Prescription Components (`/app/components/prescriptions`)
+- `PrescriptionList.tsx` - Prescription list display
+- `PrescriptionCard.tsx` - Prescription summary card
+- `AddPrescriptionModal.tsx` - Prescription creation modal
+- `PrescriptionDetails.tsx` - Detailed prescription view
+- `PrescriptionAnalytics.tsx` - Prescription analytics
+
 ### Appointment Components (`/app/components/appointments`)
 - `AppointmentList.tsx` - Appointment list display
 - `AppointmentCard.tsx` - Appointment summary card
 - `AppointmentForm.tsx` - Appointment creation/editing
 
-### Medical Records (`/app/components/medical-records`)
-- `MedicalRecordList.tsx` - Medical records list
-- `MedicalRecordForm.tsx` - Record creation/editing
-- `RecordViewer.tsx` - Record viewing component
+### Log Components (`/app/components/logs`)
+- `LogList.tsx` - Medical logs list
+- `LogForm.tsx` - Log creation/editing
+- `LogViewer.tsx` - Log viewing component
+
+### Timeline Components (`/app/components/timeline`)
+- `Timeline.tsx` - Timeline display
+- `TimelineEvent.tsx` - Timeline event component
 
 ### Layout Components (`/app/components/layout`)
 - `Header.tsx` - Application header
@@ -128,6 +170,7 @@
 - `date.ts` - Date formatting utilities
 
 ### Feature Utilities
+- `prescriptions.ts` - Prescription management utilities
 - `patient-sharing.ts` - Patient sharing logic
 - `notifications.ts` - Notification handling
 - `validation.ts` - Form validation utilities
@@ -139,14 +182,18 @@
 - `supabase.ts` - Supabase-specific types
 - `api.ts` - API request/response types
 - `components.ts` - Component prop types
+- `prescriptions.ts` - Prescription-related types
 
 ## Hooks (`/app/hooks`)
 
 - `useAuth.ts` - Authentication hook
 - `useSupabase.ts` - Supabase client hook
 - `usePatient.ts` - Patient data management
+- `useDoctor.ts` - Doctor data management
+- `usePrescription.ts` - Prescription management
 - `useAppointments.ts` - Appointment management
-- `useMedicalRecords.ts` - Medical records management
+- `useLogs.ts` - Medical logs management
+- `useTimeline.ts` - Timeline management
 
 ## Documentation (`/documentation`)
 
