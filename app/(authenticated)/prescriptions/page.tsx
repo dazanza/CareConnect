@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Search, Filter } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
+import { PrescriptionAnalytics } from '@/components/prescriptions/PrescriptionAnalytics'
 
 export default function PrescriptionsPage() {
   const { supabase } = useSupabase()
@@ -67,13 +68,17 @@ export default function PrescriptionsPage() {
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Prescriptions</h1>
-        <Button asChild>
-          <Link href="/prescriptions/new">
-            <Plus className="mr-2 h-4 w-4" />
+        <Link href="/prescriptions/new">
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
             Add Prescription
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </div>
+
+      {!isLoading && prescriptions.length > 0 && (
+        <PrescriptionAnalytics prescriptions={prescriptions} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 space-y-4">
