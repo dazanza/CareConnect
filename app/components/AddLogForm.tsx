@@ -86,8 +86,8 @@ export default function AddLogForm({ onSuccess }: AddLogFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Adding...' : 'Add Log'}
+        <Button type="submit" disabled={isLoading} isLoading={isLoading}>
+          Add Log
         </Button>
       </form>
     </Form>

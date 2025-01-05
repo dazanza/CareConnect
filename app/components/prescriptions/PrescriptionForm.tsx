@@ -150,7 +150,7 @@ export function PrescriptionForm({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Add Prescription</Button>
+          <Button onClick={handleSubmit} isLoading={isLoading}>Add Prescription</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

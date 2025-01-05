@@ -1,5 +1,5 @@
 import AddDoctorForm from '@/app/components/AddDoctorForm'
-import Link from 'next/link'
+import { Link } from '@/components/ui/link'
 
 export default function AddDoctorPage() {
   return (

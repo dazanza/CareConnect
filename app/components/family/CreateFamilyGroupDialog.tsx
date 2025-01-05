@@ -74,8 +74,8 @@ export function CreateFamilyGroupDialog({
               required
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create Group'}
+          <Button type="submit" className="w-full" disabled={isLoading} isLoading={isLoading}>
+            Create Group
           </Button>
         </form>
       </DialogContent>

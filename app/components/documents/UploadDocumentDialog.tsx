@@ -133,11 +133,11 @@ export function UploadDocumentDialog({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button type="submit" 
               disabled={isUploading || !file || !category}
+              isLoading={isUploading}
             >
-              {isUploading ? 'Uploading...' : 'Upload'}
+              Upload
             </Button>
           </div>
         </form>

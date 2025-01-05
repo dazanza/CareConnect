@@ -18,19 +18,23 @@ export async function middleware(req: NextRequest) {
     }
 
     // Allow all public routes without any auth check
-    if (path === '/' || 
-        path === '/sign-in' || 
+    if (path === '/sign-in' || 
         path === '/sign-up' || 
         path === '/reset-password' || 
         path === '/update-password') {
       
       // If user is signed in and trying to access auth pages, redirect to dashboard
-      if (session && (path === '/sign-in' || path === '/sign-up')) {
+      if (session) {
         const redirectUrl = req.nextUrl.clone()
         redirectUrl.pathname = '/dashboard'
         return NextResponse.redirect(redirectUrl)
       }
       
+      return res
+    }
+
+    // Allow root path for everyone
+    if (path === '/') {
       return res
     }
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
   Home, 
@@ -44,6 +43,7 @@ import {
 import { cn } from '@/lib/utils'
 import { SignOutButton } from "@/app/components/auth/SignOutButton"
 import { UserNav } from './UserNav'
+import { Link } from '@/components/ui/link'
 
 export default function AppSidebar() {
   const pathname = usePathname()

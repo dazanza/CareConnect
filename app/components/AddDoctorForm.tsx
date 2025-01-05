@@ -149,8 +149,8 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
           placeholder="Enter assistant name"
         />
       </div>
-      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-        {isLoading ? 'Adding...' : 'Add Doctor'}
+      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading} isLoading={isLoading}>
+        Add Doctor
       </Button>
     </form>
   )

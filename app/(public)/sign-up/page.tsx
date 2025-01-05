@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'react-hot-toast'
-import Link from 'next/link'
+import { Link } from '@/components/ui/link'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -81,8 +81,8 @@ export default function SignUpPage() {
             />
           </div>
 
-          <Button className="w-full" type="submit" disabled={isLoading}>
-            {isLoading ? 'Creating account...' : 'Sign Up'}
+          <Button className="w-full" type="submit" disabled={isLoading} isLoading={isLoading}>
+            Sign Up
           </Button>
         </form>
 

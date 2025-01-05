@@ -59,6 +59,9 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
+import ErrorBoundary from '@/app/components/ErrorBoundary'
+import Link from 'next/link'
+import { Textarea } from "@/components/ui/textarea"
 
 interface Doctor {
   id: number
@@ -196,7 +199,11 @@ interface Appointment {
   }
 }
 
-export default function PatientDetailsPage({ params }: { params: { id: string } }) {
+interface PatientDetailsPageProps {
+  params: { id: string }
+}
+
+export default function PatientDetailsPage({ params }: PatientDetailsPageProps) {
   const { supabase } = useSupabase()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
@@ -238,6 +245,11 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false)
+
+  const [isAddNoteOpen, setIsAddNoteOpen] = useState(false)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+  const [noteText, setNoteText] = useState('')
 
   // Primary useEffect for patient data
   useEffect(() => {
@@ -747,6 +759,61 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
     }
   }
 
+  const handleAddNote = async () => {
+    if (!supabase || !selectedAppointment || !noteText.trim()) return
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ 
+          notes: noteText.trim() 
+        })
+        .eq('id', selectedAppointment.id)
+
+      if (error) throw error
+
+      // Update local state
+      setAppointments(appointments.map(apt => 
+        apt.id === selectedAppointment.id 
+          ? { ...apt, notes: noteText.trim() }
+          : apt
+      ))
+
+      toast.success('Note added successfully')
+      setIsAddNoteOpen(false)
+      setNoteText('')
+      setSelectedAppointment(null)
+    } catch (error) {
+      console.error('Error adding note:', error)
+      toast.error('Failed to add note')
+    }
+  }
+
+  const handleCancelAppointment = async () => {
+    if (!supabase || !selectedAppointment) return
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ 
+          status: 'cancelled'
+        })
+        .eq('id', selectedAppointment.id)
+
+      if (error) throw error
+
+      // Update local state
+      setAppointments(appointments.filter(apt => apt.id !== selectedAppointment.id))
+      
+      toast.success('Appointment cancelled successfully')
+      setIsCancelDialogOpen(false)
+      setSelectedAppointment(null)
+    } catch (error) {
+      console.error('Error cancelling appointment:', error)
+      toast.error('Failed to cancel appointment')
+    }
+  }
+
   if (isLoading) {
     return <PatientCardSkeleton />
   }
@@ -900,15 +967,26 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>
-                                      <Pencil className="h-4 w-4 mr-2" />
-                                      Edit Appointment
+                                    <DropdownMenuItem asChild>
+                                      <Link href={`/appointments/${appointment.id}`}>
+                                        <Pencil className="h-4 w-4 mr-2" />
+                                        Edit Appointment
+                                      </Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      setSelectedAppointment(appointment)
+                                      setIsAddNoteOpen(true)
+                                    }}>
                                       <MessageSquare className="h-4 w-4 mr-2" />
                                       Add Note
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-destructive">
+                                    <DropdownMenuItem 
+                                      className="text-destructive"
+                                      onClick={() => {
+                                        setSelectedAppointment(appointment)
+                                        setIsCancelDialogOpen(true)
+                                      }}
+                                    >
                                       <Trash2 className="h-4 w-4 mr-2" />
                                       Cancel Appointment
                                     </DropdownMenuItem>
@@ -1109,12 +1187,71 @@ export default function PatientDetailsPage({ params }: { params: { id: string } 
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <PatientShares 
-              patientId={params.id} 
-              patientName={`${patient.first_name} ${patient.last_name}`}
-              variant="default"
-            />
+            <ErrorBoundary>
+              {isLoading ? (
+                <div className="flex justify-center p-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                </div>
+              ) : (
+                <PatientShares 
+                  patientId={params.id} 
+                  patientName={`${patient.first_name} ${patient.last_name}`}
+                  variant="default"
+                />
+              )}
+            </ErrorBoundary>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Note Dialog */}
+      <Dialog open={isAddNoteOpen} onOpenChange={setIsAddNoteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Note to Appointment</DialogTitle>
+            <DialogDescription>
+              Add a note to this appointment. The note will be visible in the appointment details.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder="Enter your note here..."
+            className="min-h-[100px]"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsAddNoteOpen(false)
+              setNoteText('')
+              setSelectedAppointment(null)
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddNote}>Save Note</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Appointment Dialog */}
+      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Appointment</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this appointment? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsCancelDialogOpen(false)
+              setSelectedAppointment(null)
+            }}>
+              No, keep appointment
+            </Button>
+            <Button variant="destructive" onClick={handleCancelAppointment}>
+              Yes, cancel appointment
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

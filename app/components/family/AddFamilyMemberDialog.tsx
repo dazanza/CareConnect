@@ -122,8 +122,8 @@ export function AddFamilyMemberDialog({
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Adding...' : 'Add Member'}
+          <Button type="submit" className="w-full" disabled={isLoading} isLoading={isLoading}>
+            Create Family Member
           </Button>
         </form>
       </DialogContent>

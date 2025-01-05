@@ -178,7 +178,7 @@ export default function DashboardContent() {
                     {dashboardData.upcomingAppointments.map((appointment) => (
                       <div key={appointment.id} className="flex justify-between items-center">
                         <div>
-                          <Link href={`/patients/${appointment.patient?.id}`}>
+                          <Link href={`/appointments/${appointment.id}`}>
                             <Button variant="link" className="p-0 h-auto font-medium">
                               {(appointment.patient as any).nickname || `${(appointment.patient as any).first_name} ${(appointment.patient as any).last_name}`} with Dr. {(appointment.doctor as any).first_name} {(appointment.doctor as any).last_name} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
                             </Button>

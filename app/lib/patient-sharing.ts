@@ -11,6 +11,21 @@ interface SharePatientParams {
   expiresAt?: Date
 }
 
+interface PatientShare {
+  id: string
+  patient_id: string
+  shared_by_user_id: string
+  shared_with_user_id: string
+  access_level: string
+  expires_at: string | null
+  created_at: string
+  shared_with: {
+    email: string
+    first_name?: string
+    last_name?: string
+  }
+}
+
 export async function sharePatient(
   supabase: SupabaseClient,
   params: SharePatientParams
@@ -67,7 +82,7 @@ export async function removePatientShare(
 export async function getPatientShares(
   supabase: SupabaseClient,
   patientId: number
-) {
+): Promise<PatientShare[]> {
   const { data, error } = await supabase
     .from('patient_shares')
     .select(`
@@ -85,13 +100,12 @@ export async function getPatientShares(
 
   // Get the user emails in a separate query
   if (data && data.length > 0) {
-    const sharedByIds = data.map(share => share.shared_by_user_id)
     const sharedWithIds = data.map(share => share.shared_with_user_id)
-    const uniqueUserIds = Array.from(new Set([...sharedByIds, ...sharedWithIds]))
+    const uniqueUserIds = Array.from(new Set(sharedWithIds))
 
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, email')
+      .select('id, email, first_name, last_name')
       .in('id', uniqueUserIds)
 
     if (userError) throw userError
@@ -99,12 +113,15 @@ export async function getPatientShares(
     // Map user data to shares
     return data.map(share => ({
       ...share,
-      shared_by: userData.find(u => u.id === share.shared_by_user_id),
-      shared_with: userData.find(u => u.id === share.shared_with_user_id)
+      shared_with: userData.find(u => u.id === share.shared_with_user_id) || {
+        email: 'Unknown',
+        first_name: undefined,
+        last_name: undefined
+      }
     }))
   }
 
-  return data
+  return []
 }
 
 export async function getSharedPatients(

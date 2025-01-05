@@ -189,8 +189,8 @@ export default function AddPatientForm({ onSuccess }: AddPatientFormProps) {
       </div>
 
       <div className="flex justify-end pt-2">
-        <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-          {isLoading ? 'Adding...' : 'Add Patient'}
+        <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading} isLoading={isLoading}>
+          Add Patient
         </Button>
       </div>
     </form>
