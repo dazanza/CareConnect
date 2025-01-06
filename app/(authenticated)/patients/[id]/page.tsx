@@ -17,7 +17,7 @@ import { PrescriptionManager } from '@/app/components/PrescriptionManager'
 import { AllergiesManager } from '@/app/components/AllergiesManager'
 import { MedicationsTracker } from '@/app/components/MedicationsTracker'
 import { ImmunizationTracker } from '@/app/components/ImmunizationTracker'
-import { PatientShares } from '@/app/components/patients/PatientShares'
+import { SharePatientDialog } from '@/app/components/patients/SharePatientDialog'
 import { Separator } from '@/components/ui/separator'
 import { TimelineView } from '@/app/components/medical-history/TimelineView'
 import { getPatientTimeline } from '@/app/lib/timeline-service'
@@ -1182,19 +1182,21 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <ErrorBoundary>
-              {isLoading ? (
-                <div className="flex justify-center p-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                </div>
-              ) : (
-                <PatientShares 
-                  patientId={params.id} 
-                  patientName={`${patient.first_name} ${patient.last_name}`}
-                  variant="default"
-                />
-              )}
-            </ErrorBoundary>
+            {isLoading ? (
+              <div className="flex justify-center p-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            ) : (
+              <SharePatientDialog
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                patientId={params.id}
+                onSuccess={() => {
+                  fetchPatientShares()
+                  setIsShareModalOpen(false)
+                }}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

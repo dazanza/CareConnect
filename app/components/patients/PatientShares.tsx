@@ -1,13 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'react-hot-toast'
+import { sharePatient } from '@/app/lib/patient-sharing'
+import { Users, Trash2, AlertCircle } from 'lucide-react'
 import { SharePatientDialog } from './SharePatientDialog'
 import { getPatientShares, removePatientShare } from '@/app/lib/patient-sharing'
 import { format } from 'date-fns'
-import { toast } from 'react-hot-toast'
-import { Users, Trash2, AlertCircle } from 'lucide-react'
 
 interface PatientSharesProps {
   patientId: string
@@ -31,11 +35,14 @@ interface PatientShare {
 }
 
 export function PatientShares({ patientId, patientName, variant }: PatientSharesProps) {
+  const { user } = useAuth()
   const { supabase } = useSupabase()
   const [shares, setShares] = useState<PatientShare[]>([])
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [email, setEmail] = useState('')
+  const [accessLevel, setAccessLevel] = useState('read')
 
   useEffect(() => {
     fetchShares()
@@ -75,6 +82,64 @@ export function PatientShares({ patientId, patientName, variant }: PatientShares
     } catch (error) {
       console.error('Error removing share:', error)
       toast.error('Failed to remove share')
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.id || !patientId || !supabase) {
+      const error = new Error('Missing required data')
+      console.error(error)
+      throw error
+    }
+
+    setIsLoading(true)
+    try {
+      // First, find the user by email
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single()
+
+      if (userError) {
+        const error = new Error(
+          userError.code === 'PGRST116' 
+            ? 'User not found with this email' 
+            : 'Failed to find user'
+        )
+        console.error('Error finding user:', userError)
+        throw error
+      }
+
+      if (!userData?.id) {
+        const error = new Error('User not found with this email')
+        console.error(error)
+        throw error
+      }
+
+      // Share the patient
+      await sharePatient(supabase, {
+        patientId: parseInt(patientId),
+        sharedByUserId: user.id,
+        sharedWithUserId: userData.id,
+        accessLevel: accessLevel as any
+      })
+
+      toast.success('Patient shared successfully')
+      setEmail('')
+      setAccessLevel('read')
+    } catch (error) {
+      console.error('Error sharing patient:', error)
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'An unexpected error occurred while sharing the patient'
+      toast.error(errorMessage)
+      throw error instanceof Error 
+        ? error 
+        : new Error(errorMessage)
+    } finally {
+      setIsLoading(false)
     }
   }
 

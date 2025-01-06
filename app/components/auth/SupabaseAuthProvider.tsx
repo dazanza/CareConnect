@@ -46,7 +46,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
         await router.push('/dashboard')
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
-        await router.push('/sign-in')
+        await router.push('/')
       } else if (event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null)
       }
