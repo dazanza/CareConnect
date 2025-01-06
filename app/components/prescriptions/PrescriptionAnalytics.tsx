@@ -1,23 +1,8 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Pill, RefreshCcw, Clock, AlertCircle } from 'lucide-react'
-
-interface PrescriptionStats {
-  totalPrescriptions: number
-  activePrescriptions: number
-  upcomingRefills: number
-  expiringPrescriptions: number
-  byStatus: {
-    active: number
-    completed: number
-    discontinued: number
-  }
-  commonMedications: Array<{
-    medication: string
-    count: number
-  }>
-}
+import { Pill, Calendar, Clock, AlertCircle } from 'lucide-react'
+import { addDays } from 'date-fns'
 
 interface PrescriptionAnalyticsProps {
   prescriptions: Array<{
@@ -30,90 +15,55 @@ interface PrescriptionAnalyticsProps {
   }>
 }
 
-function calculatePrescriptionStats(prescriptions: PrescriptionAnalyticsProps['prescriptions']): PrescriptionStats {
-  const now = new Date()
-  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-
-  // Initialize stats
-  const stats: PrescriptionStats = {
-    totalPrescriptions: prescriptions.length,
-    activePrescriptions: 0,
-    upcomingRefills: 0,
-    expiringPrescriptions: 0,
-    byStatus: {
-      active: 0,
-      completed: 0,
-      discontinued: 0,
-    },
-    commonMedications: [],
-  }
-
-  // Count medications
-  const medicationCounts = new Map<string, number>()
-
-  prescriptions.forEach(prescription => {
-    // Count by status
-    stats.byStatus[prescription.status]++
-
-    // Count active prescriptions
-    if (prescription.status === 'active') {
-      stats.activePrescriptions++
-
-      // Count prescriptions expiring soon
-      if (prescription.end_date) {
-        const endDate = new Date(prescription.end_date)
-        if (endDate <= thirtyDaysFromNow && endDate >= now) {
-          stats.expiringPrescriptions++
-        }
-      }
-
-      // Count prescriptions needing refills
-      if (prescription.refills === 0) {
-        stats.upcomingRefills++
-      }
-    }
-
-    // Count medications
-    const count = medicationCounts.get(prescription.medication) || 0
-    medicationCounts.set(prescription.medication, count + 1)
-  })
-
-  // Get common medications
-  stats.commonMedications = Array.from(medicationCounts.entries())
-    .map(([medication, count]) => ({ medication, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
-
-  return stats
-}
-
 export function PrescriptionAnalytics({ prescriptions }: PrescriptionAnalyticsProps) {
-  const stats = calculatePrescriptionStats(prescriptions)
+  // Calculate statistics
+  const stats = {
+    byStatus: {
+      active: prescriptions.filter(p => p.status === 'active').length,
+      completed: prescriptions.filter(p => p.status === 'completed').length,
+      discontinued: prescriptions.filter(p => p.status === 'discontinued').length
+    },
+    expiringPrescriptions: prescriptions.filter(p => {
+      if (!p.end_date || p.status !== 'active') return false
+      const endDate = new Date(p.end_date)
+      const thirtyDaysFromNow = addDays(new Date(), 30)
+      return endDate <= thirtyDaysFromNow && endDate >= new Date()
+    }).length,
+    commonMedications: Object.entries(
+      prescriptions.reduce((acc: Record<string, number>, p) => {
+        acc[p.medication] = (acc[p.medication] || 0) + 1
+        return acc
+      }, {})
+    )
+      .sort((a, b) => (b[1] as number) - (a[1] as number))
+      .slice(0, 5)
+      .map(([medication, count]) => ({ medication, count: count as number }))
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Active Prescriptions</CardTitle>
+          <CardTitle className="text-sm font-medium">Active</CardTitle>
           <Pill className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.activePrescriptions}</div>
+          <div className="text-2xl font-bold">{stats.byStatus.active}</div>
           <p className="text-xs text-muted-foreground">
-            of {stats.totalPrescriptions} total prescriptions
+            active prescriptions
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Needs Refill</CardTitle>
-          <RefreshCcw className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Completed</CardTitle>
+          <Calendar className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.upcomingRefills}</div>
+          <div className="text-2xl font-bold">{stats.byStatus.completed}</div>
           <p className="text-xs text-muted-foreground">
-            prescriptions with no refills remaining
+            completed prescriptions
           </p>
         </CardContent>
       </Card>

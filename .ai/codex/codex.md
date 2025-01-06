@@ -963,3 +963,14 @@ L106:
   - Pre-fill related fields when possible
 - Impact: Improves data entry efficiency and reduces errors
 - Related: L101, L102
+
+L107:
+- Context: /app/(authenticated)/doctors/[id]/page.tsx
+- Insight: Effective organization of doctor details with appointments and patients
+- Application: 
+  - Grid layout with doctor info and appointments cards
+  - Separate tabs for main info and patients list
+  - Clickable appointment rows for better UX
+  - Patient nickname display preference over full name
+- Impact: Improved user experience and data organization
+- Related: L026

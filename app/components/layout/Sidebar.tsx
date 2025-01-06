@@ -169,6 +169,23 @@ export default function AppSidebar() {
                   <div className="w-4" />
                 </Link>
               </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <Link 
+                  href="/logs"
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                    "hover:bg-blue-50 hover:text-blue-600",
+                    pathname === '/logs' && "bg-blue-50 text-blue-600 font-medium"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4" />
+                    <span>Logs</span>
+                  </div>
+                  <div className="w-4" />
+                </Link>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
 

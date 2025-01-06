@@ -1,5 +1,41 @@
 [
   {
+    "policy_name": "Users can view their own settings",
+    "table_name": "user_settings",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(auth.uid() = user_id)",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can update their own settings",
+    "table_name": "user_settings",
+    "policy_role": null,
+    "command": "w",
+    "policy_expression": "(auth.uid() = user_id)",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can insert their own settings",
+    "table_name": "user_settings",
+    "policy_role": null,
+    "command": "a",
+    "policy_expression": null,
+    "with_check_expression": "(auth.uid() = user_id)",
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can insert their own data",
+    "table_name": "users",
+    "policy_role": null,
+    "command": "a",
+    "policy_expression": null,
+    "with_check_expression": "(auth.uid() = id)",
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can view their own data",
     "table_name": "users",
     "policy_role": null,
