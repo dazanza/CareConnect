@@ -974,3 +974,24 @@ L107:
   - Patient nickname display preference over full name
 - Impact: Improved user experience and data organization
 - Related: L026
+
+L108:
+- Context: /app/components/layout/Header.tsx
+- Insight: Theme-aware component styling with Tailwind
+- Application: 
+  - Use bg-background instead of hardcoded colors
+  - Apply text-foreground for theme-aware text
+  - Use border-border for consistent border colors
+  - Remove hardcoded color values
+- Impact: Ensures proper theme support and consistent styling across modes
+- Related: L029
+
+L109:
+- Context: /app/components/layout/Header.tsx
+- Insight: Consistent theme token usage across components
+- Application: 
+  - Use theme tokens (background, foreground, border) consistently
+  - Apply same pattern to all layout components
+  - Maintain semantic naming for better maintainability
+- Impact: Creates cohesive theming system across the application
+- Related: L108, L029

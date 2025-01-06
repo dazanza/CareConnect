@@ -40,7 +40,7 @@
     "table_name": "users",
     "policy_role": null,
     "command": "r",
-    "policy_expression": "(auth.uid() = id)",
+    "policy_expression": "((auth.uid() = id) AND ((is_deleted IS NULL) OR (is_deleted = false)))",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },
@@ -49,7 +49,7 @@
     "table_name": "users",
     "policy_role": null,
     "command": "w",
-    "policy_expression": "(auth.uid() = id)",
+    "policy_expression": "((auth.uid() = id) AND ((is_deleted IS NULL) OR (is_deleted = false)))",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },

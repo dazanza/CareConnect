@@ -19,9 +19,9 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white border-b">
+    <header className="bg-background border-b border-border">
       <div className="flex items-center justify-between px-6 py-4">
-        <h2 className="text-2xl font-semibold text-blue-800">Dashboard</h2>
+        <h2 className="text-2xl font-semibold text-foreground">Dashboard</h2>
         <div className="flex items-center space-x-4">
           {user ? (
             <>
