@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { format } from 'date-fns'
 import { toast } from 'react-hot-toast'
-import { Plus, Trash2, CalendarIcon } from 'lucide-react'
+import { Plus, Trash2, CalendarIcon, Search } from 'lucide-react'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -40,6 +40,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command'
 import {
   Table,
   TableBody,
@@ -111,6 +118,8 @@ export function AddPrescriptionModal({
   const { supabase } = useSupabase()
   const [isLoading, setIsLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [searchResults, setSearchResults] = useState<Array<{ id: number, name: string, strength?: string, form?: string }>>([])
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const form = useForm<PrescriptionFormValues>({
     resolver: zodResolver(prescriptionFormSchema),
@@ -149,6 +158,27 @@ export function AddPrescriptionModal({
       toast.error('Failed to create prescription')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  async function searchMedications(query: string) {
+    if (query.length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('medications')
+        .select('id, name, strength, form')
+        .ilike('name', `%${query}%`)
+        .limit(10)
+
+      if (error) throw error
+      setSearchResults(data || [])
+    } catch (error) {
+      console.error('Error searching medications:', error)
+      toast.error('Failed to search medications')
     }
   }
 
@@ -399,15 +429,50 @@ export function AddPrescriptionModal({
                               control={form.control}
                               name={`medications.${index}.name`}
                               render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <Input 
-                                      {...field}
-                                      className="h-8"
-                                      placeholder="Enter medication name"
-                                      disabled={isLoading}
-                                    />
-                                  </FormControl>
+                                <FormItem className="flex-1">
+                                  <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant="outline"
+                                          role="combobox"
+                                          className={cn(
+                                            "w-full justify-between",
+                                            !field.value && "text-muted-foreground"
+                                          )}
+                                        >
+                                          {field.value || "Search medication..."}
+                                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[400px] p-0">
+                                      <Command>
+                                        <CommandInput
+                                          placeholder="Search medication..."
+                                          onValueChange={searchMedications}
+                                          className="h-9"
+                                        />
+                                        <CommandEmpty>No medication found.</CommandEmpty>
+                                        <CommandGroup>
+                                          {searchResults.map((med) => (
+                                            <CommandItem
+                                              key={med.id}
+                                              value={med.name}
+                                              onSelect={() => {
+                                                field.onChange(med.name)
+                                                setSearchOpen(false)
+                                              }}
+                                            >
+                                              {med.name}
+                                              {med.strength && ` - ${med.strength}`}
+                                              {med.form && ` (${med.form})`}
+                                            </CommandItem>
+                                          ))}
+                                        </CommandGroup>
+                                      </Command>
+                                    </PopoverContent>
+                                  </Popover>
                                   <FormMessage />
                                 </FormItem>
                               )}
