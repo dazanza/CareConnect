@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { format } from 'date-fns'
@@ -106,22 +106,27 @@ interface AddPrescriptionModalProps {
     date: string
     title: string
   }>
+  open?: boolean
+  setOpen?: (open: boolean) => void
+  form?: UseFormReturn<PrescriptionFormValues>
 }
 
 export function AddPrescriptionModal({ 
   patients = [], 
   doctors = [],
   appointments = [],
-  logs = []
+  logs = [],
+  open,
+  setOpen,
+  form: externalForm
 }: AddPrescriptionModalProps) {
   const router = useRouter()
   const { supabase } = useSupabase()
   const [isLoading, setIsLoading] = useState(false)
-  const [open, setOpen] = useState(false)
   const [searchResults, setSearchResults] = useState<Array<{ id: number, name: string, strength?: string, form?: string }>>([])
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null)
 
-  const form = useForm<PrescriptionFormValues>({
+  const form = externalForm || useForm<PrescriptionFormValues>({
     resolver: zodResolver(prescriptionFormSchema),
     defaultValues: {
       medications: [{ name: '', dosage: '', frequency: '', refills: 0 }],
@@ -168,28 +173,35 @@ export function AddPrescriptionModal({
     }
 
     try {
+      console.log('Searching for:', query);
       const { data, error } = await supabase
-        .from('medications')
-        .select('id, name, strength, form')
-        .ilike('name', `%${query}%`)
+        .from('prescriptions')
+        .select('id, medication_name')
+        .ilike('medication_name', `%${query}%`)
+        .order('medication_name')
         .limit(10)
 
-      if (error) throw error
-      setSearchResults(data || [])
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      // Transform the results to match our interface
+      const transformedData = data.map(med => ({
+        id: med.id,
+        name: med.medication_name
+      }))
+      
+      console.log('Search results:', transformedData);
+      setSearchResults(transformedData || [])
     } catch (error) {
       console.error('Error searching medications:', error)
-      toast.error('Failed to search medications')
+      setSearchResults([])
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Prescription
-        </Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px] h-[90vh] p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Add New Prescription</DialogTitle>
@@ -430,49 +442,41 @@ export function AddPrescriptionModal({
                               name={`medications.${index}.name`}
                               render={({ field }) => (
                                 <FormItem className="flex-1">
-                                  <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-                                    <PopoverTrigger asChild>
-                                      <FormControl>
-                                        <Button
-                                          variant="outline"
-                                          role="combobox"
-                                          className={cn(
-                                            "w-full justify-between",
-                                            !field.value && "text-muted-foreground"
-                                          )}
-                                        >
-                                          {field.value || "Search medication..."}
-                                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                      </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[400px] p-0">
-                                      <Command>
-                                        <CommandInput
-                                          placeholder="Search medication..."
-                                          onValueChange={searchMedications}
-                                          className="h-9"
-                                        />
-                                        <CommandEmpty>No medication found.</CommandEmpty>
-                                        <CommandGroup>
-                                          {searchResults.map((med) => (
-                                            <CommandItem
-                                              key={med.id}
-                                              value={med.name}
-                                              onSelect={() => {
-                                                field.onChange(med.name)
-                                                setSearchOpen(false)
-                                              }}
-                                            >
-                                              {med.name}
-                                              {med.strength && ` - ${med.strength}`}
-                                              {med.form && ` (${med.form})`}
-                                            </CommandItem>
-                                          ))}
-                                        </CommandGroup>
-                                      </Command>
-                                    </PopoverContent>
-                                  </Popover>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <Input
+                                        placeholder="Enter medication name..."
+                                        value={field.value}
+                                        onChange={(e) => {
+                                          field.onChange(e.target.value);
+                                          searchMedications(e.target.value);
+                                        }}
+                                        onFocus={() => setActiveSearchIndex(index)}
+                                        className="w-full"
+                                      />
+                                      {activeSearchIndex === index && searchResults.length > 0 && (
+                                        <div className="absolute z-50 w-full mt-1 bg-white rounded-md border shadow-lg">
+                                          <Command>
+                                            <CommandGroup heading="Suggestions">
+                                              {searchResults.map((med) => (
+                                                <CommandItem
+                                                  key={med.id}
+                                                  value={med.name}
+                                                  onSelect={() => {
+                                                    field.onChange(med.name);
+                                                    setActiveSearchIndex(null);
+                                                    setSearchResults([]);
+                                                  }}
+                                                >
+                                                  <span>{med.name}</span>
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </Command>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}

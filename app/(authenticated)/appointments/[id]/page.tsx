@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon, Paperclip as PaperclipIcon, Mic as MicIcon, FileText as FileTextIcon } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon, Paperclip as PaperclipIcon, Mic as MicIcon, FileText as FileTextIcon, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -17,6 +17,24 @@ import { AddAppointmentForm } from '@/app/components/AddAppointmentForm'
 import { rescheduleAppointment, cancelAppointment } from "@/app/lib/appointments"
 import { convertUTCToLocal, convertLocalToUTC, formatLocalDate } from '@/app/lib/dateUtils';
 import { toast } from 'react-hot-toast'
+import { AddPrescriptionModal } from '@/app/components/prescriptions/AddPrescriptionModal'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+
+const prescriptionFormSchema = z.object({
+  medications: z.array(z.object({
+    name: z.string(),
+    dosage: z.string(),
+    frequency: z.string(),
+    refills: z.number()
+  })),
+  start_date: z.date(),
+  patient_id: z.number(),
+  prescribed_by: z.number(),
+  appointment_id: z.number(),
+  status: z.string()
+})
 
 export default function AppointmentDetailsPage() {
   const { id } = useParams()
@@ -30,10 +48,19 @@ export default function AppointmentDetailsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
   const [medicalFiles, setMedicalFiles] = useState<{ id: number; file_name: string; file_url: string; file_type: string | null; notes: string | null }[]>([])
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<any>(null)
   const [isSetNextAppointmentOpen, setIsSetNextAppointmentOpen] = useState(false)
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const form = useForm<z.infer<typeof prescriptionFormSchema>>({
+    resolver: zodResolver(prescriptionFormSchema),
+    defaultValues: {
+      medications: [{ name: '', dosage: '', frequency: '', refills: 0 }],
+      status: 'active'
+    }
+  })
 
   useEffect(() => {
     async function fetchAppointmentDetails() {
@@ -44,8 +71,8 @@ export default function AppointmentDetailsPage() {
           .from('appointments')
           .select(`
             *,
-            patients (id, first_name, last_name),
-            doctors (id, first_name, last_name)
+            patients (id, first_name, last_name, nickname),
+            doctors (id, first_name, last_name, specialization)
           `)
           .eq('id', id)
           .single();
@@ -54,6 +81,9 @@ export default function AppointmentDetailsPage() {
 
         // Convert UTC date to local date
         if (data) {
+          console.log('Appointment data:', data);
+          console.log('Patient data:', data.patients);
+          console.log('Patient nickname:', data.patients?.nickname);
           const localDate = convertUTCToLocal(data.date);
           setAppointment({ ...data, date: localDate });
         }
@@ -325,6 +355,38 @@ export default function AppointmentDetailsPage() {
             <CalendarIcon className="mr-2 h-4 w-4" />
             Set Next Appointment
           </Button>
+          <Button onClick={() => {
+            form.reset({
+              patient_id: appointment.patient_id,
+              prescribed_by: appointment.doctor_id,
+              appointment_id: appointment.id,
+              start_date: new Date(),
+              medications: [{ name: '', dosage: '', frequency: '', refills: 0 }],
+              status: 'active'
+            });
+            setOpen(true);
+          }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Prescription
+          </Button>
+          <AddPrescriptionModal 
+            open={open}
+            setOpen={setOpen}
+            form={form}
+            patients={[{
+              id: appointment.patient_id,
+              name: appointment.patients?.nickname || `${appointment.patients?.first_name} ${appointment.patients?.last_name}`
+            }]}
+            doctors={[{
+              id: appointment.doctor_id,
+              name: `${appointment.doctors?.first_name} ${appointment.doctors?.last_name}`
+            }]}
+            appointments={[{
+              id: appointment.id,
+              date: appointment.date,
+              title: appointment.type
+            }]}
+          />
         </div>
       </div>
 
@@ -352,13 +414,13 @@ export default function AppointmentDetailsPage() {
                 <p>
                   Patient: 
                   <Link href={`/patients/${appointment.patients?.id}`} className="text-blue-600 hover:underline ml-1">
-                    {appointment.patients?.first_name} {appointment.patients?.last_name}
+                    {appointment.patients?.nickname || `${appointment.patients?.first_name} ${appointment.patients?.last_name}`}
                   </Link>
                 </p>
                 <p>
                   Doctor: 
                   <Link href={`/doctors/${appointment.doctors?.id}`} className="text-blue-600 hover:underline ml-1">
-                    Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name}
+                    Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name} ({appointment.doctors?.specialization})
                   </Link>
                 </p>
                 <p>Purpose: {appointment.type}</p>

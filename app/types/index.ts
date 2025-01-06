@@ -130,16 +130,17 @@ export interface DocumentInput {
 // Appointments
 export interface Appointment {
   id: number
-  patient_id: number
-  doctor_id: number
   date: string
   type: string
   location: string
   notes?: string
-  status: 'scheduled' | 'cancelled' | 'completed'
+  patient_id: number
+  doctor_id: number
   patients?: {
     id: number
-    name: string
+    first_name: string
+    last_name: string
+    nickname?: string
   }
   doctors?: {
     id: number
