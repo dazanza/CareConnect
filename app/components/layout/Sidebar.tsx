@@ -234,22 +234,6 @@ export default function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <Link 
-                    href="/settings"
-                    className={cn(
-                      "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
-                      "hover:bg-blue-50 hover:text-blue-600",
-                      pathname === '/settings' && "bg-blue-50 text-blue-600 font-medium"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      <span>Settings</span>
-                    </div>
-                    <div className="w-4" />
-                  </Link>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
                   <SignOutButton className="w-full justify-start" />
                 </SidebarMenuItem>
               </SidebarMenu>
