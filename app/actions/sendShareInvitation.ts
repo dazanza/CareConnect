@@ -31,7 +31,7 @@ export async function sendShareInvitation({
     if (!patient) throw new Error('Patient not found')
 
     // Generate sign-up/sign-in link with share token
-    const signUpUrl = new URL('/auth/sign-up', process.env.NEXT_PUBLIC_APP_URL)
+    const signUpUrl = new URL('/auth/sign-up', process.env.NEXT_PUBLIC_APP_URL);
     signUpUrl.searchParams.set('share_id', shareId)
     signUpUrl.searchParams.set('email', email)
 

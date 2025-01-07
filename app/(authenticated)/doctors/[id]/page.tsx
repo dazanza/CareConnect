@@ -151,7 +151,7 @@ export default function DoctorDetailsPage() {
     fetchAppointments();
     fetchPatients();
     fetchPreviousAppointments();
-  }, [fetchAppointments, fetchPatients, fetchPreviousAppointments]);
+  }, [fetchAppointments, fetchPatients, fetchPreviousAppointments, supabase, params.id]);
 
   const handleDeleteDoctor = async () => {
     if (deleteConfirmName !== `${doctor.first_name} ${doctor.last_name}`) {
@@ -245,7 +245,7 @@ export default function DoctorDetailsPage() {
                 <dl className="grid gap-3 text-sm">
                   <div className="flex items-center justify-between">
                     <dt className="font-medium">Specialization</dt>
-                    <dd className="text-muted-foreground">{doctor.specialization ? `Specializes in ${doctor.specialization}` : "Doctor&apos;s specialization not specified"}</dd>
+                    <dd className="text-muted-foreground">{doctor.specialization ? `Specializes in ${doctor.specialization}` : "Doctor's specialization not specified"}</dd>
                   </div>
                   <div className="flex items-center justify-between">
                     <dt className="font-medium">Contact Number</dt>
