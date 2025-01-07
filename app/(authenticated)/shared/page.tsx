@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
+import { useState, useEffect } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,11 +15,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { format } from 'date-fns'
-import { 
-  Users, 
-  FileText, 
-  Clock, 
-  Shield, 
+import {
+  Users,
+  FileText,
+  Clock,
+  Shield,
   Search,
   UserPlus,
   UserMinus,
@@ -125,7 +125,7 @@ export default function SharedResourcesPage() {
   };
 
   // Fetch shared resources
-  const fetchSharedResources = useCallback(async () => {
+  const fetchSharedResources = async () => {
     if (!supabase || !user) return;
     setIsLoading(true);
     try {
@@ -224,20 +224,20 @@ export default function SharedResourcesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, user]);
+  };
 
   // Filter resources based on search term and type
   const getFilteredShares = () => {
-    const shares = filterType === 'shared_by_me' 
-      ? outgoingShares 
-      : filterType === 'shared_with_me' 
-        ? incomingShares 
+    const shares = filterType === 'shared_by_me'
+      ? outgoingShares
+      : filterType === 'shared_with_me'
+        ? incomingShares
         : [...incomingShares, ...outgoingShares];
 
     if (!searchTerm) return shares;
 
     const term = searchTerm.toLowerCase();
-    return shares.filter(share => 
+    return shares.filter(share =>
       share.patient.first_name?.toLowerCase().includes(term) ||
       share.patient.last_name?.toLowerCase().includes(term) ||
       share.shared_by.first_name?.toLowerCase().includes(term) ||
@@ -250,7 +250,7 @@ export default function SharedResourcesPage() {
   // Effect to fetch data
   useEffect(() => {
     fetchSharedResources();
-  }, [fetchSharedResources]);
+  }, [fetchSharedResources, supabase, user]);
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -307,7 +307,7 @@ export default function SharedResourcesPage() {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div>
-                        <Link 
+                        <Link
                           href={`/patients/${share.patient_id}`}
                           className="text-xl font-semibold hover:underline flex items-center gap-2"
                         >
@@ -390,7 +390,7 @@ export default function SharedResourcesPage() {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div>
-                        <Link 
+                        <Link
                           href={file.url}
                           target="_blank"
                           className="text-xl font-semibold flex items-center gap-2"
