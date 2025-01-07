@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { Appointment, Todo } from '@/types'
@@ -170,13 +170,7 @@ export default function AppointmentDetailsPage() {
     }
   }, [])
 
-  useEffect(() => {
-    if (appointment) {
-      fetchTodos()
-    }
-  }, [appointment])
-
-  const fetchTodos = async () => {
+  const fetchTodos = useCallback(async () => {
     if (!supabase || !appointment) return
 
     const { data, error } = await supabase
@@ -191,7 +185,13 @@ export default function AppointmentDetailsPage() {
     } else {
       setTodos(data)
     }
-  }
+  }, [supabase, appointment])
+
+  useEffect(() => {
+    if (appointment) {
+      fetchTodos()
+    }
+  }, [appointment, fetchTodos])
 
   const handleSaveNotes = async () => {
     if (!supabase || !appointment) return

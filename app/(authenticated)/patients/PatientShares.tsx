@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSupabase } from "@/app/hooks/useSupabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,9 +38,21 @@ export function PatientShares({ patientId }: PatientSharesProps) {
   const [shares, setShares] = useState<Share[]>([]);
   const { supabase } = useSupabase();
 
+  const loadShares = useCallback(async () => {
+    if (!supabase || !patientId) return;
+    
+    try {
+      const shares = await getPatientShares(supabase, patientId);
+      setShares(shares);
+    } catch (error) {
+      console.error('Error loading shares:', error);
+      toast.error('Failed to load shares');
+    }
+  }, [supabase, patientId]);
+
   useEffect(() => {
     loadShares();
-  }, [patientId]);
+  }, [loadShares]);
 
   const handleShare = async () => {
     try {
@@ -115,71 +127,6 @@ export function PatientShares({ patientId }: PatientSharesProps) {
     } catch (error) {
       console.error('Share error:', error);
       toast.error("An error occurred");
-    }
-  };
-
-  const loadShares = async () => {
-    try {
-      const { data: activeShares, error } = await supabase
-        .from("patient_shares")
-        .select(`
-          id,
-          shared_with_user_id,
-          access_level,
-          expires_at,
-          shared_with:users!shared_with_user_id(
-            email,
-            first_name,
-            last_name
-          )
-        `)
-        .eq("patient_id", patientId);
-
-      if (error) {
-        console.error('Load shares error:', error);
-        toast.error("Failed to load shares");
-        return;
-      }
-
-      const formattedActiveShares: Share[] = (activeShares || []).map(share => ({
-        id: share.id,
-        shared_with_user_id: share.shared_with_user_id,
-        access_level: share.access_level as Share['access_level'],
-        expires_at: share.expires_at,
-        shared_with: {
-          email: share.shared_with[0]?.email || 'Unknown',
-          first_name: share.shared_with[0]?.first_name,
-          last_name: share.shared_with[0]?.last_name
-        }
-      }));
-
-      // Load pending shares
-      const { data: pendingShares, error: pendingError } = await supabase
-        .from("pending_shares")
-        .select("*")
-        .eq("patient_id", patientId)
-        .is("claimed_at", null);
-
-      if (pendingError) {
-        console.error('Load pending shares error:', pendingError);
-        return;
-      }
-
-      const formattedPendingShares: Share[] = (pendingShares || []).map(ps => ({
-        id: ps.id,
-        shared_with_user_id: '',
-        access_level: ps.access_level as Share['access_level'],
-        expires_at: ps.expires_at,
-        shared_with: {
-          email: ps.email
-        },
-        is_pending: true
-      }));
-
-      setShares([...formattedActiveShares, ...formattedPendingShares]);
-    } catch (error) {
-      console.error('Error loading shares:', error);
-      toast.error('Failed to load shares');
     }
   };
 

@@ -30,85 +30,67 @@ export async function sharePatient(
   supabase: SupabaseClient,
   params: SharePatientParams
 ): Promise<any> {
-  try {
-    if (!supabase) {
-      throw new Error('Supabase client is not initialized')
-    }
-
-    const { data: patient, error: patientError } = await supabase
-      .from('patients')
-      .select('first_name, last_name')
-      .eq('id', params.patientId)
-      .single()
-
-    if (patientError) {
-      throw new Error(`Failed to find patient: ${patientError.message}`)
-    }
-
-    if (!patient) {
-      throw new Error('Patient not found')
-    }
-
-    // Check if share already exists
-    const { data: existingShare, error: existingShareError } = await supabase
-      .from('patient_shares')
-      .select('id')
-      .eq('patient_id', params.patientId)
-      .eq('shared_with_user_id', params.sharedWithUserId)
-      .single()
-
-    if (existingShareError && existingShareError.code !== 'PGRST116') {
-      throw new Error(`Failed to check existing share: ${existingShareError.message}`)
-    }
-
-    if (existingShare) {
-      throw new Error('Patient is already shared with this user')
-    }
-
-    const { data: share, error: shareError } = await supabase
-      .from('patient_shares')
-      .insert({
-        patient_id: params.patientId,
-        shared_by_user_id: params.sharedByUserId,
-        shared_with_user_id: params.sharedWithUserId,
-        access_level: params.accessLevel,
-        expires_at: params.expiresAt?.toISOString()
-      })
-      .select()
-      .single()
-
-    if (shareError) {
-      throw new Error(`Failed to share patient: ${shareError.message}`)
-    }
-
-    if (!share) {
-      throw new Error('Failed to create share record')
-    }
-
-    try {
-      await createNotification(supabase, {
-        userId: params.sharedWithUserId,
-        type: 'todo',
-        message: `You have been given ${params.accessLevel} access to patient ${patient.first_name} ${patient.last_name}`,
-        data: {
-          patientId: params.patientId,
-          shareId: share.id,
-          accessLevel: params.accessLevel
-        }
-      })
-    } catch (error) {
-      console.error('Failed to create notification:', error)
-      // Don't throw here as the share was successful
-    }
-
-    return share
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    } else {
-      throw new Error('An unexpected error occurred while sharing the patient')
-    }
+  if (!supabase) {
+    throw new Error('Supabase client is not initialized')
   }
+
+  // First check if patient exists
+  const { data: patient, error: patientError } = await supabase
+    .from('patients')
+    .select('first_name, last_name')
+    .eq('id', params.patientId)
+    .single()
+
+  if (patientError) throw patientError
+  if (!patient) throw new Error('Patient not found')
+
+  // Check if share already exists
+  const { data: existingShare, error: shareCheckError } = await supabase
+    .from('patient_shares')
+    .select('id')
+    .eq('patient_id', params.patientId)
+    .eq('shared_with_user_id', params.sharedWithUserId)
+    .single()
+
+  if (shareCheckError && shareCheckError.code !== 'PGRST116') throw shareCheckError
+  if (existingShare) throw new Error('Patient is already shared with this user')
+
+  // Create the share
+  const { data: share, error: shareError } = await supabase
+    .from('patient_shares')
+    .insert({
+      patient_id: params.patientId,
+      shared_by_user_id: params.sharedByUserId,
+      shared_with_user_id: params.sharedWithUserId,
+      access_level: params.accessLevel,
+      expires_at: params.expiresAt?.toISOString()
+    })
+    .select()
+    .single()
+
+  if (shareError) throw shareError
+  if (!share) throw new Error('Failed to create share')
+
+  // Create the notification
+  const { error: notificationError } = await supabase
+    .from('notifications')
+    .insert({
+      user_id: params.sharedWithUserId,
+      type: 'share_received',
+      message: `You have been given ${params.accessLevel} access to patient ${patient.first_name} ${patient.last_name}`,
+      data: {
+        patientId: params.patientId,
+        shareId: share.id,
+        accessLevel: params.accessLevel
+      }
+    })
+
+  if (notificationError) {
+    // If notification fails, we should still return the share since it was created
+    console.error('Failed to create notification:', notificationError)
+  }
+
+  return share
 }
 
 export async function removePatientShare(

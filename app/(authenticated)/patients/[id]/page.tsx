@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
@@ -251,386 +251,234 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [noteText, setNoteText] = useState('')
 
-  // Primary useEffect for patient data
-  useEffect(() => {
-    if (supabase && params.id) {
-      fetchPatientData()
-    }
-  }, [supabase, params.id])
-
-  // Secondary useEffect for related data, only runs after patient is loaded
-  useEffect(() => {
-    if (supabase && params.id && patient) {
-      fetchTimelineEvents()
-      fetchDoctors()
-      fetchMedicalHistory()
-      fetchVitals()
-      fetchDocuments()
-      fetchPrescriptions()
-      fetchAllergies()
-      fetchMedications()
-      fetchImmunizations()
-      fetchPatientDoctors()
-      fetchAppointments()
-    }
-  }, [supabase, params.id, patient])
-
-  const fetchPatientData = async () => {
+  const fetchPatientData = useCallback(async () => {
+    if (!supabase || !params.id) return;
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('patients')
         .select('*')
         .eq('id', params.id)
         .eq('user_id', user.id.toString())
-        .single()
+        .single();
 
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
-      }
-
-      if (!data) {
-        throw new Error('Patient not found')
-      }
-
-      setPatient(data)
-      setIsLoading(false)
+      if (error) throw error;
+      setPatient(data);
     } catch (error) {
-      console.error('Error fetching patient:', error)
-      toast.error('Failed to load patient data')
-      setIsLoading(false)
-    }
-  }
-
-  const fetchDoctors = async () => {
-    setIsLoadingDoctors(true)
-    try {
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .order('first_name')
-
-      if (error) throw error
-      setDoctors(data)
-    } catch (error) {
-      console.error('Error fetching doctors:', error)
-      toast.error('Failed to load doctors')
+      console.error('Error fetching patient:', error);
+      toast.error('Failed to load patient data');
     } finally {
-      setIsLoadingDoctors(false)
+      setIsLoading(false);
     }
-  }
+  }, [supabase, params.id, user.id]);
 
-  const fetchPatientDoctors = async () => {
-    setIsLoadingPatientDoctors(true)
+  const fetchAllergies = useCallback(async () => {
+    if (!supabase || !params.id) return;
     try {
       const { data, error } = await supabase
-        .from('patient_doctors')
+        .from('allergies')
+        .select('*')
+        .eq('patient_id', params.id);
+      if (error) throw error;
+      setAllergies(data || []);
+    } catch (error) {
+      console.error('Error fetching allergies:', error);
+    }
+  }, [supabase, params.id]);
+
+  const fetchMedications = useCallback(async () => {
+    if (!supabase || !params.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('medications')
+        .select('*')
+        .eq('patient_id', params.id);
+      if (error) throw error;
+      setMedications(data || []);
+    } catch (error) {
+      console.error('Error fetching medications:', error);
+    }
+  }, [supabase, params.id]);
+
+  const fetchImmunizations = useCallback(async () => {
+    if (!supabase || !params.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('immunizations')
+        .select('*')
+        .eq('patient_id', params.id);
+      if (error) throw error;
+      setImmunizations(data || []);
+    } catch (error) {
+      console.error('Error fetching immunizations:', error);
+    }
+  }, [supabase, params.id]);
+
+  const fetchMedicalHistory = useCallback(async () => {
+    if (!supabase || !params.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('medical_history')
+        .select('*')
+        .eq('patient_id', params.id);
+      if (error) throw error;
+      setMedicalHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching medical history:', error);
+    }
+  }, [supabase, params.id]);
+
+  const fetchVitals = useCallback(async () => {
+    if (!supabase || !params.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('vitals')
+        .select('*')
+        .eq('patient_id', params.id)
+        .order('date_time', { ascending: false });
+      if (error) throw error;
+      setInitialVitals(data || []);
+    } catch (error) {
+      console.error('Error fetching vitals:', error);
+    }
+  }, [supabase, params.id]);
+
+  const fetchAppointments = useCallback(async () => {
+    if (!supabase || !params.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
         .select(`
-          doctors (
+          *,
+          doctor:doctors (
             id,
             first_name,
             last_name,
             specialization
           )
         `)
-        .eq('patient_id', parseInt(params.id))
-
-      if (error) {
-        console.error('Error fetching patient doctors:', error)
-        return
-      }
-
-      // Type assertion for the response data
-      const responseData = data as unknown as PatientDoctorResponse[]
-      const formattedDoctors: AssignedDoctor[] = responseData.map(item => ({
-        id: item.doctors.id,
-        first_name: item.doctors.first_name,
-        last_name: item.doctors.last_name,
-        specialization: item.doctors.specialization
-      }))
-
-      setPatientDoctors(formattedDoctors)
+        .eq('patient_id', params.id)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      setAppointments(data || []);
     } catch (error) {
-      console.error('Error fetching patient doctors:', error)
-      toast.error('Failed to load assigned doctors')
-    } finally {
-      setIsLoadingPatientDoctors(false)
+      console.error('Error fetching appointments:', error);
     }
-  }
+  }, [supabase, params.id]);
 
-  const fetchMedicalHistory = async () => {
-    setIsLoadingHistory(true)
+  const fetchDoctors = useCallback(async () => {
+    if (!supabase || !params.id) return;
     try {
-      const patientId = parseInt(params.id)
-      if (isNaN(patientId)) {
-        throw new Error('Invalid patient ID')
-      }
-
       const { data, error } = await supabase
-        .from('medical_history')
-        .select(`
-          id,
-          date,
-          type,
-          title,
-          description,
-          doctor_id,
-          doctor:doctors(
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('patient_id', patientId)
-        .order('date', { ascending: false })
-
-      if (error) throw error
-
-      const formattedHistory = data.map(item => ({
-        id: item.id,
-        date: item.date,
-        type: item.type,
-        title: item.title,
-        description: item.description,
-        doctor_id: item.doctor_id,
-        doctor: item.doctor
-      }))
-
-      setMedicalHistory(formattedHistory)
-    } catch (error) {
-      console.error('Error fetching medical history:', error)
-      toast.error('Failed to load medical history')
-    } finally {
-      setIsLoadingHistory(false)
-    }
-  }
-
-  const fetchVitals = async () => {
-    setIsLoadingVitals(true)
-    try {
-      const patientId = parseInt(params.id)
-      if (isNaN(patientId)) {
-        throw new Error('Invalid patient ID')
-      }
-
-      const { data, error } = await supabase
-        .from('vitals')
+        .from('doctors')
         .select('*')
-        .eq('patient_id', patientId)
-        .order('date_time', { ascending: false })
-
-      if (error) throw error
-      setInitialVitals(data)
+        .eq('user_id', user?.id);
+      if (error) throw error;
+      setDoctors(data || []);
     } catch (error) {
-      console.error('Error fetching vitals:', error)
-      toast.error('Failed to load vitals data')
-    } finally {
-      setIsLoadingVitals(false)
+      console.error('Error fetching doctors:', error);
     }
-  }
+  }, [supabase, params.id, user?.id]);
 
-  const fetchDocuments = async () => {
-    setIsLoadingDocuments(true)
+  const fetchPatientDoctors = useCallback(async () => {
+    if (!supabase || !params.id) return;
     try {
-      const patientId = parseInt(params.id)
-      if (isNaN(patientId)) {
-        throw new Error('Invalid patient ID')
-      }
+      const { data, error } = await supabase
+        .from('patient_doctors')
+        .select('*, doctors(*)')
+        .eq('patient_id', params.id);
+      if (error) throw error;
+      setPatientDoctors(data || []);
+    } catch (error) {
+      console.error('Error fetching patient doctors:', error);
+    }
+  }, [supabase, params.id]);
 
+  const fetchDocuments = useCallback(async () => {
+    if (!supabase || !params.id) return;
+    try {
       const { data, error } = await supabase
         .from('documents')
         .select('*')
-        .eq('patient_id', patientId)
-        .order('uploaded_at', { ascending: false })
-
-      if (error) throw error
-      setDocuments(data)
+        .eq('patient_id', params.id)
+        .order('uploaded_at', { ascending: false });
+      if (error) throw error;
+      setDocuments(data || []);
     } catch (error) {
-      console.error('Error fetching documents:', error)
-      toast.error('Failed to load documents')
-    } finally {
-      setIsLoadingDocuments(false)
+      console.error('Error fetching documents:', error);
     }
-  }
+  }, [supabase, params.id]);
 
-  const fetchPatientShares = async () => {
+  const fetchPrescriptions = useCallback(async () => {
+    if (!supabase || !params.id) return;
     try {
       const { data, error } = await supabase
-        .from('patient_shares')
+        .from('prescriptions')
         .select(`
-          id,
-          access_level,
-          expires_at,
-          shared_by:shared_by_user_id (
+          *,
+          doctor:prescribed_by (
             id,
             first_name,
-            last_name
-          ),
-          shared_with:shared_with_user_id (
-            id,
-            first_name,
-            last_name
+            last_name,
+            specialization
           )
         `)
         .eq('patient_id', params.id)
-  
-      if (error) throw error
-      return data
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setPrescriptions(data || []);
     } catch (error) {
-      console.error('Error fetching patient shares:', error)
-      toast.error('Failed to load patient shares')
-      return []
+      console.error('Error fetching prescriptions:', error);
     }
-  }
+  }, [supabase, params.id]);
 
-  const fetchPrescriptions = async () => {
-    setIsLoadingPrescriptions(true)
+  const fetchTimelineEvents = useCallback(async () => {
+    if (!supabase || !params.id) return;
     try {
-      const patientId = parseInt(params.id)
-      if (isNaN(patientId)) {
-        throw new Error('Invalid patient ID')
-      }
-
-      const { data, error } = await supabase
-        .from('prescriptions')
-        .select('*')
-        .eq('patient_id', patientId)
-        .order('start_date', { ascending: false })
-
-      if (error) throw error
-      setPrescriptions(data)
-    } catch (error) {
-      console.error('Error fetching prescriptions:', error)
-      toast.error('Failed to load prescriptions')
-    } finally {
-      setIsLoadingPrescriptions(false)
-    }
-  }
-
-  const fetchAllergies = async () => {
-    setIsLoadingAllergies(true)
-    try {
-      const patientId = parseInt(params.id)
-      if (isNaN(patientId)) {
-        throw new Error('Invalid patient ID')
-      }
-
-      const { data, error } = await supabase
-        .from('allergies')
-        .select('*')
-        .eq('patient_id', patientId)
-        .order('date_identified', { ascending: false })
-
-      if (error) throw error
-      setAllergies(data)
-    } catch (error) {
-      console.error('Error fetching allergies:', error)
-      toast.error('Failed to load allergies')
-    } finally {
-      setIsLoadingAllergies(false)
-    }
-  }
-
-  const fetchMedications = async () => {
-    setIsLoadingMedications(true)
-    try {
-      const patientId = parseInt(params.id)
-      if (isNaN(patientId)) {
-        throw new Error('Invalid patient ID')
-      }
-
-      const { data, error } = await supabase
-        .from('medications')
-        .select(`
-          *,
-          doctor:doctors(
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('patient_id', patientId)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setMedications(data)
-    } catch (error) {
-      console.error('Error fetching medications:', error)
-      toast.error('Failed to load medications')
-    } finally {
-      setIsLoadingMedications(false)
-    }
-  }
-
-  const fetchImmunizations = async () => {
-    setIsLoadingImmunizations(true)
-    try {
-      const patientId = parseInt(params.id)
-      if (isNaN(patientId)) {
-        throw new Error('Invalid patient ID')
-      }
-
-      const { data, error } = await supabase
-        .from('immunizations')
-        .select(`
-          *,
-          doctor:doctors(
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('patient_id', patientId)
-        .order('date_administered', { ascending: false })
-
-      if (error) throw error
-      setImmunizations(data)
-    } catch (error) {
-      console.error('Error fetching immunizations:', error)
-      toast.error('Failed to load immunizations')
-    } finally {
-      setIsLoadingImmunizations(false)
-    }
-  }
-
-  const fetchTimelineEvents = async () => {
-    setIsLoadingTimeline(true)
-    try {
-      const patientId = parseInt(params.id)
-      if (isNaN(patientId)) {
-        throw new Error('Invalid patient ID')
-      }
-
       const { data, error } = await supabase
         .from('timeline_events')
-        .select(`
-          id,
-          patient_id,
-          user_id,
-          type,
-          date,
-          title,
-          description,
-          metadata,
-          created_by,
-          created_at,
-          appointment_id,
-          prescription_id,
-          vitals_id,
-          lab_result_id
-        `)
-        .eq('patient_id', patientId)
-        .order('date', { ascending: false })
-
-      if (error) throw error
-      setTimelineEvents(data as TimelineEvent[])
+        .select('*')
+        .eq('patient_id', params.id)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      setTimelineEvents(data || []);
     } catch (error) {
-      console.error('Error fetching timeline:', error)
-      toast.error('Failed to load timeline')
-    } finally {
-      setIsLoadingTimeline(false)
+      console.error('Error fetching timeline events:', error);
     }
-  }
+  }, [supabase, params.id]);
+
+  useEffect(() => {
+    fetchPatientData();
+  }, [fetchPatientData]);
+
+  useEffect(() => {
+    if (patient) {
+      fetchAllergies();
+      fetchAppointments();
+      fetchDoctors();
+      fetchDocuments();
+      fetchImmunizations();
+      fetchMedicalHistory();
+      fetchMedications();
+      fetchPatientDoctors();
+      fetchPrescriptions();
+      fetchTimelineEvents();
+      fetchVitals();
+    }
+  }, [
+    patient,
+    fetchAllergies,
+    fetchAppointments,
+    fetchDoctors,
+    fetchDocuments,
+    fetchImmunizations,
+    fetchMedicalHistory,
+    fetchMedications,
+    fetchPatientDoctors,
+    fetchPrescriptions,
+    fetchTimelineEvents,
+    fetchVitals
+  ]);
 
   const handleAssignDoctor = async () => {
     if (!selectedDoctorId) {
@@ -728,34 +576,6 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
     } catch (error) {
       console.error('Error unassigning doctor:', error)
       toast.error('Failed to unassign doctor')
-    }
-  }
-
-  const fetchAppointments = async () => {
-    setIsLoadingAppointments(true)
-    try {
-      const { data, error } = await supabase
-        .from('appointments')
-        .select(`
-          *,
-          doctor:doctors(
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('patient_id', params.id)
-        .gte('date', new Date().toISOString())
-        .order('date', { ascending: true })
-        .limit(5)
-
-      if (error) throw error
-      setAppointments(data || [])
-    } catch (error) {
-      console.error('Error fetching appointments:', error)
-      toast.error('Failed to load appointments')
-    } finally {
-      setIsLoadingAppointments(false)
     }
   }
 
@@ -952,7 +772,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                                     variant="ghost"
                                     className="w-full justify-start p-0 h-auto font-normal hover:bg-transparent"
                                   >
-                                    Dr. {appointment.doctor.first_name} {appointment.doctor.last_name} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
+                                    {appointment.doctor ? `Dr. ${appointment.doctor.first_name} ${appointment.doctor.last_name}` : 'No doctor assigned'} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
                                     {appointment.notes && (
                                       <div className="mt-1 text-sm text-muted-foreground">
                                         Note: {appointment.notes}

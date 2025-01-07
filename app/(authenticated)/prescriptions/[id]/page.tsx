@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { PrescriptionCard, Prescription } from '@/app/components/prescriptions/PrescriptionCard'
@@ -36,36 +36,41 @@ export default function PrescriptionDetailsPage({ params }: PrescriptionDetailsP
   const [updatedDosage, setUpdatedDosage] = useState('')
   const [updatedFrequency, setUpdatedFrequency] = useState('')
 
-  useEffect(() => {
-    loadPrescriptionData()
-  }, [supabase, params.id])
-
-  async function loadPrescriptionData() {
-    if (!supabase) return
-
+  const loadPrescriptionData = useCallback(async () => {
+    if (!supabase || !params.id) return;
+    setIsLoading(true);
     try {
-      setIsLoading(true)
-      const [prescriptionData] = await fetchPrescriptions(supabase, { 
-        prescriptionId: parseInt(params.id) 
-      })
-      
-      if (!prescriptionData) {
-        toast.error('Prescription not found')
-        router.push('/prescriptions')
-        return
-      }
+      const { data, error } = await supabase
+        .from('prescriptions')
+        .select(`
+          *,
+          patient:patients (
+            id,
+            first_name,
+            last_name
+          ),
+          doctor:doctors (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('id', params.id)
+        .single();
 
-      setPrescription(prescriptionData)
-      
-      const historyData = await fetchPrescriptionHistory(supabase, parseInt(params.id))
-      setEvents(historyData)
+      if (error) throw error;
+      setPrescription(data);
     } catch (error) {
-      console.error('Error loading prescription:', error)
-      toast.error('Failed to load prescription')
+      console.error('Error loading prescription:', error);
+      toast.error('Failed to load prescription');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  }, [supabase, params.id]);
+
+  useEffect(() => {
+    loadPrescriptionData();
+  }, [loadPrescriptionData]);
 
   async function handleRefill() {
     if (!prescription || !supabase) return

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, RefreshCw, Trash2, ArrowUpDown, Plus } from 'lucide-react'
@@ -49,13 +49,9 @@ function AppointmentsContent() {
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
 
-  useEffect(() => {
-    fetchAppointments()
-  }, [supabase])
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     if (!supabase) return
-  
+
     try {
       const { data, error } = await supabase
         .from('appointments')
@@ -76,7 +72,7 @@ function AppointmentsContent() {
           )
         `)
         .order('date', { ascending: true })
-  
+
       if (error) throw error
       
       const transformedData: Appointment[] = data.map(apt => ({
@@ -101,7 +97,11 @@ function AppointmentsContent() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchAppointments()
+  }, [fetchAppointments])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {

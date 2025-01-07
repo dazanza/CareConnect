@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { useTheme } from '@/app/providers'
@@ -39,36 +39,29 @@ export default function SettingsPage() {
     theme: theme,
   })
 
-  useEffect(() => {
-    if (user) {
-      fetchUserProfile()
-    }
-  }, [user])
-
-  const fetchUserProfile = async () => {
-    if (!user) return
-
+  const fetchUserProfile = useCallback(async () => {
+    if (!supabase || !user) return;
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('first_name, last_name')
+        .select('*')
         .eq('id', user.id)
-        .single()
+        .single();
 
-      if (error) throw error
-
-      if (data) {
-        setFormData(prev => ({
-          ...prev,
-          first_name: data.first_name || '',
-          last_name: data.last_name || '',
-        }))
-      }
+      if (error) throw error;
+      setProfile(data);
     } catch (error) {
-      console.error('Error fetching user profile:', error)
-      toast.error('Failed to load user profile')
+      console.error('Error fetching user profile:', error);
+      toast.error('Failed to load user profile');
+    } finally {
+      setIsLoading(false);
     }
-  }
+  }, [supabase, user]);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
 
   const handleSaveProfile = async () => {
     if (!user) return

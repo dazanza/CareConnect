@@ -36,6 +36,15 @@
     "policy_type": "PERMISSIVE"
   },
   {
+    "policy_name": "Users can insert share notifications",
+    "table_name": "notifications",
+    "policy_role": null,
+    "command": "a",
+    "policy_expression": null,
+    "with_check_expression": "((auth.uid() = user_id) OR ((type = 'share_received'::text) AND (EXISTS ( SELECT 1\n   FROM patient_shares ps\n  WHERE ((ps.shared_with_user_id = notifications.user_id) AND (ps.shared_by_user_id = auth.uid()) AND (ps.id = ((notifications.data ->> 'shareId'::text))::uuid))))))",
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can view their own data",
     "table_name": "users",
     "policy_role": null,

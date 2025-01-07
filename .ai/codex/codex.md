@@ -995,3 +995,80 @@ L109:
   - Maintain semantic naming for better maintainability
 - Impact: Creates cohesive theming system across the application
 - Related: L108, L029
+
+L110:
+- Context: Supabase RLS and stored procedures for notifications
+- Insight: Using SECURITY DEFINER stored procedures to bypass RLS for complex operations
+- Application: 
+  1. Create stored procedure with SECURITY DEFINER
+  2. Handle all related operations (share creation + notification) in single transaction
+  3. Return result as JSONB for flexibility
+  4. Call procedure using supabase.rpc() from client
+- Impact: Resolves RLS policy conflicts while maintaining data integrity and security
+- Related: L058, L063
+
+L111:
+- Context: Supabase notification system architecture
+- Insight: Notifications need atomic creation with their triggering events
+- Application:
+  1. Create notifications within same transaction as triggering event
+  2. Use stored procedures to handle complex notification logic
+  3. Return complete operation result including notification status
+  4. Handle notification failures gracefully without rolling back main operation
+- Impact: Ensures reliable notification delivery while maintaining data consistency
+- Related: L057, L110
+
+L112:
+- Context: Database column naming and data fetching
+- Insight: Database column names must be used exactly as defined in schema
+- Application: 
+  1. Use `date_time` instead of `recorded_at` for vitals
+  2. Use `prescribed_by` instead of `prescribed_at` for prescriptions
+  3. Use `date` instead of `event_date` for timeline_events
+  4. Use `created_at` for general timestamp ordering
+- Impact: Prevents database errors and ensures consistent data access
+- Related: L066, L077
+
+L113:
+- Context: Supabase join queries and nested selects
+- Insight: Nested selects require proper alias and field specification
+- Application:
+  ```typescript
+  .select(`
+    *,
+    doctor:prescribed_by (
+      id,
+      first_name,
+      last_name,
+      specialization
+    )
+  `)
+  ```
+- Impact: Ensures proper data fetching with joined tables
+- Related: L069, L112
+
+L114:
+- Context: Data fetching error handling in React components
+- Insight: Error messages should be specific and include error details
+- Application:
+  ```typescript
+  catch (error) {
+    console.error('Error fetching prescriptions:', error);
+    // Optional: Show user-friendly error toast
+    toast.error('Failed to load prescriptions');
+  }
+  ```
+- Impact: Improves debugging and error tracking
+- Related: L064, L112
+
+L115:
+- Context: Supabase query ordering
+- Insight: Order by clauses should use actual column names with proper direction
+- Application:
+  ```typescript
+  .order('date_time', { ascending: false })  // for vitals
+  .order('date', { ascending: false })       // for timeline events
+  .order('created_at', { ascending: false }) // for general timestamps
+  ```
+- Impact: Ensures consistent data ordering across the application
+- Related: L112, L113

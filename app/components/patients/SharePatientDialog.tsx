@@ -39,6 +39,7 @@ export function SharePatientDialog({
   const [accessLevel, setAccessLevel] = useState('read')
   const [isLoading, setIsLoading] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,35 +50,33 @@ export function SharePatientDialog({
 
     setIsLoading(true)
     setShowInvite(false)
+    setError(null)
     try {
-      // First, find the user by email
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .single()
+      // Check if user exists using our API endpoint
+      const response = await fetch(`/api/users/check-email?email=${encodeURIComponent(email)}`)
+      const data = await response.json()
 
-      if (userError) {
-        if (userError.code === 'PGRST116') {
-          // User not found - show invite option
-          setShowInvite(true)
-          return
-        }
-        throw new Error('Failed to check user')
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to check user')
       }
 
-      if (!userData?.id) {
+      if (!data.exists) {
         setShowInvite(true)
+        setIsLoading(false)
         return
       }
 
       // Share the patient
-      await sharePatient(supabase, {
+      const result = await sharePatient(supabase, {
         patientId: parseInt(patientId),
         sharedByUserId: user.id,
-        sharedWithUserId: userData.id,
+        sharedWithUserId: data.userId,
         accessLevel: accessLevel as any
       })
+
+      if (!result || !result.id) {
+        throw new Error('Failed to share patient - no share ID returned')
+      }
 
       toast.success('Patient shared successfully')
       setEmail('')
@@ -89,6 +88,7 @@ export function SharePatientDialog({
       const errorMessage = error instanceof Error 
         ? error.message 
         : 'An unexpected error occurred while sharing the patient'
+      setError(errorMessage)
       toast.error(errorMessage)
     } finally {
       setIsLoading(false)
@@ -97,22 +97,25 @@ export function SharePatientDialog({
 
   const handleInvite = async () => {
     setIsLoading(true)
+    setError(null)
     try {
-      // Create a pending share record
-      const { error: pendingShareError } = await supabase
-        .from('pending_shares')
-        .insert({
-          patient_id: patientId,
-          email: email,
-          access_level: accessLevel,
-          shared_by_user_id: user?.id,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days expiry
-        })
+      const response = await fetch('/api/invitations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          patientId,
+          accessLevel,
+        }),
+      })
 
-      if (pendingShareError) throw pendingShareError
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send invitation')
+      }
 
-      // TODO: Send invitation email here
-      // For now, just show success message
       toast.success('Invitation sent to ' + email)
       setEmail('')
       setAccessLevel('read')
@@ -121,7 +124,9 @@ export function SharePatientDialog({
       onClose()
     } catch (error) {
       console.error('Error sending invitation:', error)
-      toast.error('Failed to send invitation')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send invitation'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -137,6 +142,13 @@ export function SharePatientDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="email">User Email</Label>
             <Input

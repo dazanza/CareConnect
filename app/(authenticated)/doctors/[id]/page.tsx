@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
@@ -66,7 +66,7 @@ export default function DoctorDetailsPage() {
     fetchDoctorDetails();
   }, [supabase, params.id]);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('appointments')
@@ -94,9 +94,9 @@ export default function DoctorDetailsPage() {
       console.error('Error fetching appointments:', error);
       toast.error('Failed to load appointments');
     }
-  };
+  }, [supabase, params.id]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('patient_doctors')
@@ -116,15 +116,16 @@ export default function DoctorDetailsPage() {
       console.error('Error fetching patients:', error);
       toast.error('Failed to load patients');
     }
-  };
+  }, [supabase, params.id]);
 
-  const fetchPreviousAppointments = async () => {
+  const fetchPreviousAppointments = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('appointments')
         .select(`
           id,
           date,
+          notes,
           type,
           patients (
             id,
@@ -144,7 +145,13 @@ export default function DoctorDetailsPage() {
       console.error('Error fetching previous appointments:', error);
       toast.error('Failed to load previous appointments');
     }
-  };
+  }, [supabase, params.id]);
+
+  useEffect(() => {
+    fetchAppointments();
+    fetchPatients();
+    fetchPreviousAppointments();
+  }, [fetchAppointments, fetchPatients, fetchPreviousAppointments]);
 
   const handleDeleteDoctor = async () => {
     if (deleteConfirmName !== `${doctor.first_name} ${doctor.last_name}`) {
@@ -238,7 +245,7 @@ export default function DoctorDetailsPage() {
                 <dl className="grid gap-3 text-sm">
                   <div className="flex items-center justify-between">
                     <dt className="font-medium">Specialization</dt>
-                    <dd className="text-muted-foreground">{doctor.specialization}</dd>
+                    <dd className="text-muted-foreground">{doctor.specialization ? `Specializes in ${doctor.specialization}` : "Doctor&apos;s specialization not specified"}</dd>
                   </div>
                   <div className="flex items-center justify-between">
                     <dt className="font-medium">Contact Number</dt>

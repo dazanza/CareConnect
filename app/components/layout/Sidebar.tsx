@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { 
   Home, 
   Users, 
@@ -43,7 +44,6 @@ import {
 import { cn } from '@/lib/utils'
 import { SignOutButton } from "@/app/components/auth/SignOutButton"
 import { UserNav } from './UserNav'
-import { Link } from '@/components/ui/link'
 
 export default function AppSidebar() {
   const pathname = usePathname()
@@ -182,6 +182,23 @@ export default function AppSidebar() {
                   <div className="flex items-center gap-2">
                     <ClipboardList className="h-4 w-4" />
                     <span>Logs</span>
+                  </div>
+                  <div className="w-4" />
+                </Link>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <Link 
+                  href="/shared"
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                    "hover:bg-blue-50 hover:text-blue-600",
+                    pathname === '/shared' && "bg-blue-50 text-blue-600 font-medium"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>Shares</span>
                   </div>
                   <div className="w-4" />
                 </Link>
