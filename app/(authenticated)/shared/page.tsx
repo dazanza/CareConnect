@@ -23,7 +23,12 @@ import {
   Search,
   UserPlus,
   UserMinus,
-  ExternalLink
+  ExternalLink,
+  Share2,
+  UserCheck,
+  MoreHorizontal,
+  XCircle,
+  Edit
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
@@ -80,6 +85,44 @@ export default function SharedResourcesPage() {
   const [incomingShares, setIncomingShares] = useState<PatientShare[]>([])
   const [outgoingShares, setOutgoingShares] = useState<PatientShare[]>([])
   const [sharedFiles, setSharedFiles] = useState<Document[]>([])
+
+  // Handle ending a share
+  const handleEndShare = async (shareId: string) => {
+    try {
+      const { error } = await supabase
+        .from('patient_shares')
+        .delete()
+        .eq('id', shareId);
+
+      if (error) throw error;
+
+      toast.success('Share ended successfully');
+      fetchSharedResources();
+    } catch (error) {
+      console.error('Error ending share:', error);
+      toast.error('Failed to end share');
+    }
+  };
+
+  // Handle editing a share
+  const handleEditShare = async (share: PatientShare) => {
+    try {
+      const { error } = await supabase
+        .from('patient_shares')
+        .update({
+          access_level: share.access_level === 'read' ? 'write' : 'read',
+        })
+        .eq('id', share.id);
+
+      if (error) throw error;
+
+      toast.success('Share updated successfully');
+      fetchSharedResources();
+    } catch (error) {
+      console.error('Error updating share:', error);
+      toast.error('Failed to update share');
+    }
+  };
 
   // Fetch shared resources
   const fetchSharedResources = useCallback(async () => {
@@ -291,14 +334,36 @@ export default function SharedResourcesPage() {
                     <div className="mt-4 flex justify-between items-center text-sm text-muted-foreground">
                       <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2">
-                          <UserPlus className="h-4 w-4" />
+                          <Share2 className="h-4 w-4" />
                           Shared by: {share.shared_by?.first_name || 'Unknown'} {share.shared_by?.last_name || ''}
                         </div>
                         <div className="flex items-center gap-2">
-                          <UserMinus className="h-4 w-4" />
+                          <UserCheck className="h-4 w-4" />
                           Shared with: {share.shared_with?.first_name || 'Unknown'} {share.shared_with?.last_name || ''}
                         </div>
                       </div>
+                      {share.shared_by_user_id === user?.id && (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1"
+                            onClick={() => handleEditShare(share)}
+                          >
+                            <Edit className="h-4 w-4" />
+                            {share.access_level === 'read' ? 'Grant Write Access' : 'Restrict to Read'}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="flex items-center gap-1"
+                            onClick={() => handleEndShare(share.id)}
+                          >
+                            <XCircle className="h-4 w-4" />
+                            End Share
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -380,12 +445,38 @@ export default function SharedResourcesPage() {
                             {share.patient.first_name} {share.patient.last_name}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            Shared by: {share.shared_by?.first_name || 'Unknown'} {share.shared_by?.last_name || ''}
+                            <span className="flex items-center gap-1">
+                              <Share2 className="h-4 w-4" />
+                              Shared by: {share.shared_by?.first_name || 'Unknown'} {share.shared_by?.last_name || ''}
+                            </span>
                           </div>
                         </div>
-                        <div className="text-sm">
-                          {share.access_level} access
-                          {share.expires_at && ` · Expires: ${format(new Date(share.expires_at), 'MMM d, yyyy')}`}
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm">
+                            {share.access_level} access
+                            {share.expires_at && ` · Expires: ${format(new Date(share.expires_at), 'MMM d, yyyy')}`}
+                          </div>
+                          {share.shared_by_user_id === user?.id && (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditShare(share)}
+                                title={share.access_level === 'read' ? 'Grant Write Access' : 'Restrict to Read'}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive"
+                                onClick={() => handleEndShare(share.id)}
+                                title="End Share"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -412,12 +503,36 @@ export default function SharedResourcesPage() {
                             {share.patient.first_name} {share.patient.last_name}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            Shared with: {share.shared_with?.first_name || 'Unknown'} {share.shared_with?.last_name || ''}
+                            <span className="flex items-center gap-1">
+                              <UserCheck className="h-4 w-4" />
+                              Shared with: {share.shared_with?.first_name || 'Unknown'} {share.shared_with?.last_name || ''}
+                            </span>
                           </div>
                         </div>
-                        <div className="text-sm">
-                          {share.access_level} access
-                          {share.expires_at && ` · Expires: ${format(new Date(share.expires_at), 'MMM d, yyyy')}`}
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm">
+                            {share.access_level} access
+                            {share.expires_at && ` · Expires: ${format(new Date(share.expires_at), 'MMM d, yyyy')}`}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditShare(share)}
+                              title={share.access_level === 'read' ? 'Grant Write Access' : 'Restrict to Read'}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => handleEndShare(share.id)}
+                              title="End Share"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
