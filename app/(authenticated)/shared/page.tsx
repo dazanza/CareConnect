@@ -235,7 +235,7 @@ export default function SharedResourcesPage() {
         : [...incomingShares, ...outgoingShares];
 
     if (!searchTerm) return shares;
-    
+
     const term = searchTerm.toLowerCase();
     return shares.filter(share => 
       share.patient.first_name?.toLowerCase().includes(term) ||
@@ -549,4 +549,4 @@ export default function SharedResourcesPage() {
       </Tabs>
     </div>
   )
-} 
+}
