@@ -48,7 +48,7 @@ export default function DoctorDetailsPage() {
         }
 
         setDoctor(data);
-        
+
         // Fetch related data
         await Promise.all([
           fetchAppointments(),
