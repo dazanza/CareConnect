@@ -28,6 +28,48 @@ import {
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
 
+interface PatientShare {
+  id: string
+  patient_id: string
+  access_level: string
+  expires_at: string | null
+  shared_by_user_id: string
+  shared_with_user_id: string
+  shared_by: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+  shared_with: {
+    id: string
+    first_name: string
+    last_name: string
+  }
+  patient: {
+    id: string
+    first_name: string
+    last_name: string
+    date_of_birth: string
+    gender: string
+  }
+}
+
+interface Document {
+  id: string
+  name: string
+  type: string
+  size: number
+  uploaded_at: string
+  patient_id: number
+  url: string
+  category: string
+  patient: {
+    id: number
+    first_name: string
+    last_name: string
+  }
+}
+
 export default function SharedResourcesPage() {
   const { user } = useAuth()
   const { supabase } = useSupabase()
@@ -35,23 +77,31 @@ export default function SharedResourcesPage() {
   const [filterType, setFilterType] = useState<'all' | 'shared_by_me' | 'shared_with_me'>('all')
   const [activeTab, setActiveTab] = useState('patients')
   const [isLoading, setIsLoading] = useState(true)
-  const [sharedPatients, setSharedPatients] = useState<any[]>([])
-  const [sharedFiles, setSharedFiles] = useState<any[]>([])
+  const [incomingShares, setIncomingShares] = useState<PatientShare[]>([])
+  const [outgoingShares, setOutgoingShares] = useState<PatientShare[]>([])
+  const [sharedFiles, setSharedFiles] = useState<Document[]>([])
 
   // Fetch shared resources
   const fetchSharedResources = useCallback(async () => {
     if (!supabase || !user) return;
     setIsLoading(true);
     try {
-      // Fetch shared patients
-      const { data: patientShares, error: patientsError } = await supabase
+      // Fetch patients shared with me
+      const { data: incoming, error: incomingError } = await supabase
         .from('patient_shares')
         .select(`
           id,
           patient_id,
           access_level,
           expires_at,
-          shared_by:shared_by_user_id (
+          shared_by_user_id,
+          shared_with_user_id,
+          shared_by:users!shared_by_user_id(
+            id,
+            first_name,
+            last_name
+          ),
+          shared_with:users!shared_with_user_id(
             id,
             first_name,
             last_name
@@ -66,34 +116,65 @@ export default function SharedResourcesPage() {
         `)
         .eq('shared_with_user_id', user.id);
 
-      if (patientsError) throw patientsError;
-      setSharedPatients(patientShares || []);
+      if (incomingError) throw incomingError;
+      setIncomingShares((incoming as unknown as PatientShare[]) || []);
 
-      // Fetch shared files
-      const { data: fileShares, error: filesError } = await supabase
-        .from('file_shares')
+      // Fetch patients I've shared with others
+      const { data: outgoing, error: outgoingError } = await supabase
+        .from('patient_shares')
         .select(`
           id,
-          file_id,
+          patient_id,
           access_level,
           expires_at,
-          shared_by:shared_by_user_id (
+          shared_by_user_id,
+          shared_with_user_id,
+          shared_by:users!shared_by_user_id(
             id,
             first_name,
             last_name
           ),
-          file:files (
+          shared_with:users!shared_with_user_id(
             id,
-            name,
-            type,
-            size,
-            uploaded_at
+            first_name,
+            last_name
+          ),
+          patient:patients (
+            id,
+            first_name,
+            last_name,
+            date_of_birth,
+            gender
           )
         `)
-        .eq('shared_with_user_id', user.id);
+        .eq('shared_by_user_id', user.id);
+
+      if (outgoingError) throw outgoingError;
+      setOutgoingShares((outgoing as unknown as PatientShare[]) || []);
+
+      // Fetch shared documents
+      const { data: sharedDocuments, error: filesError } = await supabase
+        .from('documents')
+        .select(`
+          id,
+          name,
+          type,
+          size,
+          uploaded_at,
+          url,
+          category,
+          patient_id,
+          patient:patients (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .neq('user_id', user.id)
+        .order('uploaded_at', { ascending: false });
 
       if (filesError) throw filesError;
-      setSharedFiles(fileShares || []);
+      setSharedFiles((sharedDocuments as unknown as Document[]) || []);
     } catch (error) {
       console.error('Error fetching shared resources:', error);
       toast.error('Failed to load shared resources');
@@ -102,29 +183,26 @@ export default function SharedResourcesPage() {
     }
   }, [supabase, user]);
 
-  // Filter resources based on search term
-  const filterResources = (resources: any[]) => {
-    if (!searchTerm) return resources
+  // Filter resources based on search term and type
+  const getFilteredShares = () => {
+    const shares = filterType === 'shared_by_me' 
+      ? outgoingShares 
+      : filterType === 'shared_with_me' 
+        ? incomingShares 
+        : [...incomingShares, ...outgoingShares];
+
+    if (!searchTerm) return shares;
     
-    const term = searchTerm.toLowerCase()
-    return resources.filter(resource => {
-      // For patients
-      if (resource.patient) {
-        return (
-          resource.patient.first_name?.toLowerCase().includes(term) ||
-          resource.patient.last_name?.toLowerCase().includes(term) ||
-          resource.shared_by?.email.toLowerCase().includes(term) ||
-          resource.shared_with?.email.toLowerCase().includes(term)
-        )
-      }
-      // For files
-      return (
-        resource.file_name?.toLowerCase().includes(term) ||
-        resource.patients?.first_name?.toLowerCase().includes(term) ||
-        resource.patients?.last_name?.toLowerCase().includes(term)
-      )
-    })
-  }
+    const term = searchTerm.toLowerCase();
+    return shares.filter(share => 
+      share.patient.first_name?.toLowerCase().includes(term) ||
+      share.patient.last_name?.toLowerCase().includes(term) ||
+      share.shared_by.first_name?.toLowerCase().includes(term) ||
+      share.shared_by.last_name?.toLowerCase().includes(term) ||
+      share.shared_with.first_name?.toLowerCase().includes(term) ||
+      share.shared_with.last_name?.toLowerCase().includes(term)
+    );
+  };
 
   // Effect to fetch data
   useEffect(() => {
@@ -168,6 +246,10 @@ export default function SharedResourcesPage() {
             <FileText className="h-4 w-4" />
             Files
           </TabsTrigger>
+          <TabsTrigger value="shares" className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            Share Details
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="patients" className="space-y-4">
@@ -175,9 +257,9 @@ export default function SharedResourcesPage() {
             <div className="flex justify-center p-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
-          ) : filterResources(sharedPatients).length > 0 ? (
+          ) : getFilteredShares().length > 0 ? (
             <div className="grid gap-4">
-              {filterResources(sharedPatients).map((share) => (
+              {getFilteredShares().map((share: PatientShare) => (
                 <Card key={share.id}>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
@@ -210,15 +292,12 @@ export default function SharedResourcesPage() {
                       <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2">
                           <UserPlus className="h-4 w-4" />
-                          Shared by: {share.shared_by.email}
+                          Shared by: {share.shared_by?.first_name || 'Unknown'} {share.shared_by?.last_name || ''}
                         </div>
                         <div className="flex items-center gap-2">
                           <UserMinus className="h-4 w-4" />
-                          Shared with: {share.shared_with.email}
+                          Shared with: {share.shared_with?.first_name || 'Unknown'} {share.shared_with?.last_name || ''}
                         </div>
-                      </div>
-                      <div>
-                        Shared on {format(new Date(share.created_at), 'MMM d, yyyy')}
                       </div>
                     </div>
                   </CardContent>
@@ -239,59 +318,39 @@ export default function SharedResourcesPage() {
             <div className="flex justify-center p-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
-          ) : filterResources(sharedFiles).length > 0 ? (
+          ) : sharedFiles.length > 0 ? (
             <div className="grid gap-4">
-              {filterResources(sharedFiles).map((file) => (
+              {sharedFiles.map((file: Document) => (
                 <Card key={file.id}>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="text-xl font-semibold">
-                          {file.file_name}
-                        </div>
                         <Link 
-                          href={`/patients/${file.patient_id}`}
-                          className="text-sm text-muted-foreground mt-1 hover:underline flex items-center gap-1"
+                          href={file.url}
+                          target="_blank"
+                          className="text-xl font-semibold flex items-center gap-2"
                         >
-                          Patient: {file.patients.first_name} {file.patients.last_name}
-                          <ExternalLink className="h-3 w-3" />
+                          {file.name}
+                          <ExternalLink className="h-4 w-4" />
                         </Link>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          Patient: {file.patient.first_name} {file.patient.last_name}
+                        </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <div className="text-sm text-muted-foreground">
-                          {file.file_type}
+                        <div className="flex items-center gap-2 text-sm">
+                          <FileText className="h-4 w-4 text-blue-500" />
+                          {file.type}
                         </div>
                         <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4" />
-                          Uploaded: {format(new Date(file.upload_date), 'MMM d, yyyy')}
+                          <Clock className="h-4 w-4 text-yellow-500" />
+                          Uploaded: {format(new Date(file.uploaded_at), 'MMM d, yyyy')}
                         </div>
                       </div>
                     </div>
-                    {file.patient_shares?.map((share: any) => (
-                      <div key={share.id} className="mt-4 flex justify-between items-center text-sm text-muted-foreground border-t pt-4">
-                        <div className="flex items-center gap-6">
-                          <div className="flex items-center gap-2">
-                            <UserPlus className="h-4 w-4" />
-                            Shared by: {share.shared_by.email}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <UserMinus className="h-4 w-4" />
-                            Shared with: {share.shared_with.email}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <Shield className="h-4 w-4 text-blue-500" />
-                            {share.access_level} access
-                          </div>
-                          {share.expires_at && (
-                            <div>
-                              Expires: {format(new Date(share.expires_at), 'MMM d, yyyy')}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      Category: {file.category}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -303,6 +362,74 @@ export default function SharedResourcesPage() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="shares" className="space-y-4">
+          <div className="grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Incoming Shares</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {incomingShares.length > 0 ? (
+                  <div className="space-y-4">
+                    {incomingShares.map(share => (
+                      <div key={share.id} className="flex justify-between items-center py-2 border-b last:border-0">
+                        <div>
+                          <div className="font-medium">
+                            {share.patient.first_name} {share.patient.last_name}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Shared by: {share.shared_by?.first_name || 'Unknown'} {share.shared_by?.last_name || ''}
+                          </div>
+                        </div>
+                        <div className="text-sm">
+                          {share.access_level} access
+                          {share.expires_at && ` · Expires: ${format(new Date(share.expires_at), 'MMM d, yyyy')}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    No incoming shares
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Outgoing Shares</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {outgoingShares.length > 0 ? (
+                  <div className="space-y-4">
+                    {outgoingShares.map(share => (
+                      <div key={share.id} className="flex justify-between items-center py-2 border-b last:border-0">
+                        <div>
+                          <div className="font-medium">
+                            {share.patient.first_name} {share.patient.last_name}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Shared with: {share.shared_with?.first_name || 'Unknown'} {share.shared_with?.last_name || ''}
+                          </div>
+                        </div>
+                        <div className="text-sm">
+                          {share.access_level} access
+                          {share.expires_at && ` · Expires: ${format(new Date(share.expires_at), 'MMM d, yyyy')}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    No outgoing shares
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

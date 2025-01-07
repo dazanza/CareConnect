@@ -54,6 +54,15 @@
     "policy_type": "PERMISSIVE"
   },
   {
+    "policy_name": "Users can view details of users they share patients with",
+    "table_name": "users",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM patient_shares\n  WHERE (((patient_shares.shared_with_user_id = auth.uid()) AND (patient_shares.shared_by_user_id = users.id)) OR ((patient_shares.shared_by_user_id = auth.uid()) AND (patient_shares.shared_with_user_id = users.id)))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can update their own data",
     "table_name": "users",
     "policy_role": null,

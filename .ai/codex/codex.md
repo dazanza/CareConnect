@@ -1072,3 +1072,222 @@ L115:
   ```
 - Impact: Ensures consistent data ordering across the application
 - Related: L112, L113
+
+# AI Optimization Codex
+
+## Supabase Relationships
+
+### Foreign Key Joins
+```typescript
+// OPTIMAL: Use explicit foreign key relationship in select
+.from('table')
+.select(`
+  id,
+  related:foreign_key (
+    id,
+    field1,
+    field2
+  )
+`)
+
+// SUBOPTIMAL: Using separate queries or manual joins
+const data = await getMainData()
+const related = await getRelatedData()
+const combined = data.map(item => ({
+  ...item,
+  related: related.find(r => r.id === item.foreign_key)
+}))
+```
+
+### Nullable Relationships
+```typescript
+// OPTIMAL: Use optional chaining with fallbacks
+{relationship?.field || 'Default'}
+
+// SUBOPTIMAL: Direct access or complex conditionals
+{relationship && relationship.field ? relationship.field : 'Default'}
+```
+
+### Type Safety
+```typescript
+// OPTIMAL: Define explicit interfaces and use type assertions
+interface Relationship {
+  id: string
+  related: {
+    id: string
+    field: string
+  }
+}
+setData((response.data as unknown as Relationship[]) || [])
+
+// SUBOPTIMAL: Using any or ignoring types
+setData(response.data as any)
+```
+
+## State Management
+
+### Related Data Organization
+```typescript
+// OPTIMAL: Split related data into logical states
+const [incoming, setIncoming] = useState<Type1[]>([])
+const [outgoing, setOutgoing] = useState<Type2[]>([])
+
+// SUBOPTIMAL: Combining different types in single state
+const [data, setData] = useState<(Type1 | Type2)[]>([])
+```
+
+### Computed Values
+```typescript
+// OPTIMAL: Use computed functions for derived state
+const getFiltered = () => {
+  const all = type === 'a' ? dataA : type === 'b' ? dataB : [...dataA, ...dataB]
+  return filter ? all.filter(filterFn) : all
+}
+
+// SUBOPTIMAL: Storing derived state
+const [filtered, setFiltered] = useState([])
+useEffect(() => {
+  setFiltered(data.filter(filterFn))
+}, [data, filterFn])
+```
+
+## UI Patterns
+
+### Data Organization
+```typescript
+// OPTIMAL: Use tabs for clear data separation
+<Tabs defaultValue="main">
+  <TabsList>
+    <TabsTrigger value="main">Main</TabsTrigger>
+    <TabsTrigger value="related">Related</TabsTrigger>
+  </TabsList>
+  <TabsContent value="main">...</TabsContent>
+  <TabsContent value="related">...</TabsContent>
+</Tabs>
+
+// SUBOPTIMAL: Long scrolling pages or complex nested views
+<div>
+  <MainSection />
+  <RelatedSection />
+  <MoreRelatedSection />
+</div>
+```
+
+### Relationship Display
+```typescript
+// OPTIMAL: Clear visual hierarchy with icons
+<div className="flex items-center gap-2">
+  <Icon className="h-4 w-4 text-muted" />
+  <span>{primary.name}</span>
+  <ArrowIcon className="h-3 w-3" />
+  <span>{related.name}</span>
+</div>
+
+// SUBOPTIMAL: Text-only or unclear relationships
+<div>
+  {primary.name} is related to {related.name}
+</div>
+```
+
+### Loading & Empty States
+```typescript
+// OPTIMAL: Consistent loading and empty patterns
+{isLoading ? (
+  <LoadingSpinner />
+) : items.length > 0 ? (
+  <ItemsList items={items} />
+) : (
+  <EmptyState message="No items" action={<AddButton />} />
+)}
+
+// SUBOPTIMAL: Inconsistent or missing states
+{!isLoading && items.map(item => (
+  <Item key={item.id} {...item} />
+))}
+```
+
+L116:
+- Context: Supabase foreign key relationships in shared resources
+- Insight: Proper foreign key relationship syntax is crucial for complex joins
+- Application:
+  ```typescript
+  // Correct: Use explicit foreign key relationships with aliases
+  .from('patient_shares')
+  .select(`
+    id,
+    patient_id,
+    shared_by:shared_by_user_id (
+      id,
+      first_name,
+      last_name
+    ),
+    shared_with:shared_with_user_id (
+      id,
+      first_name,
+      last_name
+    )
+  `)
+  ```
+- Impact: Ensures proper data fetching with multiple related tables
+- Related: L113, L112
+
+L117:
+- Context: Handling nullable relationships in UI
+- Insight: Always use optional chaining with fallbacks for relationship fields
+- Application:
+  ```typescript
+  // Correct: Use optional chaining with fallbacks
+  Shared by: {share.shared_by?.first_name || 'Unknown'} {share.shared_by?.last_name || ''}
+  
+  // Incorrect: Direct access can cause runtime errors
+  Shared by: {share.shared_by.first_name} {share.shared_by.last_name}
+  ```
+- Impact: Prevents runtime errors from null/undefined relationship fields
+- Related: L114, L116
+
+L118:
+- Context: State management for bidirectional relationships
+- Insight: Split related data into logical groups for better organization
+- Application:
+  ```typescript
+  // Correct: Separate states for different directions
+  const [incomingShares, setIncomingShares] = useState<PatientShare[]>([])
+  const [outgoingShares, setOutgoingShares] = useState<PatientShare[]>([])
+  
+  // Correct: Computed function for filtered/combined data
+  const getFilteredShares = () => {
+    const shares = filterType === 'shared_by_me' 
+      ? outgoingShares 
+      : filterType === 'shared_with_me' 
+        ? incomingShares 
+        : [...incomingShares, ...outgoingShares];
+    return searchTerm ? shares.filter(filterFn) : shares;
+  }
+  ```
+- Impact: Improves state management and data organization for complex relationships
+- Related: L116, L117
+
+L119:
+- Context: UI organization for relationship data
+- Insight: Use tabs and clear visual hierarchy for relationship display
+- Application:
+  ```typescript
+  // Correct: Organize with tabs
+  <Tabs>
+    <TabsTrigger value="patients">Patients</TabsTrigger>
+    <TabsTrigger value="files">Files</TabsTrigger>
+    <TabsTrigger value="shares">Share Details</TabsTrigger>
+  </Tabs>
+
+  // Correct: Clear relationship display
+  <div className="flex items-center gap-2">
+    <UserPlus className="h-4 w-4" />
+    Shared by: {share.shared_by?.first_name || 'Unknown'}
+  </div>
+  <div className="flex items-center gap-2">
+    <UserMinus className="h-4 w-4" />
+    Shared with: {share.shared_with?.first_name || 'Unknown'}
+  </div>
+  ```
+- Impact: Improves user experience and data comprehension
+- Related: L118, L117
