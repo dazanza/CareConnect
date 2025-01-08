@@ -53,6 +53,7 @@ interface ImmunizationTrackerProps {
   patientId: string
   doctors: Doctor[]
   initialImmunizations?: Immunization[]
+  canEdit?: boolean
 }
 
 const vaccineTypes = [
@@ -74,7 +75,8 @@ const statusColors = {
 export function ImmunizationTracker({
   patientId,
   doctors,
-  initialImmunizations = []
+  initialImmunizations = [],
+  canEdit = true
 }: ImmunizationTrackerProps) {
   const { supabase } = useSupabase()
   const [immunizations, setImmunizations] = useState<Immunization[]>(initialImmunizations)
@@ -155,10 +157,12 @@ export function ImmunizationTracker({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Immunizations</CardTitle>
-        <Button onClick={() => setShowAddImmunization(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Immunization
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setShowAddImmunization(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Immunization
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

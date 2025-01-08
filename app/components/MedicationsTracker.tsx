@@ -51,6 +51,7 @@ interface MedicationsTrackerProps {
   patientId: string
   doctors: Doctor[]
   initialMedications?: Medication[]
+  canEdit?: boolean
 }
 
 const statusColors = {
@@ -62,7 +63,8 @@ const statusColors = {
 export function MedicationsTracker({
   patientId,
   doctors,
-  initialMedications = []
+  initialMedications = [],
+  canEdit = true
 }: MedicationsTrackerProps) {
   const { supabase } = useSupabase()
   const [medications, setMedications] = useState<Medication[]>(initialMedications)
@@ -169,10 +171,12 @@ export function MedicationsTracker({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Medications</CardTitle>
-        <Button onClick={() => setShowAddMedication(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Medication
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setShowAddMedication(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Medication
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

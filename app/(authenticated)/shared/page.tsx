@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
@@ -129,95 +129,119 @@ export default function SharedResourcesPage() {
     if (!supabase || !user) return;
     setIsLoading(true);
     try {
-      // Fetch patients shared with me
-      const { data: incoming, error: incomingError } = await supabase
-        .from('patient_shares')
-        .select(`
-          id,
-          patient_id,
-          access_level,
-          expires_at,
-          shared_by_user_id,
-          shared_with_user_id,
-          shared_by:users!shared_by_user_id(
+      // Split the queries into smaller chunks
+      const [incomingResult, outgoingResult, filesResult] = await Promise.all([
+        // Fetch patients shared with me
+        supabase
+          .from('patient_shares')
+          .select(`
             id,
-            first_name,
-            last_name
-          ),
-          shared_with:users!shared_with_user_id(
-            id,
-            first_name,
-            last_name
-          ),
-          patient:patients (
-            id,
-            first_name,
-            last_name,
-            date_of_birth,
-            gender
-          )
-        `)
-        .eq('shared_with_user_id', user.id);
+            patient_id,
+            access_level,
+            expires_at,
+            shared_by_user_id,
+            shared_with_user_id,
+            shared_by:users!shared_by_user_id (
+              id,
+              first_name,
+              last_name
+            ),
+            patient:patients (
+              id,
+              first_name,
+              last_name,
+              date_of_birth,
+              gender
+            )
+          `)
+          .eq('shared_with_user_id', user.id)
+          .limit(50),
 
-      if (incomingError) throw incomingError;
-      setIncomingShares((incoming as unknown as PatientShare[]) || []);
-
-      // Fetch patients I've shared with others
-      const { data: outgoing, error: outgoingError } = await supabase
-        .from('patient_shares')
-        .select(`
-          id,
-          patient_id,
-          access_level,
-          expires_at,
-          shared_by_user_id,
-          shared_with_user_id,
-          shared_by:users!shared_by_user_id(
+        // Fetch patients I've shared with others
+        supabase
+          .from('patient_shares')
+          .select(`
             id,
-            first_name,
-            last_name
-          ),
-          shared_with:users!shared_with_user_id(
-            id,
-            first_name,
-            last_name
-          ),
-          patient:patients (
-            id,
-            first_name,
-            last_name,
-            date_of_birth,
-            gender
-          )
-        `)
-        .eq('shared_by_user_id', user.id);
+            patient_id,
+            access_level,
+            expires_at,
+            shared_by_user_id,
+            shared_with_user_id,
+            shared_with:users!shared_with_user_id (
+              id,
+              first_name,
+              last_name
+            ),
+            patient:patients (
+              id,
+              first_name,
+              last_name,
+              date_of_birth,
+              gender
+            )
+          `)
+          .eq('shared_by_user_id', user.id)
+          .limit(50),
 
-      if (outgoingError) throw outgoingError;
-      setOutgoingShares((outgoing as unknown as PatientShare[]) || []);
-
-      // Fetch shared documents
-      const { data: sharedDocuments, error: filesError } = await supabase
-        .from('documents')
-        .select(`
-          id,
-          name,
-          type,
-          size,
-          uploaded_at,
-          url,
-          category,
-          patient_id,
-          patient:patients (
+        // Fetch shared documents
+        supabase
+          .from('documents')
+          .select(`
             id,
-            first_name,
-            last_name
-          )
-        `)
-        .neq('user_id', user.id)
-        .order('uploaded_at', { ascending: false });
+            name,
+            type,
+            size,
+            uploaded_at,
+            url,
+            category,
+            patient_id,
+            patient:patients (
+              id,
+              first_name,
+              last_name
+            )
+          `)
+          .neq('user_id', user.id)
+          .order('uploaded_at', { ascending: false })
+          .limit(50)
+      ]);
 
-      if (filesError) throw filesError;
-      setSharedFiles((sharedDocuments as unknown as Document[]) || []);
+      if (incomingResult.error) throw incomingResult.error;
+      if (outgoingResult.error) throw outgoingResult.error;
+      if (filesResult.error) throw filesResult.error;
+
+      // Process and merge shared user data
+      const processShares = (shares: any[], isIncoming: boolean) => 
+        shares.map(share => ({
+          ...share,
+          shared_by: isIncoming ? share.shared_by : {
+            id: user.id,
+            first_name: user.user_metadata?.first_name || 'Unknown',
+            last_name: user.user_metadata?.last_name || ''
+          },
+          shared_with: !isIncoming ? share.shared_with : {
+            id: user.id,
+            first_name: user.user_metadata?.first_name || 'Unknown',
+            last_name: user.user_metadata?.last_name || ''
+          }
+        }));
+
+      setIncomingShares(processShares(incomingResult.data || [], true));
+      setOutgoingShares(processShares(outgoingResult.data || [], false));
+      setSharedFiles(filesResult.data?.map(file => ({
+        ...file,
+        patient: Array.isArray(file.patient) && file.patient[0] 
+          ? {
+              id: file.patient[0].id || 0,
+              first_name: file.patient[0].first_name || '',
+              last_name: file.patient[0].last_name || ''
+            }
+          : {
+              id: 0,
+              first_name: '',
+              last_name: ''
+            }
+      })) || []);
     } catch (error) {
       console.error('Error fetching shared resources:', error);
       toast.error('Failed to load shared resources');
@@ -227,7 +251,7 @@ export default function SharedResourcesPage() {
   };
 
   // Filter resources based on search term and type
-  const getFilteredShares = () => {
+  const getFilteredShares = useCallback(() => {
     const shares = filterType === 'shared_by_me'
       ? outgoingShares
       : filterType === 'shared_with_me'
@@ -245,12 +269,24 @@ export default function SharedResourcesPage() {
       share.shared_with.first_name?.toLowerCase().includes(term) ||
       share.shared_with.last_name?.toLowerCase().includes(term)
     );
-  };
+  }, [filterType, searchTerm, incomingShares, outgoingShares]);
 
   // Effect to fetch data
   useEffect(() => {
     fetchSharedResources();
-  }, [fetchSharedResources, supabase, user]);
+  }, [supabase, user]);
+
+  // Effect to stop loading if no data after a timeout
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        if (isLoading) {
+          setIsLoading(false);
+        }
+      }, 10000); // 10 seconds timeout
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -308,14 +344,24 @@ export default function SharedResourcesPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <Link
-                          href={`/patients/${share.patient_id}`}
+                          href={`/patients/${share.patient.id}`}
                           className="text-xl font-semibold hover:underline flex items-center gap-2"
                         >
                           {share.patient.first_name} {share.patient.last_name}
                           <ExternalLink className="h-4 w-4" />
                         </Link>
                         <div className="text-sm text-muted-foreground mt-1">
-                          Date of Birth: {format(new Date(share.patient.date_of_birth), 'MMM d, yyyy')}
+                          {share.shared_by_user_id === user?.id ? (
+                            <span className="flex items-center gap-2">
+                              <Share2 className="h-4 w-4" />
+                              Shared with {share.shared_with.first_name} {share.shared_with.last_name}
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <Share2 className="h-4 w-4" />
+                              Shared by {share.shared_by.first_name} {share.shared_by.last_name}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
@@ -329,41 +375,28 @@ export default function SharedResourcesPage() {
                             Expires: {format(new Date(share.expires_at), 'MMM d, yyyy')}
                           </div>
                         )}
+                        {share.shared_by_user_id === user?.id && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditShare(share)}
+                              title={share.access_level === 'read' ? 'Grant Write Access' : 'Restrict to Read'}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => handleEndShare(share.id)}
+                              title="End Share"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <div className="mt-4 flex justify-between items-center text-sm text-muted-foreground">
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                          <Share2 className="h-4 w-4" />
-                          Shared by: {share.shared_by?.first_name || 'Unknown'} {share.shared_by?.last_name || ''}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <UserCheck className="h-4 w-4" />
-                          Shared with: {share.shared_with?.first_name || 'Unknown'} {share.shared_with?.last_name || ''}
-                        </div>
-                      </div>
-                      {share.shared_by_user_id === user?.id && (
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={() => handleEditShare(share)}
-                          >
-                            <Edit className="h-4 w-4" />
-                            {share.access_level === 'read' ? 'Grant Write Access' : 'Restrict to Read'}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={() => handleEndShare(share.id)}
-                          >
-                            <XCircle className="h-4 w-4" />
-                            End Share
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -372,7 +405,11 @@ export default function SharedResourcesPage() {
           ) : (
             <Card>
               <CardContent className="p-8 text-center text-muted-foreground">
-                No shared patients found
+                {filterType === 'shared_by_me' 
+                  ? "You haven't shared any patients"
+                  : filterType === 'shared_with_me'
+                    ? "No patients have been shared with you"
+                    : "No shared patients found"}
               </CardContent>
             </Card>
           )}

@@ -16,28 +16,89 @@ interface Patient {
   nickname: string | null
 }
 
+interface PatientShare {
+  patient: Patient
+}
+
+interface DatabasePatient {
+  id: string
+  first_name: string
+  last_name: string
+  nickname: string | null
+}
+
+interface DatabasePatientShareResponse {
+  patient_id: string
+  patient: Patient
+}
+
 export default function PatientsContent() {
   const { user } = useAuth()
   const { supabase } = useSupabase()
   const [sortBy, setSortBy] = useState<'name' | 'nickname'>('name')
 
-  const { data: patients = [] } = useQuery({
+  const { data: patients = [] } = useQuery<Patient[]>({
     queryKey: ['patients', user?.id, sortBy],
     queryFn: async () => {
       if (!supabase || !user?.id) return []
       
-      const { data, error } = await supabase
-        .from('patients')
-        .select('id, first_name, last_name, nickname')
-        .eq('user_id', user.id.toString())
-        .order(sortBy === 'name' ? 'first_name' : 'nickname', { nullsFirst: false })
+      // Get both direct and shared patients
+      const [directResult, sharedResult] = await Promise.all([
+        // Get direct patients
+        supabase
+          .from('patients')
+          .select('id, first_name, last_name, nickname')
+          .eq('user_id', user.id),
 
-      if (error) {
-        toast.error('Failed to load patients')
-        throw error
+        // Get shared patients through patient_shares
+        supabase
+          .from('patient_shares')
+          .select(`
+            patient_id,
+            patient:patients!inner (
+              id,
+              first_name,
+              last_name,
+              nickname
+            )
+          `)
+          .eq('shared_with_user_id', user.id)
+      ]);
+
+      if (directResult.error) {
+        toast.error('Failed to load direct patients')
+        throw directResult.error
       }
 
-      return data
+      if (sharedResult.error) {
+        toast.error('Failed to load shared patients')
+        throw sharedResult.error
+      }
+
+      // Combine and deduplicate patients
+      const directPatients = (directResult.data || []) as Patient[]
+      
+      // Handle the nested patient data structure from the join
+      const sharedPatients = (sharedResult.data || []).map(row => {
+        const patientData = row.patient as unknown as Patient
+        return {
+          patient_id: row.patient_id,
+          patient: patientData
+        }
+      }) as DatabasePatientShareResponse[]
+
+      const extractedSharedPatients = sharedPatients.map(share => share.patient)
+
+      // Use a Map to deduplicate by ID
+      const patientMap = new Map<string, Patient>()
+      directPatients.forEach(patient => patientMap.set(patient.id, patient))
+      extractedSharedPatients.forEach(patient => {
+        if (!patientMap.has(patient.id)) {
+          patientMap.set(patient.id, patient)
+        }
+      })
+
+      return Array.from(patientMap.values())
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,

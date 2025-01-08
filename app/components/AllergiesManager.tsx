@@ -38,6 +38,7 @@ interface Allergy {
 interface AllergiesManagerProps {
   patientId: string
   initialAllergies?: Allergy[]
+  canEdit?: boolean
 }
 
 const severityColors = {
@@ -48,7 +49,8 @@ const severityColors = {
 
 export function AllergiesManager({
   patientId,
-  initialAllergies = []
+  initialAllergies = [],
+  canEdit = true
 }: AllergiesManagerProps) {
   const { supabase } = useSupabase()
   const [allergies, setAllergies] = useState<Allergy[]>(initialAllergies)
@@ -111,10 +113,12 @@ export function AllergiesManager({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Allergies</CardTitle>
-        <Button onClick={() => setShowAddAllergy(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Allergy
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setShowAddAllergy(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Allergy
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

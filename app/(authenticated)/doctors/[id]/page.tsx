@@ -29,43 +29,6 @@ export default function DoctorDetailsPage() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [prevAppointments, setPrevAppointments] = useState<any[]>([])
 
-  // Fetch doctor details
-  useEffect(() => {
-    async function fetchDoctorDetails() {
-      if (!supabase || !params.id) return;
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('doctors')
-          .select('*')
-          .eq('id', params.id)
-          .single();
-
-        if (error) throw error;
-
-        if (!data) {
-          throw new Error('Doctor not found');
-        }
-
-        setDoctor(data);
-
-        // Fetch related data
-        await Promise.all([
-          fetchAppointments(),
-          fetchPatients(),
-          fetchPreviousAppointments()
-        ]);
-      } catch (error) {
-        console.error('Error fetching doctor:', error);
-        toast.error('Failed to load doctor data');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchDoctorDetails();
-  }, [supabase, params.id]);
-
   const fetchAppointments = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -147,11 +110,41 @@ export default function DoctorDetailsPage() {
     }
   }, [supabase, params.id]);
 
+  const fetchDoctorDetails = useCallback(async () => {
+    if (!supabase || !params.id) return;
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('doctors')
+        .select('*')
+        .eq('id', params.id)
+        .single();
+
+      if (error) throw error;
+
+      if (!data) {
+        throw new Error('Doctor not found');
+      }
+
+      setDoctor(data);
+
+      // Fetch related data
+      await Promise.all([
+        fetchAppointments(),
+        fetchPatients(),
+        fetchPreviousAppointments()
+      ]);
+    } catch (error) {
+      console.error('Error fetching doctor:', error);
+      toast.error('Failed to load doctor data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [supabase, params.id, fetchAppointments, fetchPatients, fetchPreviousAppointments]);
+
   useEffect(() => {
-    fetchAppointments();
-    fetchPatients();
-    fetchPreviousAppointments();
-  }, [fetchAppointments, fetchPatients, fetchPreviousAppointments, supabase, params.id]);
+    fetchDoctorDetails();
+  }, [fetchDoctorDetails]);
 
   const handleDeleteDoctor = async () => {
     if (deleteConfirmName !== `${doctor.first_name} ${doctor.last_name}`) {

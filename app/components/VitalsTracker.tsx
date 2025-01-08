@@ -30,9 +30,10 @@ interface VitalsData {
 interface VitalsTrackerProps {
   patientId: string
   initialVitals?: VitalsData[]
+  canEdit?: boolean
 }
 
-export function VitalsTracker({ patientId, initialVitals = [] }: VitalsTrackerProps) {
+export function VitalsTracker({ patientId, initialVitals = [], canEdit = true }: VitalsTrackerProps) {
   const { supabase } = useSupabase()
   const [showAddVitals, setShowAddVitals] = useState(false)
   const [vitals, setVitals] = useState<VitalsData[]>(initialVitals)
@@ -89,10 +90,12 @@ export function VitalsTracker({ patientId, initialVitals = [] }: VitalsTrackerPr
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Vitals</CardTitle>
-        <Button size="sm" onClick={() => setShowAddVitals(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Record Vitals
-        </Button>
+        {canEdit && (
+          <Button size="sm" onClick={() => setShowAddVitals(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Record Vitals
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-4">

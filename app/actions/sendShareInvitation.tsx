@@ -2,8 +2,43 @@
 
 import { Resend } from 'resend'
 import { createServerSupabaseClient } from '@/app/lib/supabase-server'
+import React from 'react'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+interface EmailTemplateProps {
+  patientName: string
+  accessLevel: string
+  invitedBy: string
+  signUpUrl: string
+}
+
+const EmailTemplate: React.FC<EmailTemplateProps> = ({
+  patientName,
+  accessLevel,
+  invitedBy,
+  signUpUrl
+}) => {
+  return (
+    <div>
+      <h1>You&apos;ve been invited to view patient records</h1>
+      <p>Hello,</p>
+      <p>
+        You&apos;ve been invited by {invitedBy} to access medical records for patient {patientName} with {accessLevel} access.
+      </p>
+      <p>
+        To accept this invitation, please click the link below:
+      </p>
+      <a href={signUpUrl}>Accept Invitation</a>
+      <p>
+        This link will expire in 7 days.
+      </p>
+      <p>
+        If you already have an account, you can sign in directly and the share will be automatically activated.
+      </p>
+    </div>
+  )
+}
 
 export async function sendShareInvitation({
   email,
@@ -31,7 +66,7 @@ export async function sendShareInvitation({
     if (!patient) throw new Error('Patient not found')
 
     // Generate sign-up/sign-in link with share token
-    const signUpUrl = new URL('/auth/sign-up', process.env.NEXT_PUBLIC_APP_URL);;
+    const signUpUrl = new URL('/auth/sign-up', process.env.NEXT_PUBLIC_APP_URL)
     signUpUrl.searchParams.set('share_id', shareId)
     signUpUrl.searchParams.set('email', email)
 
@@ -52,36 +87,4 @@ export async function sendShareInvitation({
     console.error('Error sending invitation:', error)
     return { success: false, error }
   }
-}
-
-function EmailTemplate({
-  patientName,
-  accessLevel,
-  invitedBy,
-  signUpUrl
-}: {
-  patientName: string
-  accessLevel: string
-  invitedBy: string
-  signUpUrl: string
-}) {
-  return (
-    <div>
-      <h1>You've been invited to view patient records</h1>
-      <p>Hello,</p>
-      <p>
-        You've been invited by {invitedBy} to access medical records for patient {patientName} with {accessLevel} access.
-      </p>
-      <p>
-        To accept this invitation, please click the link below:
-      </p>
-      <a href={signUpUrl}>Accept Invitation</a>
-      <p>
-        This link will expire in 7 days.
-      </p>
-      <p>
-        If you already have an account, you can sign in directly and the share will be automatically activated.
-      </p>
-    </div>
-  )
 } 

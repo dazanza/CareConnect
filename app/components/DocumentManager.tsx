@@ -34,10 +34,15 @@ interface Document {
 
 interface DocumentManagerProps {
   patientId: string
-  initialDocuments?: Document[]
+  initialDocuments: Document[]
+  canEdit?: boolean
 }
 
-export function DocumentManager({ patientId, initialDocuments = [] }: DocumentManagerProps) {
+export function DocumentManager({ 
+  patientId, 
+  initialDocuments = [],
+  canEdit = true
+}: DocumentManagerProps) {
   const { supabase } = useSupabase()
   const [documents, setDocuments] = useState<Document[]>(initialDocuments)
   const [showUpload, setShowUpload] = useState(false)
@@ -100,18 +105,11 @@ export function DocumentManager({ patientId, initialDocuments = [] }: DocumentMa
     }
   }
 
-  const handleDelete = async (documentId: string, fileName: string) => {
+  const handleDelete = async (documentId: string) => {
     if (!supabase) return
 
     try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('patient-documents')
-        .remove([fileName])
-
-      if (storageError) throw storageError
-
-      // Delete from database
+      // Delete from database first
       const { error: dbError } = await supabase
         .from('documents')
         .delete()
@@ -127,6 +125,16 @@ export function DocumentManager({ patientId, initialDocuments = [] }: DocumentMa
     }
   }
 
+  const handleDownload = async (document: Document) => {
+    if (!document.url) return
+    window.open(document.url, '_blank')
+  }
+
+  const handleView = async (document: Document) => {
+    if (!document.url) return
+    window.open(document.url, '_blank')
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
@@ -139,47 +147,48 @@ export function DocumentManager({ patientId, initialDocuments = [] }: DocumentMa
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Documents</CardTitle>
-        <Button onClick={() => setShowUpload(true)}>
-          <FileUp className="w-4 h-4 mr-2" />
-          Upload Document
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setShowUpload(true)}>
+            <FileUp className="w-4 h-4 mr-2" />
+            Upload Document
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {documents.length === 0 ? (
             <p className="text-muted-foreground">No documents uploaded yet.</p>
           ) : (
-            documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <File className="w-6 h-6 text-blue-500" />
-                  <div>
-                    <p className="font-medium">{doc.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatFileSize(doc.size)} • {new Date(doc.uploaded_at).toLocaleDateString()}
-                    </p>
-                  </div>
+            documents.map((document) => (
+              <div key={document.id} className="flex items-center justify-between p-2 hover:bg-accent rounded-md">
+                <div className="flex items-center space-x-2">
+                  <File className="w-4 h-4" />
+                  <span>{document.name}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="icon" asChild>
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                      <Eye className="w-4 h-4" />
-                    </a>
-                  </Button>
-                  <Button variant="ghost" size="icon" asChild>
-                    <a href={doc.url} download>
-                      <Download className="w-4 h-4" />
-                    </a>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(document.id)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDownload(document)}
+                  >
+                    <Download className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleDelete(doc.id, doc.url.split('/').pop()!)}
+                    onClick={() => handleView(document)}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Eye className="w-4 h-4" />
                   </Button>
                 </div>
               </div>

@@ -62,6 +62,7 @@ import {
 import ErrorBoundary from '@/app/components/ErrorBoundary'
 import Link from 'next/link'
 import { Textarea } from "@/components/ui/textarea"
+import { usePatientAccess } from '@/app/hooks/usePatientAccess'
 
 interface Doctor {
   id: number
@@ -206,6 +207,7 @@ interface PatientDetailsPageProps {
 export default function PatientDetailsPage({ params }: PatientDetailsPageProps) {
   const { supabase } = useSupabase()
   const { user } = useAuth()
+  const { canEdit, isLoading: isLoadingAccess } = usePatientAccess(params.id)
   const [isLoading, setIsLoading] = useState(true)
   const [patient, setPatient] = useState<any>(null)
   const [doctors, setDoctors] = useState<Doctor[]>([])
@@ -259,7 +261,6 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
         .from('patients')
         .select('*')
         .eq('id', params.id)
-        .eq('user_id', user.id.toString())
         .single();
 
       if (error) throw error;
@@ -270,7 +271,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
     } finally {
       setIsLoading(false);
     }
-  }, [supabase, params.id, user.id]);
+  }, [supabase, params.id]);
 
   const fetchAllergies = useCallback(async () => {
     if (!supabase || !params.id) return;
@@ -424,7 +425,8 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
           )
         `)
         .eq('patient_id', params.id)
-        .order('created_at', { ascending: false });
+        .order('start_date', { ascending: false });
+
       if (error) throw error;
       setPrescriptions(data || []);
     } catch (error) {
@@ -651,14 +653,16 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
               {patient.first_name} {patient.last_name}
               {patient.nickname && ` (${patient.nickname})`}
             </h1>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsShareModalOpen(true)}
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsShareModalOpen(true)}
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+            )}
           </div>
           <p className="text-muted-foreground">
             Manage patient information, medical records, and documents
@@ -682,13 +686,15 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                   <CardTitle>Patient Information</CardTitle>
                   <CardDescription>Basic patient details and contact information</CardDescription>
                 </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsEditModalOpen(true)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsEditModalOpen(true)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <dl className="grid gap-3 text-sm">
@@ -731,7 +737,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
             </Card>
 
             {/* Vitals Card */}
-            <VitalsTracker patientId={params.id} initialVitals={initialVitals} />
+            <VitalsTracker patientId={params.id} initialVitals={initialVitals} canEdit={canEdit} />
           </div>
 
           {/* Upcoming Appointments and Prescriptions Grid */}
@@ -827,6 +833,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
               patientId={params.id} 
               doctors={doctors}
               initialPrescriptions={prescriptions}
+              canEdit={canEdit}
             />
           </div>
 
@@ -840,10 +847,12 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                 <CardTitle>Assigned Doctors</CardTitle>
                 <CardDescription>Manage doctors assigned to this patient</CardDescription>
               </div>
-              <Button variant="default" onClick={() => setIsAssignDoctorOpen(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Assign Doctor
-              </Button>
+              {canEdit && (
+                <Button variant="default" onClick={() => setIsAssignDoctorOpen(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Assign Doctor
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {isLoadingPatientDoctors ? (
@@ -903,13 +912,15 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
               ) : (
                 <div className="flex flex-col items-center justify-center h-24 text-muted-foreground">
                   <p>No doctors assigned yet</p>
-                  <Button
-                    variant="link"
-                    onClick={() => setIsAssignDoctorOpen(true)}
-                    className="mt-2 text-primary hover:text-primary/90"
-                  >
-                    Assign a doctor
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="link"
+                      onClick={() => setIsAssignDoctorOpen(true)}
+                      className="mt-2 text-primary hover:text-primary/90"
+                    >
+                      Assign a doctor
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -921,11 +932,13 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
               ...allergy,
               severity: allergy.severity as 'mild' | 'moderate' | 'severe'
             }))}
+            canEdit={canEdit}
           />
           <MedicationsTracker 
             patientId={params.id} 
             doctors={doctors}
             initialMedications={medications}
+            canEdit={canEdit}
           />
           <ImmunizationTracker 
             patientId={params.id} 
@@ -934,27 +947,30 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
               ...immunization,
               doctor_id: immunization.doctor?.id || ''
             }))}
+            canEdit={canEdit}
           />
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6 mt-0">
-          <DocumentManager patientId={params.id} initialDocuments={documents} />
+          <DocumentManager patientId={params.id} initialDocuments={documents} canEdit={canEdit} />
         </TabsContent>
       </Tabs>
 
       {/* Delete Button at Bottom */}
-      <div className="flex justify-end pt-6">
-        <Button
-          variant="destructive"
-          onClick={() => {
-            setDeleteConfirmName(patient.first_name + ' ' + patient.last_name)
-            setIsDeleteConfirmOpen(true)
-          }}
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete Patient
-        </Button>
-      </div>
+      {canEdit && (
+        <div className="flex justify-end pt-6">
+          <Button
+            variant="destructive"
+            onClick={() => {
+              setDeleteConfirmName(patient.first_name + ' ' + patient.last_name)
+              setIsDeleteConfirmOpen(true)
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Patient
+          </Button>
+        </div>
+      )}
 
       {/* Assign Doctor Dialog */}
       <Dialog open={isAssignDoctorOpen} onOpenChange={setIsAssignDoctorOpen}>

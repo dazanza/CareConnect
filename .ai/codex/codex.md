@@ -1291,3 +1291,25 @@ L119:
   ```
 - Impact: Improves user experience and data comprehension
 - Related: L118, L117
+
+L120:
+- Context: /app/components/documents/DocumentManager.tsx
+- Insight: Document management component with access control and category organization
+- Application:
+  1. Use canEdit prop for conditional rendering of upload/delete actions
+  2. Organize documents by category with clear visual hierarchy
+  3. Provide consistent document actions (view, download, delete)
+  4. Handle file uploads with proper storage and database updates
+- Impact: Improves document management UX while maintaining proper access control
+- Related: L029, L099
+
+L121:
+- Context: Access control in UI components
+- Insight: Consistent pattern for handling read-only access across components
+- Application:
+  1. Add canEdit prop with default value of true for backward compatibility
+  2. Conditionally render action buttons based on canEdit
+  3. Maintain view/download capabilities for read-only access
+  4. Keep consistent UI structure regardless of access level
+- Impact: Ensures proper access control without degrading user experience
+- Related: L120, L029

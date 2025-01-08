@@ -35,9 +35,10 @@ interface Document {
 interface DocumentManagerProps {
   patientId: string
   initialDocuments?: Document[]
+  canEdit?: boolean
 }
 
-export function DocumentManager({ patientId, initialDocuments = [] }: DocumentManagerProps) {
+export function DocumentManager({ patientId, initialDocuments = [], canEdit = true }: DocumentManagerProps) {
   const { supabase } = useSupabase()
   const [documents, setDocuments] = useState<Document[]>(initialDocuments)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
@@ -167,10 +168,12 @@ export function DocumentManager({ patientId, initialDocuments = [] }: DocumentMa
               <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={() => setIsUploadDialogOpen(true)}>
-            <FileUp className="w-4 h-4 mr-2" />
-            Upload Document
-          </Button>
+          {canEdit && (
+            <Button onClick={() => setIsUploadDialogOpen(true)}>
+              <FileUp className="w-4 h-4 mr-2" />
+              Upload Document
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -221,13 +224,15 @@ export function DocumentManager({ patientId, initialDocuments = [] }: DocumentMa
                         >
                           <Download className="w-4 h-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(doc.id, doc.url)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(doc.id, doc.url)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}

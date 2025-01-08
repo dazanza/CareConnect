@@ -29,12 +29,14 @@ interface PrescriptionManagerProps {
   patientId: string
   doctors: Doctor[]
   initialPrescriptions: Prescription[]
+  canEdit?: boolean
 }
 
 export function PrescriptionManager({ 
   patientId, 
   doctors,
-  initialPrescriptions = [] 
+  initialPrescriptions = [],
+  canEdit = true
 }: PrescriptionManagerProps) {
   const { supabase } = useSupabase()
   const [prescriptions, setPrescriptions] = useState<Prescription[]>(initialPrescriptions)
@@ -119,10 +121,12 @@ export function PrescriptionManager({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Prescriptions</CardTitle>
-        <Button onClick={() => setShowAddPrescription(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Prescription
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setShowAddPrescription(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Prescription
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -141,13 +145,15 @@ export function PrescriptionManager({
                       {prescription.medication_details?.name || prescription.medication}
                     </h3>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(prescription.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(prescription.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
                 <div className="flex flex-col space-y-1">
                   <span className="text-sm text-gray-500">
