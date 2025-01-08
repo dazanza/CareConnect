@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/app/lib/supabase'
 import { Button } from "@/components/ui/button"
@@ -47,29 +47,7 @@ export function AddAppointmentForm({
   const [error, setError] = useState<string | null>(null)
   const [isAddDoctorOpen, setIsAddDoctorOpen] = useState(false)
 
-  useEffect(() => {
-    fetchDoctors()
-    fetchPatients()
-  }, [supabase])
-
-  useEffect(() => {
-    if (initialData && mode === 'reschedule') {
-      setDate(new Date(initialData.date).toISOString().split('T')[0])
-      setTime(new Date(initialData.date).toLocaleTimeString('en-US', { hour12: false }).slice(0, 5))
-      setType(initialData.type)
-      setLocation(initialData.location)
-      setNotes(initialData.notes || '')
-      setSelectedPatient(initialData.patient_id.toString())
-      setSelectedDoctor(initialData.doctor_id.toString())
-      
-      fetchPatientAndDoctor(initialData.patient_id, initialData.doctor_id)
-    } else {
-      if (patientId) setSelectedPatient(patientId)
-      if (doctorId) setSelectedDoctor(doctorId)
-    }
-  }, [initialData, mode, patientId, doctorId])
-
-  const fetchDoctors = async () => {
+  const fetchDoctors = useCallback(async () => {
     if (!supabase) return
 
     try {
@@ -79,9 +57,9 @@ export function AddAppointmentForm({
     } catch (error) {
       console.error('Error fetching doctors:', error)
     }
-  }
+  }, [supabase])
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     if (!supabase) return
 
     try {
@@ -91,9 +69,9 @@ export function AddAppointmentForm({
     } catch (error) {
       console.error('Error fetching patients:', error)
     }
-  }
+  }, [supabase])
 
-  const fetchPatientAndDoctor = async (patientId: number, doctorId: number) => {
+  const fetchPatientAndDoctor = useCallback(async (patientId: number, doctorId: number) => {
     if (!supabase) return
 
     try {
@@ -111,7 +89,29 @@ export function AddAppointmentForm({
     } catch (error) {
       console.error('Error fetching patient/doctor:', error)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchDoctors()
+    fetchPatients()
+  }, [fetchDoctors, fetchPatients])
+
+  useEffect(() => {
+    if (initialData && mode === 'reschedule') {
+      setDate(new Date(initialData.date).toISOString().split('T')[0])
+      setTime(new Date(initialData.date).toLocaleTimeString('en-US', { hour12: false }).slice(0, 5))
+      setType(initialData.type)
+      setLocation(initialData.location)
+      setNotes(initialData.notes || '')
+      setSelectedPatient(initialData.patient_id.toString())
+      setSelectedDoctor(initialData.doctor_id.toString())
+      
+      fetchPatientAndDoctor(initialData.patient_id, initialData.doctor_id)
+    } else {
+      if (patientId) setSelectedPatient(patientId)
+      if (doctorId) setSelectedDoctor(doctorId)
+    }
+  }, [initialData, mode, patientId, doctorId, fetchPatientAndDoctor])
 
   const handleDoctorChange = (doctorId: string) => {
     if (doctorId === 'add_new') {

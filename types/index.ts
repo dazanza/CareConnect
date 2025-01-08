@@ -34,6 +34,7 @@ export interface Appointment {
   patient_id: number;
   doctor_id: number;
   status: 'scheduled' | 'cancelled' | 'completed';
+  notes?: string;
   patients?: {
     id: number;
     first_name: string;

@@ -1313,3 +1313,65 @@ L121:
   4. Keep consistent UI structure regardless of access level
 - Impact: Ensures proper access control without degrading user experience
 - Related: L120, L029
+
+L122:
+- Context: Form components with data fetching (AddAppointmentForm.tsx)
+- Insight: Proper pattern for useEffect with data fetching functions
+- Application:
+  ```typescript
+  // Convert fetch functions to useCallback
+  const fetchData = useCallback(async () => {
+    if (!supabase) return
+    // ... fetch logic
+  }, [supabase])
+
+  // Use callbacks in useEffect
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+  ```
+- Impact: Prevents infinite loops and ensures proper dependency tracking
+- Related: L034, L085
+
+L123:
+- Context: Form components with multiple states (AddAppointmentForm.tsx)
+- Insight: Proper type definitions for form state and props
+- Application:
+  ```typescript
+  interface FormProps {
+    onSuccess: (newDate?: Date) => void
+    initialData?: Appointment | null
+    mode?: 'add' | 'reschedule'
+  }
+
+  // Use specific state types
+  const [selectedDoctor, setSelectedDoctor] = useState<string>('')
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  ```
+- Impact: Ensures type safety and prevents runtime errors
+- Related: L077, L078
+
+L124:
+- Context: Database schema alignment in components
+- Insight: Form field names must match database schema exactly
+- Application:
+  ```typescript
+  // In types/index.ts
+  interface Appointment {
+    id: number
+    date: string
+    type: string
+    location: string
+    notes?: string  // Optional fields must be marked
+  }
+
+  // In form submission
+  const appointmentData = {
+    date: utcDate,
+    type,
+    location,
+    notes  // Optional field
+  }
+  ```
+- Impact: Prevents database errors and ensures data consistency
+- Related: L077, L112

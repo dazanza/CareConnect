@@ -126,13 +126,15 @@ export function AddPrescriptionModal({
   const [searchResults, setSearchResults] = useState<Array<{ id: number, name: string, strength?: string, form?: string }>>([])
   const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null)
 
-  const form = externalForm || useForm<PrescriptionFormValues>({
+  const defaultForm = useForm<PrescriptionFormValues>({
     resolver: zodResolver(prescriptionFormSchema),
     defaultValues: {
       medications: [{ name: '', dosage: '', frequency: '', refills: 0 }],
       status: 'active',
     },
   })
+
+  const form = externalForm || defaultForm
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,

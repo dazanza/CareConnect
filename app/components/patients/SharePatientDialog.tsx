@@ -138,7 +138,7 @@ export function SharePatientDialog({
         <DialogHeader>
           <DialogTitle>Share Patient Record</DialogTitle>
           <DialogDescription>
-            Share this patient's record with another user by entering their email address.
+            Share this patient&apos;s record with another user by entering their email address.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
