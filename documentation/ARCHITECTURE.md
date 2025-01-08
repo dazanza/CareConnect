@@ -252,3 +252,48 @@ All tables are protected by RLS policies:
 - Optimized database queries
 - Caching strategies
 - Lazy loading of components 
+
+## Type System
+
+### Core Type Definitions
+- Organized by domain in separate files
+- Re-exported from central index.ts
+- Strict alignment with database schema
+- Separate interfaces for form data and database entities
+
+### Database Types
+- Match column types exactly (string for UUID)
+- Include nullability based on database schema
+- Handle relationships as optional nested objects
+- Use string literal unions for enum-like types
+
+### Form Types
+- Separate from database entity types
+- Include only editable fields
+- Use Zod schemas for validation
+- Handle complex nested structures
+
+### Web Speech API Types
+- Custom TypeScript interfaces for browser APIs
+- Proper type definitions for events and instances
+- Ensures type safety for speech recognition features
+
+## Form Handling
+
+### Form Architecture
+- React Hook Form for state management
+- Zod schemas for validation
+- Separate types for form data
+- Proper cleanup patterns for side effects
+
+### Form Components
+- Consistent prop types
+- Type-safe event handlers
+- Proper dependency tracking in effects
+- Clear separation of concerns
+
+### Data Submission
+- Match database schema exactly
+- Handle complex nested data
+- Proper date/time handling
+- Type-safe API calls 

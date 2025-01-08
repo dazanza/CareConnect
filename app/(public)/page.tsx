@@ -84,7 +84,7 @@ export default function HomePage() {
                   </div>
                   <h3 className="mb-2 text-xl font-bold">Enhanced Security</h3>
                   <p className="text-gray-500 dark:text-gray-400">
-                    HIPAA-compliant platform with end-to-end encryption. Your data's security is our top priority.
+                    HIPAA-compliant platform with end-to-end encryption. Your data&apos;s security is our top priority.
                   </p>
                 </div>
               </div>

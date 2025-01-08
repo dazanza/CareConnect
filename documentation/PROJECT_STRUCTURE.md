@@ -178,11 +178,37 @@
 
 ## Types (`/app/types`)
 
-- `index.ts` - Shared TypeScript interfaces
-- `supabase.ts` - Supabase-specific types
+- `index.ts` - Central export point for all types
+- `database.ts` - Database schema types
+- `forms.ts` - Form-specific types and schemas
 - `api.ts` - API request/response types
 - `components.ts` - Component prop types
 - `prescriptions.ts` - Prescription-related types
+- `appointments.ts` - Appointment-related types
+- `patients.ts` - Patient-related types
+- `doctors.ts` - Doctor-related types
+- `timeline.ts` - Timeline-related types
+- `speech.ts` - Web Speech API type definitions
+
+### Type Organization
+- Domain-specific types in separate files
+- Clear separation between form and database types
+- Consistent naming conventions
+- Proper relationship handling
+
+## Components (`/app/components`)
+
+### Form Components
+- Proper cleanup in useEffect hooks
+- Type-safe event handlers
+- Consistent prop types
+- Clear separation of concerns
+
+### Enhanced Components
+- Speech recognition integration
+- Real-time data updates
+- Proper error handling
+- Loading state management
 
 ## Hooks (`/app/hooks`)
 

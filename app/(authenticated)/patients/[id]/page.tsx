@@ -1014,7 +1014,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
           <DialogHeader>
             <DialogTitle>Share Patient Access</DialogTitle>
             <DialogDescription>
-              Grant other healthcare providers access to this patient's records
+              Grant other healthcare providers access to this patient&apos;s records
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">

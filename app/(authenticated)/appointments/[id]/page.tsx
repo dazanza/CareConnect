@@ -22,29 +22,109 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 
+interface SpeechRecognitionEvent extends Event {
+  results: {
+    item(index: number): {
+      item(index: number): {
+        transcript: string;
+      };
+    };
+    length: number;
+    isFinal: boolean;
+  }[];
+  resultIndex: number;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: Event) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: {
+      new (): SpeechRecognitionInstance;
+    };
+    webkitSpeechRecognition: {
+      new (): SpeechRecognitionInstance;
+    };
+  }
+}
+
+interface Patient {
+  id: number;
+  first_name: string;
+  last_name: string;
+  nickname?: string;
+}
+
+interface Doctor {
+  id: number;
+  first_name: string;
+  last_name: string;
+  specialization: string;
+}
+
+interface ExtendedAppointment extends Appointment {
+  patients?: Patient;
+  doctors?: Doctor;
+  user_id: string;
+}
+
+interface MedicationFormData {
+  name: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  refills: number;
+  notes?: string;
+}
+
 const prescriptionFormSchema = z.object({
   medications: z.array(z.object({
     name: z.string(),
     dosage: z.string(),
     frequency: z.string(),
-    refills: z.number()
+    duration: z.string().optional(),
+    refills: z.number(),
+    notes: z.string().optional()
   })),
   start_date: z.date(),
+  end_date: z.date().optional(),
   patient_id: z.number(),
   prescribed_by: z.number(),
   appointment_id: z.number(),
-  status: z.string()
+  log_id: z.number().optional(),
+  notes: z.string().optional(),
+  status: z.enum(['active', 'discontinued', 'completed'])
 })
+
+type PrescriptionFormValues = z.infer<typeof prescriptionFormSchema>
+
+interface AddAppointmentFormProps {
+  onSuccess?: (newDate?: Date) => void;
+  patientId?: string;
+  doctorId?: string;
+  initialData?: ExtendedAppointment;
+  mode?: 'add' | 'reschedule';
+  disablePatientDoctor?: boolean;
+}
 
 export default function AppointmentDetailsPage() {
   const { id } = useParams()
   const { supabase } = useSupabase()
-  const [appointment, setAppointment] = useState<Appointment | null>(null)
+  const [appointment, setAppointment] = useState<ExtendedAppointment | null>(null)
   const [notes, setNotes] = useState('')
   const [todos, setTodos] = useState<Todo[]>([])
   const [newTodo, setNewTodo] = useState('')
   const [newTodoDueDate, setNewTodoDueDate] = useState<string | null>(null)
-  const [prevAppointment, setPrevAppointment] = useState<Appointment | null>(null)
+  const [prevAppointment, setPrevAppointment] = useState<ExtendedAppointment | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRecording, setIsRecording] = useState(false)
   const [medicalFiles, setMedicalFiles] = useState<{ id: number; file_name: string; file_url: string; file_type: string | null; notes: string | null }[]>([])
@@ -54,7 +134,7 @@ export default function AppointmentDetailsPage() {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [open, setOpen] = useState(false)
 
-  const form = useForm<z.infer<typeof prescriptionFormSchema>>({
+  const form = useForm<PrescriptionFormValues>({
     resolver: zodResolver(prescriptionFormSchema),
     defaultValues: {
       medications: [{ name: '', dosage: '', frequency: '', refills: 0 }],
@@ -95,7 +175,7 @@ export default function AppointmentDetailsPage() {
     }
 
     fetchAppointmentDetails()
-  }, [supabase, id])
+  }, [supabase, id, convertUTCToLocal])
 
   useEffect(() => {
     async function fetchMedicalFiles() {
@@ -125,50 +205,47 @@ export default function AppointmentDetailsPage() {
     }
 
     fetchMedicalFiles()
-  }, [supabase, appointment])
+  }, [supabase, appointment?.patient_id])
 
   useEffect(() => {
     // Initialize speech recognition
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-      recognitionRef.current = new SpeechRecognition()
-      recognitionRef.current.continuous = true
-      recognitionRef.current.interimResults = false
-      recognitionRef.current.lang = 'en-US'
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'en-US';
 
-      let finalTranscript = ''
-
-      recognitionRef.current.onresult = (event) => {
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript + ' '
+            finalTranscript += event.results[i].item(0).item(0).transcript + ' ';
           }
         }
 
         setNotes(prevNotes => {
-          const newNotes = prevNotes.trim() + ' ' + finalTranscript.trim()
-          return newNotes.trim()
-        })
+          const newNotes = prevNotes.trim() + ' ' + finalTranscript.trim();
+          return newNotes.trim();
+        });
+      };
 
-        finalTranscript = ''
-      }
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error', event.error)
-        setIsRecording(false)
-      }
+      recognitionRef.current.onerror = (event: Event) => {
+        console.error('Speech recognition error', event);
+        setIsRecording(false);
+      };
 
       recognitionRef.current.onend = () => {
-        setIsRecording(false)
-      }
+        setIsRecording(false);
+      };
     }
 
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop()
+        recognitionRef.current.stop();
       }
-    }
-  }, [])
+    };
+  }, [setNotes]);
 
   const fetchTodos = useCallback(async () => {
     if (!supabase || !appointment) return
@@ -321,25 +398,23 @@ export default function AppointmentDetailsPage() {
     setIsCancelDialogOpen(false)
   }
 
-  const handleRescheduleSuccess = (updatedAppointment: Appointment) => {
-    // Convert UTC date to local date
-    const localDate = convertUTCToLocal(updatedAppointment.date);
-    setAppointment({ ...updatedAppointment, date: localDate });
+  const handleRescheduleSuccess = (newDate: Date) => {
+    if (!appointment) return;
+    setAppointment({
+      ...appointment,
+      date: newDate.toISOString()
+    });
     setIsRescheduleDialogOpen(false);
-    // Add a toast or some other notification here
   };
 
   const handleCancelAppointment = async () => {
     if (!supabase || !appointment) return
 
     try {
-      await cancelAppointment(supabase, appointment.id)
+      await cancelAppointment(supabase, appointment.id.toString())
       closeCancelDialog()
-      // Redirect to appointments list or show success message
-      // For example: router.push('/appointments')
     } catch (error) {
       console.error('Error cancelling appointment:', error)
-      // Handle error (e.g., show error message to user)
     }
   }
 
@@ -401,11 +476,11 @@ export default function AppointmentDetailsPage() {
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <CalendarIcon className="w-5 h-5" />
-                  <p>{formatLocalDate(appointment.date, 'MMMM d, yyyy')}</p>
+                  <p>{formatLocalDate(new Date(appointment.date), 'MMMM d, yyyy')}</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <ClockIcon className="w-5 h-5" />
-                  <p>{formatLocalDate(appointment.date, 'h:mm a')}</p>
+                  <p>{formatLocalDate(new Date(appointment.date), 'h:mm a')}</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <MapPinIcon className="w-5 h-5" />
@@ -528,7 +603,7 @@ export default function AppointmentDetailsPage() {
           </CardHeader>
           <CardContent>
             <Link href={`/appointments/${prevAppointment.id}`} className="text-blue-600 hover:underline">
-              {formatLocalDate(prevAppointment.date, 'MMMM d, yyyy h:mm a')}
+              {formatLocalDate(new Date(prevAppointment.date), 'MMMM d, yyyy h:mm a')}
             </Link>
           </CardContent>
         </Card>
@@ -540,8 +615,8 @@ export default function AppointmentDetailsPage() {
             <DialogTitle>Set Next Appointment</DialogTitle>
           </DialogHeader>
           <AddAppointmentForm
-            patientId={appointment.patient_id}
-            doctorId={appointment.doctor_id}
+            patientId={appointment.patient_id.toString()}
+            doctorId={appointment.doctor_id.toString()}
             onSuccess={() => {
               setIsSetNextAppointmentOpen(false)
               // Optionally, refresh the appointments list or add other logic here
@@ -565,7 +640,14 @@ export default function AppointmentDetailsPage() {
             <AddAppointmentForm 
               initialData={appointment} 
               mode="reschedule"
-              onSuccess={handleRescheduleSuccess}
+              onSuccess={(newDate) => {
+                if (!newDate || !appointment) return;
+                setAppointment({
+                  ...appointment,
+                  date: newDate.toISOString()
+                });
+                setIsRescheduleDialogOpen(false);
+              }}
             />
           </DialogContent>
         </Dialog>

@@ -277,7 +277,7 @@ export default function AppSidebar() {
           <DialogHeader>
             <DialogTitle>Add New Patient</DialogTitle>
             <DialogDescription>
-              Enter the patient's information to add them to the system.
+              Enter the patient&apos;s information to add them to the system.
             </DialogDescription>
           </DialogHeader>
           <AddPatientForm onSuccess={() => setIsAddPatientOpen(false)} />
@@ -289,7 +289,7 @@ export default function AppSidebar() {
           <DialogHeader>
             <DialogTitle>Add New Doctor</DialogTitle>
             <DialogDescription>
-              Enter the doctor's information to add them to the system.
+              Enter the doctor&apos;s information to add them to the system.
             </DialogDescription>
           </DialogHeader>
           <AddDoctorForm onSuccess={() => setIsAddDoctorOpen(false)} />

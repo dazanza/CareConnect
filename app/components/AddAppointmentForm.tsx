@@ -111,7 +111,7 @@ export function AddAppointmentForm({
       if (patientId) setSelectedPatient(patientId)
       if (doctorId) setSelectedDoctor(doctorId)
     }
-  }, [initialData, mode, patientId, doctorId, fetchPatientAndDoctor])
+  }, [initialData, mode, patientId, doctorId, fetchPatientAndDoctor, setDate, setTime, setType, setLocation, setNotes, setSelectedPatient, setSelectedDoctor])
 
   const handleDoctorChange = (doctorId: string) => {
     if (doctorId === 'add_new') {

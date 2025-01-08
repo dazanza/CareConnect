@@ -238,7 +238,7 @@ export default function DoctorDetailsPage() {
                 <dl className="grid gap-3 text-sm">
                   <div className="flex items-center justify-between">
                     <dt className="font-medium">Specialization</dt>
-                    <dd className="text-muted-foreground">{doctor.specialization ? `Specializes in ${doctor.specialization}` : "Doctor's specialization not specified"}</dd>
+                    <dd className="text-muted-foreground">{doctor.specialization ? `Specializes in ${doctor.specialization}` : "Doctor&apos;s specialization not specified"}</dd>
                   </div>
                   <div className="flex items-center justify-between">
                     <dt className="font-medium">Contact Number</dt>
@@ -344,7 +344,7 @@ export default function DoctorDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Assigned Patients</CardTitle>
-              <CardDescription>List of patients under this doctor's care</CardDescription>
+              <CardDescription>List of patients under this doctor&apos;s care</CardDescription>
             </CardHeader>
             <CardContent>
               {patients.length > 0 ? (
@@ -400,7 +400,7 @@ export default function DoctorDetailsPage() {
           <DialogHeader>
             <DialogTitle>Delete Doctor</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. Please type the doctor's full name to confirm.
+              This action cannot be undone. Please type the doctor&apos;s full name to confirm.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">

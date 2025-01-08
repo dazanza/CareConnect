@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, useFieldArray, UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -109,6 +109,7 @@ interface AddPrescriptionModalProps {
   open?: boolean
   setOpen?: (open: boolean) => void
   form?: UseFormReturn<PrescriptionFormValues>
+  initialData?: PrescriptionFormValues
 }
 
 export function AddPrescriptionModal({ 
@@ -118,7 +119,8 @@ export function AddPrescriptionModal({
   logs = [],
   open,
   setOpen,
-  form: externalForm
+  form: externalForm,
+  initialData
 }: AddPrescriptionModalProps) {
   const router = useRouter()
   const { supabase } = useSupabase()
@@ -126,20 +128,28 @@ export function AddPrescriptionModal({
   const [searchResults, setSearchResults] = useState<Array<{ id: number, name: string, strength?: string, form?: string }>>([])
   const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null)
 
-  const defaultForm = useForm<PrescriptionFormValues>({
+  const form = useForm<PrescriptionFormValues>({
     resolver: zodResolver(prescriptionFormSchema),
     defaultValues: {
       medications: [{ name: '', dosage: '', frequency: '', refills: 0 }],
-      status: 'active',
-    },
+      status: 'active'
+    }
   })
-
-  const form = externalForm || defaultForm
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: 'medications',
+    name: 'medications'
   })
+
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        ...initialData,
+        start_date: new Date(initialData.start_date),
+        end_date: initialData.end_date ? new Date(initialData.end_date) : undefined
+      })
+    }
+  }, [initialData, form])
 
   async function onSubmit(data: PrescriptionFormValues) {
     try {

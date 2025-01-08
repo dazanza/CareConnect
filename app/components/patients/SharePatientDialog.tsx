@@ -138,7 +138,7 @@ export function SharePatientDialog({
         <DialogHeader>
           <DialogTitle>Share Patient Record</DialogTitle>
           <DialogDescription>
-            Share this patient&apos;s record with another user by entering their email address.
+            Enter the email address of the user you&apos;d like to share this patient&apos;s record with.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -150,13 +150,13 @@ export function SharePatientDialog({
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="email">User Email</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
+              placeholder="Enter user&apos;s email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter user's email"
               required
             />
           </div>
