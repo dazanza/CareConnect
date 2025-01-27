@@ -33,6 +33,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Input } from "@/components/ui/input"
 import { debounce } from 'lodash'
+import { TimelineExport } from './TimelineExport'
 
 /**
  * Interface for component props
@@ -196,83 +197,92 @@ export function TimelineView({ patientId, events: initialEvents, showPatientName
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-xl font-semibold">Medical Timeline</h2>
-        {!initialEvents && ( // Only show filters if we're fetching our own events
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search timeline..."
-                className="pl-8"
-                onChange={(e) => handleSearch(e.target.value)}
+        <div className="flex flex-wrap items-center gap-2">
+          <TimelineExport 
+            events={events} 
+            patientName={events[0]?.patients?.first_name && events[0]?.patients?.last_name 
+              ? `${events[0].patients.first_name} ${events[0].patients.last_name}`
+              : undefined
+            } 
+          />
+          {!initialEvents && ( // Only show filters if we're fetching our own events
+            <>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search timeline..."
+                  className="pl-8"
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickDateSelect(7)}
+              >
+                Last 7 days
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickDateSelect(30)}
+              >
+                Last 30 days
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickDateSelect(90)}
+              >
+                Last 90 days
+              </Button>
+              <DateRangePicker
+                value={dateRange}
+                onChange={setDateRange}
               />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleQuickDateSelect(7)}
-            >
-              Last 7 days
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleQuickDateSelect(30)}
-            >
-              Last 30 days
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleQuickDateSelect(90)}
-            >
-              Last 90 days
-            </Button>
-            <DateRangePicker
-              value={dateRange}
-              onChange={setDateRange}
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter Events
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuCheckboxItem
-                  checked={selectedTypes.has('appointment')}
-                  onCheckedChange={() => toggleEventType('appointment')}
-                >
-                  Appointments
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={selectedTypes.has('prescription')}
-                  onCheckedChange={() => toggleEventType('prescription')}
-                >
-                  Prescriptions
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={selectedTypes.has('vitals')}
-                  onCheckedChange={() => toggleEventType('vitals')}
-                >
-                  Vitals
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={selectedTypes.has('lab_result')}
-                  onCheckedChange={() => toggleEventType('lab_result')}
-                >
-                  Lab Results
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={selectedTypes.has('note')}
-                  onCheckedChange={() => toggleEventType('note')}
-                >
-                  Notes
-                </DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter Events
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuCheckboxItem
+                    checked={selectedTypes.has('appointment')}
+                    onCheckedChange={() => toggleEventType('appointment')}
+                  >
+                    Appointments
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={selectedTypes.has('prescription')}
+                    onCheckedChange={() => toggleEventType('prescription')}
+                  >
+                    Prescriptions
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={selectedTypes.has('vitals')}
+                    onCheckedChange={() => toggleEventType('vitals')}
+                  >
+                    Vitals
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={selectedTypes.has('lab_result')}
+                    onCheckedChange={() => toggleEventType('lab_result')}
+                  >
+                    Lab Results
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={selectedTypes.has('note')}
+                    onCheckedChange={() => toggleEventType('note')}
+                  >
+                    Notes
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="relative">

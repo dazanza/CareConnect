@@ -310,4 +310,32 @@ app/
 3. Transformers
    - Safe data transformation
    - Null handling
-   - Type guard implementation 
+   - Type guard implementation
+
+## Component Organization
+
+### UI Components
+Located in `components/ui/`, these are reusable UI components used throughout the application:
+
+- Basic UI elements (buttons, inputs, etc.)
+- Composite components (date pickers, dialogs, etc.)
+- Form elements and controls
+
+Best practices:
+- Search for existing components before creating new ones
+- Place shared UI components in components/ui directory
+- Document component purpose and props using JSDoc comments
+- Follow consistent naming and export patterns
+
+### Feature Components
+Located in feature-specific directories, these components implement specific business functionality:
+
+- Medical history (`components/medical-history/`)
+- Appointments (`components/appointments/`)
+- Prescriptions (`components/prescriptions/`)
+
+Best practices:
+- Keep feature-specific logic separate from UI components
+- Use shared UI components from components/ui
+- Document business logic and data flow
+- Follow consistent file organization within feature directories 
