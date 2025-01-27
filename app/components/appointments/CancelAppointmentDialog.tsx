@@ -3,6 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Appointment } from '@/types'
+import { format } from 'date-fns'
 
 interface CancelAppointmentDialogProps {
   isOpen: boolean
@@ -27,8 +28,8 @@ export function CancelAppointmentDialog({
           <p>Are you sure you want to cancel this appointment?</p>
           {appointment && (
             <p className="text-sm text-gray-600 mt-2">
-              {appointment.patients?.name} - {new Date(appointment.date).toLocaleDateString()} at{' '}
-              {new Date(appointment.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {appointment.patients?.nickname || `${appointment.patients?.first_name} ${appointment.patients?.last_name}`} - {format(new Date(appointment.date), 'MMMM d, yyyy')} at{' '}
+              {format(new Date(appointment.date), 'h:mm a')}
             </p>
           )}
         </div>

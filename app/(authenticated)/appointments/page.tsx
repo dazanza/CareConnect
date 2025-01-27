@@ -10,6 +10,7 @@ import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointm
 import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
 import { AppointmentSkeleton } from '@/app/components/ui/skeletons'
 import { AppointmentCalendar } from '@/app/components/AppointmentCalendar'
+import type { CalendarAppointment } from '@/app/components/AppointmentCalendar'
 import Link from 'next/link'
 import {
   Table,
@@ -21,18 +22,49 @@ import {
 } from "@/components/ui/table"
 
 interface Appointment {
-  id: string
-  date: string
+  id: number;
+  date: string;
+  type: string;
+  location: string;
+  patient_id: number;
+  doctor_id: number;
+  status: 'scheduled' | 'cancelled' | 'completed';
+  notes?: string;
+  patients?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    nickname?: string;
+  };
+  doctors?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    specialization: string;
+  };
+}
+
+interface AppointmentResponse {
+  id: number;
+  date: string;
+  type: string;
+  location: string;
+  patient_id: number;
+  doctor_id: number;
+  status: 'scheduled' | 'cancelled' | 'completed';
+  notes?: string;
   patient: {
-    id: string
-    name: string
-    nickname?: string
-  }
+    id: number;
+    first_name: string;
+    last_name: string;
+    nickname?: string;
+  }[];
   doctor: {
-    id: string
-    name: string
-  }
-  location: string
+    id: number;
+    first_name: string;
+    last_name: string;
+    specialization: string;
+  }[];
 }
 
 type SortField = 'patient' | 'doctor' | 'date'
@@ -75,20 +107,7 @@ function AppointmentsContent() {
 
       if (error) throw error
       
-      const transformedData: Appointment[] = data.map(apt => ({
-        id: apt.id,
-        date: apt.date,
-        location: apt.location,
-        patient: {
-          id: apt.patient.id,
-          name: `${apt.patient.first_name} ${apt.patient.last_name}`,
-          nickname: apt.patient.nickname
-        },
-        doctor: {
-          id: apt.doctor.id,
-          name: `${apt.doctor.first_name} ${apt.doctor.last_name}`
-        }
-      }))
+      const transformedData: Appointment[] = transformAppointmentData(data as unknown as AppointmentResponse[])
       
       setAppointments(transformedData)
     } catch (error) {
@@ -112,19 +131,7 @@ function AppointmentsContent() {
     }
   }
 
-  const sortedAppointments = [...appointments].sort((a, b) => {
-    const multiplier = sortOrder === 'asc' ? 1 : -1
-    switch (sortField) {
-      case 'patient':
-        return multiplier * (a.patient.nickname || a.patient.name).localeCompare(b.patient.nickname || b.patient.name)
-      case 'doctor':
-        return multiplier * a.doctor.name.localeCompare(b.doctor.name)
-      case 'date':
-        return multiplier * (new Date(a.date).getTime() - new Date(b.date).getTime())
-      default:
-        return 0
-    }
-  })
+  const sortedAppointments = sortAppointments(appointments, sortField, sortOrder)
 
   const handleReschedule = async (date: string, time: string) => {
     if (!selectedAppointment || !supabase) return
@@ -234,18 +241,18 @@ function AppointmentsContent() {
                     <TableCell>
                       <Link href={`/appointments/${appointment.id}`} className="block">
                         <div className="hover:underline">
-                          {appointment.patient.nickname || appointment.patient.name}
+                          {appointment.patients?.nickname || appointment.patients?.first_name}
                         </div>
-                        {appointment.patient.nickname && (
+                        {appointment.patients?.nickname && (
                           <div className="text-sm text-muted-foreground">
-                            {appointment.patient.name}
+                            {appointment.patients?.first_name}
                           </div>
                         )}
                       </Link>
                     </TableCell>
                     <TableCell>
                       <Link href={`/appointments/${appointment.id}`} className="block">
-                        Dr. {appointment.doctor.name}
+                        Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name}
                       </Link>
                     </TableCell>
                     <TableCell>
@@ -296,7 +303,7 @@ function AppointmentsContent() {
 
         <div className="lg:col-span-2">
           <AppointmentCalendar
-            appointments={appointments}
+            appointments={transformToCalendarAppointments(appointments)}
             onDateSelect={setSelectedDate}
             className="sticky top-6"
           />
@@ -311,9 +318,12 @@ function AppointmentsContent() {
               setShowReschedule(false)
               setSelectedAppointment(null)
             }}
-            onReschedule={handleReschedule}
-            currentDate={selectedAppointment.date.split('T')[0]}
-            currentTime={selectedAppointment.date.split('T')[1].substring(0, 5)}
+            appointmentId={selectedAppointment.id}
+            onSuccess={(newDate) => {
+              if (newDate) {
+                handleReschedule(newDate.toISOString(), format(newDate, 'HH:mm'))
+              }
+            }}
           />
           <CancelAppointmentDialog
             isOpen={showCancel}
@@ -321,14 +331,66 @@ function AppointmentsContent() {
               setShowCancel(false)
               setSelectedAppointment(null)
             }}
+            appointment={selectedAppointment}
             onCancel={handleCancel}
-            appointmentDate={format(new Date(selectedAppointment.date), 'MMMM d, yyyy')}
           />
         </>
       )}
     </div>
   )
 }
+
+function transformAppointmentData(data: AppointmentResponse[]): Appointment[] {
+  return data.map(apt => ({
+    id: apt.id,
+    date: apt.date,
+    type: apt.type,
+    location: apt.location,
+    patient_id: apt.patient_id,
+    doctor_id: apt.doctor_id,
+    status: apt.status,
+    notes: apt.notes,
+    patients: apt.patient?.[0] || undefined,
+    doctors: apt.doctor?.[0] || undefined
+  }))
+}
+
+function sortAppointments(appointments: Appointment[], field: SortField, order: SortOrder): Appointment[] {
+  return [...appointments].sort((a, b) => {
+    switch (field) {
+      case 'patient':
+        const aName = a.patients?.nickname || a.patients?.first_name || ''
+        const bName = b.patients?.nickname || b.patients?.first_name || ''
+        return order === 'asc' ? aName.localeCompare(bName) : bName.localeCompare(aName)
+      case 'doctor':
+        const aDoc = a.doctors?.first_name || ''
+        const bDoc = b.doctors?.first_name || ''
+        return order === 'asc' ? aDoc.localeCompare(bDoc) : bDoc.localeCompare(aDoc)
+      case 'date':
+        return order === 'asc' 
+          ? new Date(a.date).getTime() - new Date(b.date).getTime()
+          : new Date(b.date).getTime() - new Date(a.date).getTime()
+      default:
+        return 0
+    }
+  })
+}
+
+const transformToCalendarAppointments = (appointments: Appointment[]): CalendarAppointment[] => {
+  return appointments.map(apt => ({
+    id: apt.id.toString(),
+    date: apt.date,
+    patient: {
+      id: apt.patient_id.toString(),
+      name: apt.patients?.nickname || `${apt.patients?.first_name} ${apt.patients?.last_name}`
+    },
+    doctor: {
+      id: apt.doctor_id.toString(),
+      name: `${apt.doctors?.first_name} ${apt.doctors?.last_name}`
+    },
+    location: apt.location
+  }));
+};
 
 export default function AppointmentsPage() {
   return (

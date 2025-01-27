@@ -12,7 +12,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
-interface CalendarAppointment {
+export interface CalendarAppointment {
   id: string
   date: string
   patient: {

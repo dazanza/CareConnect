@@ -1,0 +1,17 @@
+{
+  "name": "document-migration",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "migrate": "ts-node migrate-documents.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "latest",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+} 

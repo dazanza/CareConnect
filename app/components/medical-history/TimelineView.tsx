@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { TimelineEvent } from '@/types/timeline'
 import { 
   Calendar, 
@@ -49,13 +49,8 @@ export function TimelineView({ patientId }: TimelineViewProps) {
   )
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    if (supabase && patientId) {
-      fetchTimeline()
-    }
-  }, [supabase, patientId, selectedTypes])
-
-  async function fetchTimeline() {
+  const fetchTimelineEvents = useCallback(async () => {
+    if (!supabase || !patientId) return;
     try {
       setIsLoading(true)
       const data = await getPatientTimeline(supabase, patientId, {
@@ -67,7 +62,11 @@ export function TimelineView({ patientId }: TimelineViewProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [supabase, patientId, selectedTypes])
+
+  useEffect(() => {
+    fetchTimelineEvents()
+  }, [fetchTimelineEvents])
 
   const toggleEventType = (type: string) => {
     const newTypes = new Set(selectedTypes)

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from "react"
+import React, { useState, useEffect, Suspense, useCallback } from "react"
 import { format } from "date-fns"
 import { Calendar as CalendarIcon, Trash2, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -45,13 +45,7 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
     patientId ? parseInt(patientId) : null
   )
 
-  useEffect(() => {
-    if (!supabase || !user) return
-    fetchTodos()
-    fetchPatients()
-  }, [supabase, patientId, appointmentId, user])
-
-  const fetchTodos = async () => {
+  const fetchTodos = useCallback(async () => {
     setIsLoading(true)
     try {
       const { data: todosData, error: todosError } = await supabase
@@ -80,9 +74,9 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [supabase, user?.id])
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('patients')
@@ -96,7 +90,13 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
       console.error('Error fetching patients:', error)
       toast.error('Failed to load patients')
     }
-  }
+  }, [supabase, user?.id])
+
+  useEffect(() => {
+    if (!supabase || !user) return
+    fetchTodos()
+    fetchPatients()
+  }, [supabase, user, fetchTodos, fetchPatients])
 
   const addTodo = async (e: React.FormEvent) => {
     e.preventDefault()

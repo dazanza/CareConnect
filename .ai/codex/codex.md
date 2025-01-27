@@ -3392,3 +3392,67 @@ L245:
 L246:
 
 - Context: Access control in UI components
+- Insight: Consistent pattern for handling read-only access across components
+- Application:
+  1. Add canEdit prop with default value of true for backward compatibility
+  2. Conditionally render action buttons based on canEdit
+  3. Maintain view/download capabilities for read-only access
+  4. Keep consistent UI structure regardless of access level
+- Impact: Ensures proper access control without degrading user experience
+- Related: L120, L029
+
+L247:
+
+- Context: useEffect dependency management in Next.js components
+- Insight: Consistent pattern needed for handling useEffect dependencies with data fetching
+- Application:
+  ```typescript
+  // Convert data-dependent functions to useCallback
+  const handleDataUpdate = useCallback(() => {
+    if (!data) return
+    // ... data handling logic ...
+  }, [data])
+
+  // Use callback in useEffect
+  useEffect(() => {
+    handleDataUpdate()
+  }, [handleDataUpdate])
+  ```
+- Impact: Prevents dependency warnings while maintaining proper data flow and preventing infinite loops
+- Related: L098, L122, L137, L162
+
+L248:
+
+- Context: React Hook dependency management
+- Insight: Prefer function extraction over direct dependency inclusion
+- Application:
+  1. Extract data-dependent logic into useCallback
+  2. Use single dependency on callback in useEffect
+  3. Handle null/undefined checks in callback
+  4. Keep data transformations inside callback
+- Impact: Simplifies dependency management and improves code maintainability
+- Related: L247, L098
+
+L249:
+
+- Context: /app/components/documents/DocumentManager.tsx and /app/components/DocumentManager.tsx
+- Insight: Consistent URL handling for Supabase Storage documents
+- Application:
+  1. Store relative paths in database (e.g., `patientId/filename.ext`)
+  2. Generate public URLs only when needed for view/download
+  3. Use consistent bucket name ('documents') across components
+  4. Handle file paths with proper user/patient scoping
+- Impact: Improves security and maintainability of document storage
+- Related: L082, L120
+
+L250:
+
+- Context: Document management components
+- Insight: Duplicate document management components need consolidation
+- Application:
+  1. Merge /app/components/DocumentManager.tsx and /app/components/documents/DocumentManager.tsx
+  2. Standardize file upload handling
+  3. Use consistent bucket and path patterns
+  4. Implement proper cleanup on delete
+- Impact: Reduces code duplication and maintains consistent document handling
+- Related: L249, L082

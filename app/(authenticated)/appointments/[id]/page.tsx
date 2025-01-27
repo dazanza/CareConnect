@@ -175,7 +175,7 @@ export default function AppointmentDetailsPage() {
     }
 
     fetchAppointmentDetails()
-  }, [supabase, id, convertUTCToLocal])
+  }, [supabase, id])
 
   useEffect(() => {
     async function fetchMedicalFiles() {
@@ -205,7 +205,7 @@ export default function AppointmentDetailsPage() {
     }
 
     fetchMedicalFiles()
-  }, [supabase, appointment?.patient_id])
+  }, [supabase, appointment])
 
   useEffect(() => {
     // Initialize speech recognition
@@ -245,7 +245,7 @@ export default function AppointmentDetailsPage() {
         recognitionRef.current.stop();
       }
     };
-  }, [setNotes]);
+  }, []);
 
   const fetchTodos = useCallback(async () => {
     if (!supabase || !appointment) return

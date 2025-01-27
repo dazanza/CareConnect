@@ -66,15 +66,10 @@ export function DocumentManager({
       const fileName = `${patientId}/${Date.now()}.${fileExt}`
       
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('patient-documents')
+        .from('documents')
         .upload(fileName, selectedFile)
 
       if (uploadError) throw uploadError
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('patient-documents')
-        .getPublicUrl(fileName)
 
       // Save document metadata to database
       const { data: docData, error: docError } = await supabase
@@ -84,7 +79,7 @@ export function DocumentManager({
           name: selectedFile.name,
           type: selectedFile.type,
           size: selectedFile.size,
-          url: publicUrl,
+          url: fileName,
           category,
         })
         .select()
@@ -126,13 +121,23 @@ export function DocumentManager({
   }
 
   const handleDownload = async (document: Document) => {
-    if (!document.url) return
-    window.open(document.url, '_blank')
+    if (!document.url || !supabase) return
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(document.url)
+      
+    window.open(publicUrl, '_blank')
   }
 
   const handleView = async (document: Document) => {
-    if (!document.url) return
-    window.open(document.url, '_blank')
+    if (!document.url || !supabase) return
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(document.url)
+      
+    window.open(publicUrl, '_blank')
   }
 
   const formatFileSize = (bytes: number) => {

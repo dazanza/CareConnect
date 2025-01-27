@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { Appointment } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,14 +29,8 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 
-  useEffect(() => {
-    if (userId) {
-      fetchAppointments()
-    }
-  }, [userId, patientId, doctorId, showAll, upcoming])
-
-  const fetchAppointments = async () => {
-    if (!supabase || !userId) return
+  const fetchAppointments = useCallback(async () => {
+    if (!userId) return;
 
     setIsLoading(true)
     try {
@@ -54,7 +48,11 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [userId, supabase, patientId, doctorId, showAll, limit, upcoming])
+
+  useEffect(() => {
+    fetchAppointments()
+  }, [fetchAppointments])
 
   const handleReschedule = (appointment: Appointment) => {
     setSelectedAppointment(appointment)

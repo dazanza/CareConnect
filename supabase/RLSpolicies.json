@@ -72,6 +72,42 @@
     "policy_type": "PERMISSIVE"
   },
   {
+    "policy_name": "Users can view their own patients",
+    "table_name": "patients",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((auth.uid() = user_id) OR (EXISTS ( SELECT 1\n   FROM patient_shares ps\n  WHERE ((ps.patient_id = patients.id) AND (ps.shared_with_user_id = auth.uid()) AND ((ps.expires_at IS NULL) OR (ps.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Providers can insert their own patients",
+    "table_name": "patients",
+    "policy_role": null,
+    "command": "a",
+    "policy_expression": null,
+    "with_check_expression": "(auth.uid() = user_id)",
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Providers can update their own patients",
+    "table_name": "patients",
+    "policy_role": null,
+    "command": "w",
+    "policy_expression": "((auth.uid() = user_id) OR (EXISTS ( SELECT 1\n   FROM patient_shares ps\n  WHERE ((ps.patient_id = patients.id) AND (ps.shared_with_user_id = auth.uid()) AND (ps.access_level = ANY (ARRAY['write'::text, 'admin'::text])) AND ((ps.expires_at IS NULL) OR (ps.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Providers can delete their own patients",
+    "table_name": "patients",
+    "policy_role": null,
+    "command": "d",
+    "policy_expression": "((auth.uid() = user_id) OR (EXISTS ( SELECT 1\n   FROM patient_shares ps\n  WHERE ((ps.patient_id = patients.id) AND (ps.shared_with_user_id = auth.uid()) AND (ps.access_level = 'admin'::text) AND ((ps.expires_at IS NULL) OR (ps.expires_at > now()))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can view their own todos",
     "table_name": "todos",
     "policy_role": null,
@@ -95,15 +131,6 @@
     "policy_role": null,
     "command": "w",
     "policy_expression": "(auth.uid() = user_id)",
-    "with_check_expression": null,
-    "policy_type": "PERMISSIVE"
-  },
-  {
-    "policy_name": "Users can view their own patients",
-    "table_name": "patients",
-    "policy_role": null,
-    "command": "r",
-    "policy_expression": "((auth.uid() = user_id) AND (deleted_at IS NULL))",
     "with_check_expression": null,
     "policy_type": "PERMISSIVE"
   },

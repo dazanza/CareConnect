@@ -21,6 +21,8 @@ Learning identification:
 - New information phrases: "I see", "I understand", "It appears that"
 - Project updates: Changes in structure, dependencies, or requirements
 - User preferences: Specific requests or feedback on AI's approach
+- Storage patterns: File handling, bucket organization, URL management
+- Component consolidation: Identifying and merging duplicate functionality
 
 Entry format:
 
@@ -29,6 +31,13 @@ Entry format:
 - Correction/Application: Precise fix or usage
 - Prevention/Impact: Strategy to avoid future errors or potential effects
 - Related: IDs of connected entries
+
+Storage pattern format:
+
+- Bucket naming: Use consistent, descriptive names
+- Path structure: Include proper scoping (e.g., user/patient IDs)
+- URL handling: Store relative paths, generate public URLs on demand
+- Access control: Implement proper RLS policies and bucket security
 
 Absolute path usage: Enforce '/path/from/root' format for all file references
 

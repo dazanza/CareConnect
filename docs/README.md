@@ -1,17 +1,17 @@
-# Patient Portal
+# Care Connect
 
-A modern web application for managing patient records, prescriptions, and appointments.
+A modern web application for family members and caregivers to track patient care, prescriptions, and appointments.
 
 ## Features
 
 - Secure authentication via Supabase Auth
-- Patient management
-- Patient sharing with granular access control
-- Doctor management
-- Prescription management with multiple medications
-- Appointment scheduling
-- Medical logs tracking
-- Timeline events
+- Patient tracking and management
+- Collaborative care with granular access control
+- Care provider/doctor tracking
+- Basic prescription tracking
+- Appointment scheduling and reminders
+- Medical logs and notes
+- Care timeline events
 - Real-time updates
 - Responsive design
 
@@ -60,23 +60,22 @@ The application uses Supabase Auth for user authentication. Features include:
 
 ## Prescription Management
 
-The application provides comprehensive prescription management:
+The application provides basic prescription tracking:
 
-- Create prescriptions with multiple medications
-- Track medication dosages and frequencies
-- Connect prescriptions to appointments and logs
-- Monitor prescription status and refills
+- Record prescriptions from medical providers
+- Track medication names and dosage instructions
+- Link prescriptions to appointments and medical logs
 - View prescription history in timeline
-- Generate prescription analytics
+- Track prescription status (active/completed/discontinued)
 
 ## Patient Sharing
 
-The application supports sharing patient data with other users:
+The application supports collaborative care between family members and caregivers:
 
-- Share patients with specific access levels (read/write/admin)
-- Time-limited access with expiration dates
-- Granular control over shared data
-- Real-time notifications for shared access
+- Share patient access with other caregivers (read/write/admin)
+- Time-limited access for temporary caregivers
+- Granular control over shared information
+- Real-time notifications for care updates
 
 ## Database Schema
 

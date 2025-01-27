@@ -1,6 +1,7 @@
 import { Appointment } from '@/types'
+import { SupabaseClient } from '@supabase/supabase-js'
 
-export async function rescheduleAppointment(supabase: any, appointmentId: string, newDate: string, newTime: string) {
+export async function rescheduleAppointment(supabase: SupabaseClient, appointmentId: number | string, newDate: string, newTime: string) {
   try {
     const { data, error } = await supabase
       .from('appointments')
@@ -16,7 +17,7 @@ export async function rescheduleAppointment(supabase: any, appointmentId: string
   }
 }
 
-export async function cancelAppointment(supabase: any, appointmentId: string) {
+export async function cancelAppointment(supabase: SupabaseClient, appointmentId: number | string) {
   try {
     const { data, error } = await supabase
       .from('appointments')

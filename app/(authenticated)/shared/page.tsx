@@ -86,46 +86,8 @@ export default function SharedResourcesPage() {
   const [outgoingShares, setOutgoingShares] = useState<PatientShare[]>([])
   const [sharedFiles, setSharedFiles] = useState<Document[]>([])
 
-  // Handle ending a share
-  const handleEndShare = async (shareId: string) => {
-    try {
-      const { error } = await supabase
-        .from('patient_shares')
-        .delete()
-        .eq('id', shareId);
-
-      if (error) throw error;
-
-      toast.success('Share ended successfully');
-      fetchSharedResources();
-    } catch (error) {
-      console.error('Error ending share:', error);
-      toast.error('Failed to end share');
-    }
-  };
-
-  // Handle editing a share
-  const handleEditShare = async (share: PatientShare) => {
-    try {
-      const { error } = await supabase
-        .from('patient_shares')
-        .update({
-          access_level: share.access_level === 'read' ? 'write' : 'read',
-        })
-        .eq('id', share.id);
-
-      if (error) throw error;
-
-      toast.success('Share updated successfully');
-      fetchSharedResources();
-    } catch (error) {
-      console.error('Error updating share:', error);
-      toast.error('Failed to update share');
-    }
-  };
-
   // Fetch shared resources
-  const fetchSharedResources = async () => {
+  const fetchSharedResources = useCallback(async () => {
     if (!supabase || !user) return;
     setIsLoading(true);
     try {
@@ -248,6 +210,50 @@ export default function SharedResourcesPage() {
     } finally {
       setIsLoading(false);
     }
+  }, [supabase, user])
+
+  useEffect(() => {
+    if (supabase && user) {
+      fetchSharedResources()
+    }
+  }, [fetchSharedResources])
+
+  // Handle ending a share
+  const handleEndShare = async (shareId: string) => {
+    try {
+      const { error } = await supabase
+        .from('patient_shares')
+        .delete()
+        .eq('id', shareId);
+
+      if (error) throw error;
+
+      toast.success('Share ended successfully');
+      fetchSharedResources();
+    } catch (error) {
+      console.error('Error ending share:', error);
+      toast.error('Failed to end share');
+    }
+  };
+
+  // Handle editing a share
+  const handleEditShare = async (share: PatientShare) => {
+    try {
+      const { error } = await supabase
+        .from('patient_shares')
+        .update({
+          access_level: share.access_level === 'read' ? 'write' : 'read',
+        })
+        .eq('id', share.id);
+
+      if (error) throw error;
+
+      toast.success('Share updated successfully');
+      fetchSharedResources();
+    } catch (error) {
+      console.error('Error updating share:', error);
+      toast.error('Failed to update share');
+    }
   };
 
   // Filter resources based on search term and type
@@ -270,11 +276,6 @@ export default function SharedResourcesPage() {
       share.shared_with.last_name?.toLowerCase().includes(term)
     );
   }, [filterType, searchTerm, incomingShares, outgoingShares]);
-
-  // Effect to fetch data
-  useEffect(() => {
-    fetchSharedResources();
-  }, [supabase, user]);
 
   // Effect to stop loading if no data after a timeout
   useEffect(() => {

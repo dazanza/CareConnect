@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Calendar, Clock, MapPin, FileUp, ChevronLeft, Mic, MicOff, FileText, Paperclip, PlusCircle } from 'lucide-react'
@@ -35,6 +35,50 @@ interface Document {
   url: string
 }
 
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  readonly length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  readonly transcript: string;
+  readonly confidence: number;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((this: SpeechRecognitionInstance, ev: SpeechRecognitionEvent) => any) | null;
+  onend: ((this: SpeechRecognitionInstance, ev: Event) => any) | null;
+  onerror: ((this: SpeechRecognitionInstance, ev: Event) => any) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: {
+      new(): SpeechRecognitionInstance;
+    };
+    webkitSpeechRecognition: {
+      new(): SpeechRecognitionInstance;
+    };
+  }
+}
+
 export function Page() {
   const { id } = useParams()
   const [appointment, setAppointment] = useState<Appointment | null>(null)
@@ -42,7 +86,16 @@ export function Page() {
   const [newTodo, setNewTodo] = useState('')
   const [isRecording, setIsRecording] = useState(false)
   const [recentDocuments, setRecentDocuments] = useState<Document[]>([])
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
+
+  const handleAppointmentUpdate = useCallback(() => {
+    if (!appointment) return;
+    // ... existing logic ...
+  }, [appointment])
+
+  useEffect(() => {
+    handleAppointmentUpdate()
+  }, [handleAppointmentUpdate])
 
   useEffect(() => {
     // Fetch appointment data
@@ -89,7 +142,10 @@ export function Page() {
       setRecentDocuments(response)
     }
 
-    fetchAppointment()
+    if (id) {
+      fetchAppointment();
+    }
+
     fetchTodos()
     fetchRecentDocuments()
 

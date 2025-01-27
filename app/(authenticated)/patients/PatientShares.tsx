@@ -14,45 +14,92 @@ import {
 } from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 import { sendShareInvitation } from '@/app/actions/sendShareInvitation'
+import { SupabaseClient } from '@supabase/supabase-js'
+
+// Define types to match Supabase response structure
+interface PatientShare {
+  id: string
+  patient_id: number
+  shared_by_user_id: string
+  shared_with_user_id: string
+  access_level: string
+  expires_at?: string
+  users: {  // Changed from optional to required and single object
+    id: string
+    email: string
+    full_name?: string
+  }
+}
 
 interface PatientSharesProps {
-  patientId: number;
+  supabase: SupabaseClient
+  patientId: number
 }
 
-interface Share {
-  id: string;
-  shared_with_user_id: string;
-  access_level: 'read' | 'write' | 'admin';
-  expires_at: string | null;
-  shared_with: {
-    email: string;
-    first_name?: string;
-    last_name?: string;
-  };
-  is_pending?: boolean;
+/**
+ * Fetches patient shares from the database
+ * @param supabase - Supabase client instance
+ * @param patientId - ID of the patient whose shares to fetch
+ * @returns Array of patient shares with associated user details
+ */
+async function getPatientShares(supabase: SupabaseClient, patientId: number): Promise<PatientShare[]> {
+  if (!patientId) return []
+  
+  const { data, error } = await supabase
+    .from('patient_shares')
+    .select(`
+      id,
+      patient_id,
+      shared_by_user_id,
+      shared_with_user_id,
+      access_level,
+      expires_at,
+      users!inner (
+        id,
+        email,
+        full_name
+      )
+    `)
+    .eq('patient_id', patientId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  
+  // Transform the data to match our type
+  const transformedData: PatientShare[] = (data || []).map(share => ({
+    ...share,
+    users: share.users[0] // Take first user since it's a one-to-one relationship
+  }))
+
+  return transformedData
 }
 
-export function PatientShares({ patientId }: PatientSharesProps) {
+export function PatientShares({ supabase, patientId }: PatientSharesProps) {
   const [email, setEmail] = useState("");
-  const [accessLevel, setAccessLevel] = useState<Share['access_level']>("read");
-  const [shares, setShares] = useState<Share[]>([]);
-  const { supabase } = useSupabase();
+  const [accessLevel, setAccessLevel] = useState<PatientShare['access_level']>("read");
+  const [shares, setShares] = useState<PatientShare[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadShares = useCallback(async () => {
+  const fetchShares = useCallback(async () => {
     if (!supabase || !patientId) return;
     
     try {
-      const shares = await getPatientShares(supabase, patientId);
-      setShares(shares);
-    } catch (error) {
-      console.error('Error loading shares:', error);
-      toast.error('Failed to load shares');
+      setIsLoading(true);
+      setError(null);
+      const data = await getPatientShares(supabase, patientId);
+      setShares(data);
+    } catch (err) {
+      console.error('Error loading shares:', err);
+      setError('Failed to load patient shares');
+    } finally {
+      setIsLoading(false);
     }
   }, [supabase, patientId]);
 
   useEffect(() => {
-    loadShares();
-  }, [loadShares]);
+    fetchShares();
+  }, [fetchShares]);
 
   const handleShare = async () => {
     try {
@@ -122,7 +169,7 @@ export function PatientShares({ patientId }: PatientSharesProps) {
         toast.success("Patient shared successfully with " + email);
       }
 
-      loadShares();
+      fetchShares();
       setEmail("");
     } catch (error) {
       console.error('Share error:', error);
@@ -143,8 +190,16 @@ export function PatientShares({ patientId }: PatientSharesProps) {
     }
 
     toast.success("Share removed");
-    loadShares();
+    fetchShares();
   };
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
+  if (isLoading) {
+    return <div>Loading shares...</div>;
+  }
 
   return (
     <div className="space-y-4">
@@ -162,7 +217,7 @@ export function PatientShares({ patientId }: PatientSharesProps) {
         
         <div className="grid gap-2">
           <Label htmlFor="access">Access Level</Label>
-          <Select value={accessLevel} onValueChange={(value) => setAccessLevel(value as Share['access_level'])}>
+          <Select value={accessLevel} onValueChange={(value) => setAccessLevel(value as PatientShare['access_level'])}>
             <SelectTrigger id="access">
               <SelectValue placeholder="Select access level" />
             </SelectTrigger>
@@ -186,16 +241,16 @@ export function PatientShares({ patientId }: PatientSharesProps) {
           >
             <div>
               <p className="flex items-center gap-2">
-                {share.shared_with.email}
-                {share.is_pending && (
+                {share.users?.email}
+                {share.expires_at && (
                   <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
-                    Pending
+                    Expires: {new Date(share.expires_at).toLocaleDateString()}
                   </span>
                 )}
               </p>
-              {share.shared_with.first_name && (
+              {share.users?.full_name && (
                 <p className="text-sm text-muted-foreground">
-                  {share.shared_with.first_name} {share.shared_with.last_name}
+                  {share.users.full_name}
                 </p>
               )}
               <p className="text-sm text-muted-foreground">

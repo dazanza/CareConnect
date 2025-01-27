@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { Button } from '@/components/ui/button'
@@ -44,11 +44,7 @@ export function PatientShares({ patientId, patientName, variant }: PatientShares
   const [email, setEmail] = useState('')
   const [accessLevel, setAccessLevel] = useState('read')
 
-  useEffect(() => {
-    fetchShares()
-  }, [patientId])
-
-  async function fetchShares() {
+  const fetchShares = useCallback(async () => {
     if (!supabase) return
 
     try {
@@ -70,7 +66,11 @@ export function PatientShares({ patientId, patientName, variant }: PatientShares
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [supabase, patientId])
+
+  useEffect(() => {
+    fetchShares()
+  }, [fetchShares])
 
   async function handleRemoveShare(shareId: string) {
     if (!supabase) return

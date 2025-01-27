@@ -72,7 +72,7 @@ export default function UpdatePasswordPage() {
           <Alert variant="default" className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
             <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <AlertDescription className="text-blue-700 dark:text-blue-300">
-              Choose a strong password that you haven't used before.
+              Choose a strong password that you haven&apos;t used before.
             </AlertDescription>
           </Alert>
 

@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
           <Alert variant="default" className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
             <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <AlertDescription className="text-blue-700 dark:text-blue-300">
-              We'll send you a secure link to reset your password.
+              We&apos;ll send you a secure link to reset your password.
             </AlertDescription>
           </Alert>
 

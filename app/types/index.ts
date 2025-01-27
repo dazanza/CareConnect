@@ -136,6 +136,7 @@ export interface Appointment {
   notes?: string
   patient_id: number
   doctor_id: number
+  status: 'scheduled' | 'cancelled' | 'completed'
   patients?: {
     id: number
     first_name: string
@@ -146,6 +147,7 @@ export interface Appointment {
     id: number
     first_name: string
     last_name: string
+    specialization: string
   }
 }
 

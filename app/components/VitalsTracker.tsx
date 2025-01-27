@@ -16,14 +16,16 @@ import { toast } from "react-hot-toast"
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { VitalsChart } from '@/app/components/VitalsChart'
 import { parseBloodPressure, formatBloodPressure, transformVitalsForChart } from '@/app/lib/vitals-utils'
+import { createTimelineEvent } from '@/app/lib/timeline'
 
 interface VitalsData {
   id: string
-  date: string
+  date_time: string
   blood_pressure: string
   heart_rate: number
   temperature: number
-  oxygen_level: number
+  oxygen_saturation: number
+  blood_sugar?: number
   patient_id: string
 }
 
@@ -31,9 +33,10 @@ interface VitalsTrackerProps {
   patientId: string
   initialVitals?: VitalsData[]
   canEdit?: boolean
+  showBloodSugar?: boolean
 }
 
-export function VitalsTracker({ patientId, initialVitals = [], canEdit = true }: VitalsTrackerProps) {
+export function VitalsTracker({ patientId, initialVitals = [], canEdit = true, showBloodSugar = false }: VitalsTrackerProps) {
   const { supabase } = useSupabase()
   const [showAddVitals, setShowAddVitals] = useState(false)
   const [vitals, setVitals] = useState<VitalsData[]>(initialVitals)
@@ -41,37 +44,75 @@ export function VitalsTracker({ patientId, initialVitals = [], canEdit = true }:
     blood_pressure: '',
     heart_rate: '',
     temperature: '',
-    oxygen_level: ''
+    oxygen_saturation: '',
+    blood_sugar: ''
   })
 
   const handleAddVitals = async () => {
     if (!supabase) return
 
     // Validate blood pressure format
-    const bp = parseBloodPressure(newVitals.blood_pressure)
-    if (!bp) {
+    if (!newVitals.blood_pressure || typeof newVitals.blood_pressure !== 'string') {
+      toast.error('Blood pressure is required')
+      return
+    }
+
+    // Parse blood pressure
+    const parsedBp = parseBloodPressure(newVitals.blood_pressure)
+    if (!parsedBp) {
       toast.error('Invalid blood pressure format. Use format: 120/80')
       return
     }
 
     try {
-      const { data, error } = await supabase
+      // Format vitals data for insertion
+      const vitalsToInsert = {
+        patient_id: parseInt(patientId),
+        blood_pressure: `${parsedBp.systolic}/${parsedBp.diastolic}`,
+        heart_rate: parseInt(newVitals.heart_rate),
+        temperature: parseFloat(newVitals.temperature),
+        oxygen_saturation: parseInt(newVitals.oxygen_saturation),
+        blood_sugar: newVitals.blood_sugar ? parseInt(newVitals.blood_sugar) : null,
+        date_time: new Date().toISOString()
+      }
+
+      // Insert vitals
+      const { data: vitalsData, error: vitalsError } = await supabase
         .from('vitals')
-        .insert({
-          patient_id: patientId,
-          blood_pressure: formatBloodPressure(bp),
-          heart_rate: parseInt(newVitals.heart_rate),
-          temperature: parseFloat(newVitals.temperature),
-          oxygen_level: parseInt(newVitals.oxygen_level),
-          date: new Date().toISOString()
-        })
+        .insert([vitalsToInsert])
         .select()
         .single()
 
-      if (error) throw error
+      if (vitalsError) throw vitalsError
 
-      setVitals([data, ...vitals])
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError) throw userError
+
+      // Create timeline event using stored procedure
+      const { error: timelineError } = await supabase
+        .rpc('create_timeline_event', {
+          p_patient_id: parseInt(patientId),
+          p_type: 'vitals',
+          p_date: new Date().toISOString(),
+          p_title: 'Vitals Recorded',
+          p_description: `Blood Pressure: ${parsedBp.systolic}/${parsedBp.diastolic} mmHg, Heart Rate: ${vitalsToInsert.heart_rate} bpm, Temperature: ${vitalsToInsert.temperature}°C, Oxygen Level: ${vitalsToInsert.oxygen_saturation}%${vitalsToInsert.blood_sugar ? `, Blood Sugar: ${vitalsToInsert.blood_sugar} mg/dL` : ''}`,
+          p_vitals_id: vitalsData.id,
+          p_user_id: user.id,
+          p_created_by: user.id
+        })
+
+      if (timelineError) throw timelineError
+
+      setVitals([vitalsData, ...vitals])
       setShowAddVitals(false)
+      setNewVitals({
+        blood_pressure: '',
+        heart_rate: '',
+        temperature: '',
+        oxygen_saturation: '',
+        blood_sugar: ''
+      })
       toast.success('Vitals recorded successfully')
     } catch (error) {
       console.error('Error recording vitals:', error)
@@ -127,14 +168,24 @@ export function VitalsTracker({ patientId, initialVitals = [], canEdit = true }:
             <Activity className="w-4 h-4 text-green-500" />
             <div>
               <p className="text-sm font-medium">Oxygen Level</p>
-              <p className="text-2xl font-bold">{latestVitals?.oxygen_level || '--'}</p>
+              <p className="text-2xl font-bold">{latestVitals?.oxygen_saturation || '--'}</p>
               <p className="text-xs text-muted-foreground">%</p>
             </div>
           </div>
+          {showBloodSugar && (
+            <div className="flex items-center space-x-2">
+              <Droplet className="w-4 h-4 text-purple-500" />
+              <div>
+                <p className="text-sm font-medium">Blood Sugar</p>
+                <p className="text-2xl font-bold">{latestVitals?.blood_sugar || '--'}</p>
+                <p className="text-xs text-muted-foreground">mg/dL</p>
+              </div>
+            </div>
+          )}
         </div>
         {vitals.length > 0 && (
           <div className="mt-6">
-            <VitalsChart vitals={transformVitalsForChart(vitals)} />
+            <VitalsChart vitals={transformVitalsForChart(vitals, 'blood_pressure')} />
           </div>
         )}
       </CardContent>
@@ -177,10 +228,21 @@ export function VitalsTracker({ patientId, initialVitals = [], canEdit = true }:
               <Input
                 type="number"
                 placeholder="98"
-                value={newVitals.oxygen_level}
-                onChange={(e) => setNewVitals({ ...newVitals, oxygen_level: e.target.value })}
+                value={newVitals.oxygen_saturation}
+                onChange={(e) => setNewVitals({ ...newVitals, oxygen_saturation: e.target.value })}
               />
             </div>
+            {showBloodSugar && (
+              <div className="grid gap-2">
+                <label>Blood Sugar (mg/dL)</label>
+                <Input
+                  type="number"
+                  placeholder="100"
+                  value={newVitals.blood_sugar}
+                  onChange={(e) => setNewVitals({ ...newVitals, blood_sugar: e.target.value })}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddVitals(false)}>

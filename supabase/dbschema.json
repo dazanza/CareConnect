@@ -98,6 +98,27 @@
     "column_default": null
   },
   {
+    "table_name": "active_patients",
+    "column_name": "provider_email",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "provider_first_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "active_patients",
+    "column_name": "provider_last_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
     "table_name": "admin_users",
     "column_name": "id",
     "data_type": "integer",

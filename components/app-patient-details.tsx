@@ -215,7 +215,7 @@ export function PatientDetails() {
                   </div>
                 </div>
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">Today's Mood</p>
+                  <p className="text-sm text-gray-500 mb-2">Today&apos;s Mood</p>
                   <div className="flex justify-between">
                     {moodEmojis.map((mood) => (
                       <button
