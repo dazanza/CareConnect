@@ -296,3 +296,64 @@ All tables are protected by RLS policies:
 - Handle complex nested data
 - Proper date/time handling
 - Type-safe API calls 
+
+## Type Safety Architecture
+
+### Data Layer
+
+We implement a strict type-safe architecture for data handling:
+
+1. Base Types
+   - Define minimal shared interfaces
+   - Use extension for specialized types
+   - Maintain single source of truth
+
+2. Data Transformation
+   - Safe transformer functions
+   - Null handling for invalid data
+   - Type guard implementation
+
+Example:
+```typescript
+// Base type
+interface BaseRecord {
+  id: number;
+  created_at: string;
+}
+
+// Extended types
+interface DoctorRecord extends BaseRecord {
+  type: 'doctor';
+  specialization: string;
+}
+
+interface PatientRecord extends BaseRecord {
+  type: 'patient';
+  medical_history: string;
+}
+
+// Safe transformer
+function transformRecord<T extends BaseRecord>(raw: any): T | null {
+  if (!raw?.id) return null;
+  return raw as T;
+}
+```
+
+### Validation Layer
+
+1. Input Validation
+   - Required field checking
+   - Type validation
+   - Business rule validation
+
+2. Error Handling
+   - Explicit error types
+   - Consistent error format
+   - Proper error propagation
+
+3. Response Transformation
+   - Type-safe responses
+   - Null safety
+   - Data sanitization
+
+// ... existing code ... 

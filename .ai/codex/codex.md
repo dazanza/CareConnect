@@ -3456,3 +3456,55 @@ L250:
   4. Implement proper cleanup on delete
 - Impact: Reduces code duplication and maintains consistent document handling
 - Related: L249, L082
+
+## Type Safety Patterns
+
+### Safe Database Response Transformation
+- Use transformer functions to safely handle potentially incomplete database responses
+- Return null for invalid/incomplete data instead of throwing errors
+- Use type guards with filter to ensure type safety in array operations
+```typescript
+function transformData(raw: any): TypedResponse | null {
+  if (!raw?.requiredField) return null;
+  return {
+    // transform data
+  };
+}
+
+const validData = rawData
+  .map(transformData)
+  .filter((item): item is TypedResponse => item !== null);
+```
+
+### Type Extension Pattern
+- Use interface extension to build upon base types
+- Keep base interfaces minimal with only essential shared properties
+```typescript
+interface BaseType {
+  id: number;
+  date: string;
+}
+
+interface ExtendedType extends BaseType {
+  additionalField: string;
+}
+```
+
+## Code Documentation
+
+### Effective Comments
+- Document the "why" and "how" rather than just the "what"
+- Include parameter descriptions for complex interfaces
+- Note presence/absence of optional fields and their context
+- Document return values and side effects
+- Group related interfaces with explanatory comments
+
+## Error Handling
+
+### Database Query Error Handling
+- Check for query errors before processing results
+- Transform raw database responses into typed structures
+- Validate required fields before processing
+- Use type guards to ensure type safety in filtered results
+
+// ... existing code ...

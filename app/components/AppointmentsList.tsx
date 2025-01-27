@@ -11,6 +11,7 @@ import { convertUTCToLocal, formatters } from '@/app/lib/dateUtils'
 import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog'
 import { CancelAppointmentDialog } from './CancelAppointmentDialog'
 import { fetchAppointments as fetchAppointmentsApi } from '@/app/lib/dataFetching'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface AppointmentsListProps {
   userId: string
@@ -28,11 +29,13 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchAppointments = useCallback(async () => {
     if (!userId) return;
 
     setIsLoading(true)
+    setError(null)
     try {
       const appointmentsData = await fetchAppointmentsApi(supabase, {
         userId,
@@ -44,6 +47,7 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
       setAppointments(appointmentsData || [])
     } catch (error) {
       console.error('Error fetching appointments:', error)
+      setError('Failed to load appointments')
       setAppointments([])
     } finally {
       setIsLoading(false)
@@ -74,7 +78,25 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
     fetchAppointments()
   }
 
-  if (isLoading) return <div>Loading appointments...</div>
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Upcoming Appointments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>
@@ -82,8 +104,10 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
         <CardTitle>Upcoming Appointments</CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <p>Loading appointments...</p>
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         ) : appointments.length > 0 ? (
           <ul className="space-y-4">
             {appointments.map((appointment) => (

@@ -37,7 +37,17 @@
 │   │   └── layout/
 │   ├── hooks/
 │   ├── lib/
-│   └── types/
+│   │   ├── validation/
+│   │   │   ├── appointment-validation.ts   # Appointment validation logic
+│   │   │   └── types.ts                    # Shared validation types
+│   │   └── transforms/
+│   │   │   └── data-transforms.ts          # Data transformation utilities
+│   ├── types/
+│   │   ├── base.ts                         # Base type definitions
+│   │   ├── doctor.ts                       # Doctor-specific types
+│   │   └── patient.ts                      # Patient-specific types
+│   └── utils/
+│       └── type-guards.ts                  # Type guard utilities
 ├── documentation/
 │   ├── README.md
 │   ├── ARCHITECTURE.md
@@ -241,4 +251,63 @@
 - `images/` - Static images
 - `icons/` - Application icons
 - `fonts/` - Custom fonts
-- `favicon.ico` - Site favicon 
+- `favicon.ico` - Site favicon
+
+## Type Safety and Validation
+
+### Directory Structure
+
+```
+app/
+├── lib/
+│   ├── validation/
+│   │   ├── appointment-validation.ts   # Appointment validation logic
+│   │   └── types.ts                    # Shared validation types
+│   │   └── transforms/
+│   │       └── data-transforms.ts          # Data transformation utilities
+│   ├── types/
+│   │   ├── base.ts                         # Base type definitions
+│   │   ├── doctor.ts                       # Doctor-specific types
+│   │   └── patient.ts                      # Patient-specific types
+│   └── utils/
+│       └── type-guards.ts                  # Type guard utilities
+```
+
+### Type Organization
+
+1. Base Types
+   - Located in `types/base.ts`
+   - Contain shared properties
+   - Used as foundation for extended types
+
+2. Extended Types
+   - Organized by domain (doctor.ts, patient.ts)
+   - Extend base types with specific fields
+   - Include validation rules
+
+3. Validation Logic
+   - Centralized in `lib/validation`
+   - Separate files for different domains
+   - Reusable validation utilities
+
+4. Transformers
+   - Located in `lib/transforms`
+   - Handle data transformation
+   - Implement type safety
+
+### Implementation Guidelines
+
+1. Type Definitions
+   - Use interfaces for extendable types
+   - Keep types focused and minimal
+   - Document type constraints
+
+2. Validation
+   - Implement domain-specific validation
+   - Use shared validation utilities
+   - Handle edge cases explicitly
+
+3. Transformers
+   - Safe data transformation
+   - Null handling
+   - Type guard implementation 

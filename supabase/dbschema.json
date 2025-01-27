@@ -644,62 +644,6 @@
     "column_default": "timezone('utc'::text, now())"
   },
   {
-    "table_name": "medical_files",
-    "column_name": "id",
-    "data_type": "integer",
-    "is_nullable": "NO",
-    "column_default": "nextval('medical_files_id_seq'::regclass)"
-  },
-  {
-    "table_name": "medical_files",
-    "column_name": "patient_id",
-    "data_type": "integer",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "medical_files",
-    "column_name": "file_name",
-    "data_type": "text",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "medical_files",
-    "column_name": "file_type",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "medical_files",
-    "column_name": "file_url",
-    "data_type": "text",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "table_name": "medical_files",
-    "column_name": "upload_date",
-    "data_type": "timestamp without time zone",
-    "is_nullable": "YES",
-    "column_default": "CURRENT_TIMESTAMP"
-  },
-  {
-    "table_name": "medical_files",
-    "column_name": "notes",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "table_name": "medical_files",
-    "column_name": "user_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": "auth.uid()"
-  },
-  {
     "table_name": "medical_history",
     "column_name": "id",
     "data_type": "integer",

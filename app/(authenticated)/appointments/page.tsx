@@ -9,8 +9,8 @@ import { toast } from 'react-hot-toast'
 import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointmentDialog'
 import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
 import { AppointmentSkeleton } from '@/app/components/ui/skeletons'
-import { AppointmentCalendar } from '@/app/components/AppointmentCalendar'
-import type { CalendarAppointment } from '@/app/components/AppointmentCalendar'
+import { AppointmentCalendarEnhanced } from '@/app/components/AppointmentCalendarEnhanced'
+import type { CalendarAppointment } from '@/app/components/AppointmentCalendarEnhanced'
 import Link from 'next/link'
 import {
   Table,
@@ -302,39 +302,40 @@ function AppointmentsContent() {
         </div>
 
         <div className="lg:col-span-2">
-          <AppointmentCalendar
+          <AppointmentCalendarEnhanced
             appointments={transformToCalendarAppointments(appointments)}
             onDateSelect={setSelectedDate}
-            className="sticky top-6"
+            defaultView="month"
           />
         </div>
       </div>
 
-      {selectedAppointment && (
-        <>
-          <RescheduleAppointmentDialog
-            isOpen={showReschedule}
-            onClose={() => {
-              setShowReschedule(false)
-              setSelectedAppointment(null)
-            }}
-            appointmentId={selectedAppointment.id}
-            onSuccess={(newDate) => {
-              if (newDate) {
-                handleReschedule(newDate.toISOString(), format(newDate, 'HH:mm'))
-              }
-            }}
-          />
-          <CancelAppointmentDialog
-            isOpen={showCancel}
-            onClose={() => {
-              setShowCancel(false)
-              setSelectedAppointment(null)
-            }}
-            appointment={selectedAppointment}
-            onCancel={handleCancel}
-          />
-        </>
+      {showReschedule && selectedAppointment && (
+        <RescheduleAppointmentDialog
+          appointmentId={selectedAppointment.id}
+          isOpen={showReschedule}
+          onClose={() => {
+            setShowReschedule(false)
+            setSelectedAppointment(null)
+          }}
+          onSuccess={() => {
+            setShowReschedule(false)
+            setSelectedAppointment(null)
+            fetchAppointments()
+          }}
+        />
+      )}
+
+      {showCancel && selectedAppointment && (
+        <CancelAppointmentDialog
+          appointment={selectedAppointment}
+          isOpen={showCancel}
+          onClose={() => {
+            setShowCancel(false)
+            setSelectedAppointment(null)
+          }}
+          onCancel={handleCancel}
+        />
       )}
     </div>
   )
@@ -376,21 +377,22 @@ function sortAppointments(appointments: Appointment[], field: SortField, order: 
   })
 }
 
-const transformToCalendarAppointments = (appointments: Appointment[]): CalendarAppointment[] => {
+function transformToCalendarAppointments(appointments: Appointment[]): CalendarAppointment[] {
   return appointments.map(apt => ({
     id: apt.id.toString(),
     date: apt.date,
     patient: {
-      id: apt.patient_id.toString(),
+      id: apt.patients?.id.toString() || '',
       name: apt.patients?.nickname || `${apt.patients?.first_name} ${apt.patients?.last_name}`
     },
     doctor: {
-      id: apt.doctor_id.toString(),
-      name: `${apt.doctors?.first_name} ${apt.doctors?.last_name}`
+      id: apt.doctors?.id.toString() || '',
+      name: `Dr. ${apt.doctors?.first_name} ${apt.doctors?.last_name}`
     },
-    location: apt.location
-  }));
-};
+    location: apt.location,
+    type: apt.type || 'Consultation'
+  }))
+}
 
 export default function AppointmentsPage() {
   return (
