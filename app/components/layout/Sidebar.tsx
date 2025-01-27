@@ -15,7 +15,8 @@ import {
   Settings,
   LayoutDashboard,
   ChevronRight,
-  UserPlus
+  UserPlus,
+  Clock
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -202,6 +203,19 @@ export default function AppSidebar() {
                   </div>
                   <div className="w-4" />
                 </Link>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <Button
+                  variant="ghost"
+                  asChild
+                  className="w-full justify-start"
+                >
+                  <Link href="/timeline">
+                    <Clock className="mr-2 h-4 w-4" />
+                    Medical Timeline
+                  </Link>
+                </Button>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>

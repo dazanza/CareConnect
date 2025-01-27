@@ -259,6 +259,13 @@
     "column_default": "auth.uid()"
   },
   {
+    "table_name": "appointments",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": "'scheduled'::text"
+  },
+  {
     "table_name": "doctors",
     "column_name": "id",
     "data_type": "bigint",
