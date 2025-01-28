@@ -49,3 +49,28 @@ Absolute path usage: Enforce '/path/from/root' format for all file references
 - Cross-reference related entries
 
 CRITICAL: This process is for AI optimization. Prioritize precision and relevance over human readability. Always edit .ai/codex/codex.md directly.
+
+Component duplication prevention:
+
+1. Search patterns:
+   - Check UI components directory first
+   - Search for similar functionality in codebase
+   - Review component documentation
+   - Check shared libraries
+
+2. Warning signs:
+   - Creating new *Type*Component (e.g., MedicalHistoryErrorBoundary)
+   - Copying existing component logic
+   - Similar prop structures to existing components
+
+3. Resolution steps:
+   - Use existing components with props
+   - Document type assertions and workarounds
+   - Update component documentation
+   - Add comments explaining reuse decisions
+
+4. Documentation updates:
+   - Note component reuse in COMPONENTS.md
+   - Update component documentation
+   - Add TypeScript tips for common issues
+   - Document any workarounds used

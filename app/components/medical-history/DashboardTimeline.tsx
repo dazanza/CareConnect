@@ -14,6 +14,8 @@ import { TimelineView } from './TimelineView'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { format } from 'date-fns'
+import { withErrorBoundary } from '@/components/ui/error-boundary'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 /**
  * Props for the DashboardTimeline component
@@ -23,11 +25,11 @@ interface DashboardTimelineProps {
   userId: string
 }
 
-export function DashboardTimeline({ userId }: DashboardTimelineProps) {
-  // State management for timeline data and view preferences
+function DashboardTimelineComponent({ userId }: DashboardTimelineProps) {
   const { supabase } = useSupabase()
   const [events, setEvents] = useState<TimelineEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<'all' | 'by-patient'>('all')
 
   /**
@@ -35,10 +37,13 @@ export function DashboardTimeline({ userId }: DashboardTimelineProps) {
    * This includes both directly assigned patients and shared patients
    */
   const fetchAllEvents = useCallback(async () => {
-    if (!supabase || !userId) return
+    if (!supabase || !userId) {
+      throw new Error('Missing required dependencies for fetching events')
+    }
 
     try {
       setIsLoading(true)
+      setError(null)
       
       // First get all patients under user's care
       const { data: patients, error: patientsError } = await supabase
@@ -73,7 +78,9 @@ export function DashboardTimeline({ userId }: DashboardTimelineProps) {
 
       setEvents(timelineEvents)
     } catch (error) {
-      console.error('Error fetching timeline events:', error)
+      const message = error instanceof Error ? error.message : 'Failed to fetch timeline events'
+      setError(message)
+      throw new Error(message) // This will be caught by the error boundary
     } finally {
       setIsLoading(false)
     }
@@ -111,7 +118,11 @@ export function DashboardTimeline({ userId }: DashboardTimelineProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {view === 'all' ? (
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : view === 'all' ? (
           <TimelineView events={events} showPatientName />
         ) : (
           <div className="space-y-8">
@@ -133,4 +144,15 @@ export function DashboardTimeline({ userId }: DashboardTimelineProps) {
       </CardContent>
     </Card>
   )
-} 
+}
+
+// Wrap with error boundary and export
+export const DashboardTimeline = withErrorBoundary(
+  DashboardTimelineComponent,
+  <Alert variant="destructive">
+    <AlertDescription>
+      Failed to load dashboard timeline. Please try refreshing the page.
+    </AlertDescription>
+  </Alert>,
+  () => window.location.reload()
+) 

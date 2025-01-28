@@ -63,6 +63,7 @@ import ErrorBoundary from '@/app/components/ErrorBoundary'
 import Link from 'next/link'
 import { Textarea } from "@/components/ui/textarea"
 import { usePatientAccess } from '@/app/hooks/usePatientAccess'
+import { PatientErrorBoundary } from '@/app/components/error-boundaries/PatientErrorBoundary'
 
 interface Doctor {
   id: number
@@ -645,448 +646,450 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold tracking-tight">
-              {patient.first_name} {patient.last_name}
-              {patient.nickname && ` (${patient.nickname})`}
-            </h1>
-            {canEdit && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsShareModalOpen(true)}
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-            )}
+    <PatientErrorBoundary>
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold tracking-tight">
+                {patient.first_name} {patient.last_name}
+                {patient.nickname && ` (${patient.nickname})`}
+              </h1>
+              {canEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsShareModalOpen(true)}
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              )}
+            </div>
+            <p className="text-muted-foreground">
+              Manage patient information, medical records, and documents
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Manage patient information, medical records, and documents
-          </p>
         </div>
-      </div>
 
-      <Tabs defaultValue="main" className="space-y-6">
-        <TabsList className="w-full justify-start">
-          <TabsTrigger value="main" className="flex-1 sm:flex-none">Main</TabsTrigger>
-          <TabsTrigger value="documents" className="flex-1 sm:flex-none">Documents</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="main" className="space-y-6">
+          <TabsList className="w-full justify-start">
+            <TabsTrigger value="main" className="flex-1 sm:flex-none">Main</TabsTrigger>
+            <TabsTrigger value="documents" className="flex-1 sm:flex-none">Documents</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="main" className="space-y-6 mt-0">
-          {/* Patient Info and Vitals Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Patient Info Card */}
-            <Card className="bg-accent">
+          <TabsContent value="main" className="space-y-6 mt-0">
+            {/* Patient Info and Vitals Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Patient Info Card */}
+              <Card className="bg-accent">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <div>
+                    <CardTitle>Patient Information</CardTitle>
+                    <CardDescription>Basic patient details and contact information</CardDescription>
+                  </div>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsEditModalOpen(true)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid gap-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <dt className="font-medium">Date of Birth</dt>
+                      <dd className="text-muted-foreground">
+                        {new Date(patient.date_of_birth).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                        {' '}
+                        ({Math.floor((new Date().getTime() - new Date(patient.date_of_birth).getTime()) / 31557600000)} years)
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <dt className="font-medium">Gender</dt>
+                      <dd className="text-muted-foreground capitalize">{patient.gender}</dd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <dt className="font-medium">Contact Number</dt>
+                      <dd className="flex items-center gap-2 text-muted-foreground">
+                        {patient.contact_number}
+                      </dd>
+                    </div>
+                    {patient.email && (
+                      <div className="flex items-center justify-between">
+                        <dt className="font-medium">Email</dt>
+                        <dd className="flex items-center gap-2 text-muted-foreground">
+                          {patient.email}
+                        </dd>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <dt className="font-medium">Address</dt>
+                      <dd className="text-muted-foreground text-right">{patient.address}</dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+
+              {/* Vitals Card */}
+              <VitalsTracker patientId={params.id} initialVitals={initialVitals} canEdit={canEdit} />
+            </div>
+
+            {/* Upcoming Appointments and Prescriptions Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Upcoming Appointments Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Appointments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6">
+                    <div>
+                      {isLoadingAppointments ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-4">
+                            <div className="h-12 w-12 rounded-full bg-muted animate-pulse" />
+                            <div className="space-y-2">
+                              <div className="h-4 w-[250px] bg-muted animate-pulse rounded" />
+                              <div className="h-4 w-[200px] bg-muted animate-pulse rounded" />
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="h-12 w-12 rounded-full bg-muted animate-pulse" />
+                            <div className="space-y-2">
+                              <div className="h-4 w-[250px] bg-muted animate-pulse rounded" />
+                              <div className="h-4 w-[200px] bg-muted animate-pulse rounded" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : appointments.length > 0 ? (
+                        <Table>
+                          <TableBody>
+                            {appointments.map((appointment) => (
+                              <TableRow key={appointment.id}>
+                                <TableCell>
+                                  <Link href={`/appointments/${appointment.id}`}>
+                                    <Button
+                                      variant="ghost"
+                                      className="w-full justify-start p-0 h-auto font-normal hover:bg-transparent"
+                                    >
+                                      {appointment.doctor ? `Dr. ${appointment.doctor.first_name} ${appointment.doctor.last_name}` : 'No doctor assigned'} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
+                                      {appointment.notes && (
+                                        <div className="mt-1 text-sm text-muted-foreground">
+                                          Note: {appointment.notes}
+                                        </div>
+                                      )}
+                                    </Button>
+                                  </Link>
+                                </TableCell>
+                                <TableCell>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem asChild>
+                                        <Link href={`/appointments/${appointment.id}`}>
+                                          <Pencil className="h-4 w-4 mr-2" />
+                                          Edit Appointment
+                                        </Link>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        className="text-destructive"
+                                        onClick={() => {
+                                          setSelectedAppointment(appointment)
+                                          setIsCancelDialogOpen(true)
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Cancel Appointment
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                          <p>No upcoming appointments</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Prescriptions Card */}
+              <PrescriptionManager 
+                patientId={params.id} 
+                doctors={doctors}
+                initialPrescriptions={prescriptions}
+                canEdit={canEdit}
+              />
+            </div>
+
+            {/* Rest of the cards */}
+            <TimelineView timeline={timelineEvents} isLoading={isLoadingTimeline} />
+
+            {/* Assigned Doctors Card */}
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
-                  <CardTitle>Patient Information</CardTitle>
-                  <CardDescription>Basic patient details and contact information</CardDescription>
+                  <CardTitle>Assigned Doctors</CardTitle>
+                  <CardDescription>Manage doctors assigned to this patient</CardDescription>
                 </div>
                 {canEdit && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsEditModalOpen(true)}
-                  >
-                    <Pencil className="h-4 w-4" />
+                  <Button variant="default" onClick={() => setIsAssignDoctorOpen(true)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Assign Doctor
                   </Button>
                 )}
               </CardHeader>
               <CardContent>
-                <dl className="grid gap-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <dt className="font-medium">Date of Birth</dt>
-                    <dd className="text-muted-foreground">
-                      {new Date(patient.date_of_birth).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                      {' '}
-                      ({Math.floor((new Date().getTime() - new Date(patient.date_of_birth).getTime()) / 31557600000)} years)
-                    </dd>
+                {isLoadingPatientDoctors ? (
+                  <div className="flex items-center justify-center h-24">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <dt className="font-medium">Gender</dt>
-                    <dd className="text-muted-foreground capitalize">{patient.gender}</dd>
+                ) : patientDoctors.length > 0 ? (
+                  <div className="relative w-full overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead 
+                            className="cursor-pointer hover:text-primary"
+                            onClick={() => handleSort('name')}
+                          >
+                            Name {sortConfig.key === 'name' && (
+                              <span className="ml-2">
+                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                              </span>
+                            )}
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:text-primary"
+                            onClick={() => handleSort('specialization')}
+                          >
+                            Specialization {sortConfig.key === 'specialization' && (
+                              <span className="ml-2">
+                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                              </span>
+                            )}
+                          </TableHead>
+                          <TableHead className="w-[100px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedDoctors.map((doctor) => (
+                          <TableRow key={doctor.id}>
+                            <TableCell className="font-medium">
+                              Dr. {doctor.first_name} {doctor.last_name}
+                            </TableCell>
+                            <TableCell>{doctor.specialization}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleUnassignDoctor(doctor.id)}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <dt className="font-medium">Contact Number</dt>
-                    <dd className="flex items-center gap-2 text-muted-foreground">
-                      {patient.contact_number}
-                    </dd>
-                  </div>
-                  {patient.email && (
-                    <div className="flex items-center justify-between">
-                      <dt className="font-medium">Email</dt>
-                      <dd className="flex items-center gap-2 text-muted-foreground">
-                        {patient.email}
-                      </dd>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <dt className="font-medium">Address</dt>
-                    <dd className="text-muted-foreground text-right">{patient.address}</dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-
-            {/* Vitals Card */}
-            <VitalsTracker patientId={params.id} initialVitals={initialVitals} canEdit={canEdit} />
-          </div>
-
-          {/* Upcoming Appointments and Prescriptions Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Upcoming Appointments Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Appointments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6">
-                  <div>
-                    {isLoadingAppointments ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-4">
-                          <div className="h-12 w-12 rounded-full bg-muted animate-pulse" />
-                          <div className="space-y-2">
-                            <div className="h-4 w-[250px] bg-muted animate-pulse rounded" />
-                            <div className="h-4 w-[200px] bg-muted animate-pulse rounded" />
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="h-12 w-12 rounded-full bg-muted animate-pulse" />
-                          <div className="space-y-2">
-                            <div className="h-4 w-[250px] bg-muted animate-pulse rounded" />
-                            <div className="h-4 w-[200px] bg-muted animate-pulse rounded" />
-                          </div>
-                        </div>
-                      </div>
-                    ) : appointments.length > 0 ? (
-                      <Table>
-                        <TableBody>
-                          {appointments.map((appointment) => (
-                            <TableRow key={appointment.id}>
-                              <TableCell>
-                                <Link href={`/appointments/${appointment.id}`}>
-                                  <Button
-                                    variant="ghost"
-                                    className="w-full justify-start p-0 h-auto font-normal hover:bg-transparent"
-                                  >
-                                    {appointment.doctor ? `Dr. ${appointment.doctor.first_name} ${appointment.doctor.last_name}` : 'No doctor assigned'} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
-                                    {appointment.notes && (
-                                      <div className="mt-1 text-sm text-muted-foreground">
-                                        Note: {appointment.notes}
-                                      </div>
-                                    )}
-                                  </Button>
-                                </Link>
-                              </TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem asChild>
-                                      <Link href={`/appointments/${appointment.id}`}>
-                                        <Pencil className="h-4 w-4 mr-2" />
-                                        Edit Appointment
-                                      </Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      className="text-destructive"
-                                      onClick={() => {
-                                        setSelectedAppointment(appointment)
-                                        setIsCancelDialogOpen(true)
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Cancel Appointment
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-                        <p>No upcoming appointments</p>
-                      </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-24 text-muted-foreground">
+                    <p>No doctors assigned yet</p>
+                    {canEdit && (
+                      <Button
+                        variant="link"
+                        onClick={() => setIsAssignDoctorOpen(true)}
+                        className="mt-2 text-primary hover:text-primary/90"
+                      >
+                        Assign a doctor
+                      </Button>
                     )}
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Prescriptions Card */}
-            <PrescriptionManager 
+            <AllergiesManager 
               patientId={params.id} 
-              doctors={doctors}
-              initialPrescriptions={prescriptions}
+              initialAllergies={allergies.map(allergy => ({
+                ...allergy,
+                severity: allergy.severity as 'mild' | 'moderate' | 'severe'
+              }))}
               canEdit={canEdit}
             />
+            <MedicationsTracker 
+              patientId={params.id} 
+              doctors={doctors}
+              initialMedications={medications}
+              canEdit={canEdit}
+            />
+            <ImmunizationTracker 
+              patientId={params.id} 
+              doctors={doctors}
+              initialImmunizations={immunizations.map(immunization => ({
+                ...immunization,
+                doctor_id: immunization.doctor?.id || ''
+              }))}
+              canEdit={canEdit}
+            />
+          </TabsContent>
+
+          <TabsContent value="documents" className="space-y-6 mt-0">
+            <DocumentManager patientId={params.id} initialDocuments={documents} canEdit={canEdit} />
+          </TabsContent>
+        </Tabs>
+
+        {/* Delete Button at Bottom */}
+        {canEdit && (
+          <div className="flex justify-end pt-6">
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setDeleteConfirmName(patient.first_name + ' ' + patient.last_name)
+                setIsDeleteConfirmOpen(true)
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Patient
+            </Button>
           </div>
+        )}
 
-          {/* Rest of the cards */}
-          <TimelineView timeline={timelineEvents} isLoading={isLoadingTimeline} />
+        {/* Assign Doctor Dialog */}
+        <Dialog open={isAssignDoctorOpen} onOpenChange={setIsAssignDoctorOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign Doctor</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Select
+                value={selectedDoctorId}
+                onValueChange={setSelectedDoctorId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors
+                    .filter(doctor => !patientDoctors.find(pd => pd.id === doctor.id))
+                    .map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                        Dr. {doctor.first_name} {doctor.last_name} - {doctor.specialization}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAssignDoctorOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="default" onClick={handleAssignDoctor}>
+                Assign Doctor
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-          {/* Assigned Doctors Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
-                <CardTitle>Assigned Doctors</CardTitle>
-                <CardDescription>Manage doctors assigned to this patient</CardDescription>
-              </div>
-              {canEdit && (
-                <Button variant="default" onClick={() => setIsAssignDoctorOpen(true)}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Assign Doctor
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {isLoadingPatientDoctors ? (
-                <div className="flex items-center justify-center h-24">
+        {/* Share Patient Modal */}
+        <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Share Patient Access</DialogTitle>
+              <DialogDescription>
+                Grant other healthcare providers access to this patient&apos;s records
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              {isLoading ? (
+                <div className="flex justify-center p-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                 </div>
-              ) : patientDoctors.length > 0 ? (
-                <div className="relative w-full overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead 
-                          className="cursor-pointer hover:text-primary"
-                          onClick={() => handleSort('name')}
-                        >
-                          Name {sortConfig.key === 'name' && (
-                            <span className="ml-2">
-                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:text-primary"
-                          onClick={() => handleSort('specialization')}
-                        >
-                          Specialization {sortConfig.key === 'specialization' && (
-                            <span className="ml-2">
-                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </TableHead>
-                        <TableHead className="w-[100px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedDoctors.map((doctor) => (
-                        <TableRow key={doctor.id}>
-                          <TableCell className="font-medium">
-                            Dr. {doctor.first_name} {doctor.last_name}
-                          </TableCell>
-                          <TableCell>{doctor.specialization}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleUnassignDoctor(doctor.id)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <UserMinus className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-24 text-muted-foreground">
-                  <p>No doctors assigned yet</p>
-                  {canEdit && (
-                    <Button
-                      variant="link"
-                      onClick={() => setIsAssignDoctorOpen(true)}
-                      className="mt-2 text-primary hover:text-primary/90"
-                    >
-                      Assign a doctor
-                    </Button>
-                  )}
-                </div>
+                <SharePatientDialog
+                  isOpen={isShareModalOpen}
+                  onClose={() => setIsShareModalOpen(false)}
+                  patientId={params.id}
+                  onSuccess={() => {
+                    fetchPatientShares()
+                    setIsShareModalOpen(false)
+                  }}
+                />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-          <AllergiesManager 
-            patientId={params.id} 
-            initialAllergies={allergies.map(allergy => ({
-              ...allergy,
-              severity: allergy.severity as 'mild' | 'moderate' | 'severe'
-            }))}
-            canEdit={canEdit}
-          />
-          <MedicationsTracker 
-            patientId={params.id} 
-            doctors={doctors}
-            initialMedications={medications}
-            canEdit={canEdit}
-          />
-          <ImmunizationTracker 
-            patientId={params.id} 
-            doctors={doctors}
-            initialImmunizations={immunizations.map(immunization => ({
-              ...immunization,
-              doctor_id: immunization.doctor?.id || ''
-            }))}
-            canEdit={canEdit}
-          />
-        </TabsContent>
+        {/* Add Note Dialog */}
+        <Dialog open={isAddNoteOpen} onOpenChange={setIsAddNoteOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Note to Appointment</DialogTitle>
+              <DialogDescription>
+                Add a note to this appointment. The note will be visible in the appointment details.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Enter your note here..."
+              className="min-h-[100px]"
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setIsAddNoteOpen(false)
+                setNoteText('')
+                setSelectedAppointment(null)
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddNote}>Save Note</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-        <TabsContent value="documents" className="space-y-6 mt-0">
-          <DocumentManager patientId={params.id} initialDocuments={documents} canEdit={canEdit} />
-        </TabsContent>
-      </Tabs>
-
-      {/* Delete Button at Bottom */}
-      {canEdit && (
-        <div className="flex justify-end pt-6">
-          <Button
-            variant="destructive"
-            onClick={() => {
-              setDeleteConfirmName(patient.first_name + ' ' + patient.last_name)
-              setIsDeleteConfirmOpen(true)
-            }}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete Patient
-          </Button>
-        </div>
-      )}
-
-      {/* Assign Doctor Dialog */}
-      <Dialog open={isAssignDoctorOpen} onOpenChange={setIsAssignDoctorOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Assign Doctor</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <Select
-              value={selectedDoctorId}
-              onValueChange={setSelectedDoctorId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a doctor" />
-              </SelectTrigger>
-              <SelectContent>
-                {doctors
-                  .filter(doctor => !patientDoctors.find(pd => pd.id === doctor.id))
-                  .map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                      Dr. {doctor.first_name} {doctor.last_name} - {doctor.specialization}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAssignDoctorOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="default" onClick={handleAssignDoctor}>
-              Assign Doctor
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Share Patient Modal */}
-      <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Share Patient Access</DialogTitle>
-            <DialogDescription>
-              Grant other healthcare providers access to this patient&apos;s records
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {isLoading ? (
-              <div className="flex justify-center p-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            ) : (
-              <SharePatientDialog
-                isOpen={isShareModalOpen}
-                onClose={() => setIsShareModalOpen(false)}
-                patientId={params.id}
-                onSuccess={() => {
-                  fetchPatientShares()
-                  setIsShareModalOpen(false)
-                }}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Note Dialog */}
-      <Dialog open={isAddNoteOpen} onOpenChange={setIsAddNoteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Note to Appointment</DialogTitle>
-            <DialogDescription>
-              Add a note to this appointment. The note will be visible in the appointment details.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            placeholder="Enter your note here..."
-            className="min-h-[100px]"
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsAddNoteOpen(false)
-              setNoteText('')
-              setSelectedAppointment(null)
-            }}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddNote}>Save Note</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Cancel Appointment Dialog */}
-      <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Appointment</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to cancel this appointment? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsCancelDialogOpen(false)
-              setSelectedAppointment(null)
-            }}>
-              No, keep appointment
-            </Button>
-            <Button variant="destructive" onClick={handleCancelAppointment}>
-              Yes, cancel appointment
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        {/* Cancel Appointment Dialog */}
+        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel Appointment</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to cancel this appointment? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setIsCancelDialogOpen(false)
+                setSelectedAppointment(null)
+              }}>
+                No, keep appointment
+              </Button>
+              <Button variant="destructive" onClick={handleCancelAppointment}>
+                Yes, cancel appointment
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </PatientErrorBoundary>
   )
 }

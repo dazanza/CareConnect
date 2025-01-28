@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from 'react-hot-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState } from 'react'
+import { PatientErrorBoundary } from '@/app/components/error-boundaries/PatientErrorBoundary'
 
 interface Patient {
   id: string
@@ -117,30 +118,32 @@ export default function PatientsContent() {
   })
 
   return (
-    <div className="space-y-2">
-      <Select value={sortBy} onValueChange={(value: 'name' | 'nickname') => setSortBy(value)}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Sort by" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="name">Sort by Name</SelectItem>
-          <SelectItem value="nickname">Sort by Nickname</SelectItem>
-        </SelectContent>
-      </Select>
+    <PatientErrorBoundary>
+      <div className="space-y-2">
+        <Select value={sortBy} onValueChange={(value: 'name' | 'nickname') => setSortBy(value)}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Sort by Name</SelectItem>
+            <SelectItem value="nickname">Sort by Nickname</SelectItem>
+          </SelectContent>
+        </Select>
 
-      <ul className="space-y-1">
-        {sortedPatients.map((patient) => (
-          <li key={patient.id}>
-            <Link href={`/patients/${patient.id}`}>
-              <Button variant="ghost" className="w-full justify-start">
-                {sortBy === 'name' ? 
-                  `${patient.first_name} ${patient.last_name}` :
-                  (patient.nickname || `${patient.first_name} ${patient.last_name}`)}
-              </Button>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+        <ul className="space-y-1">
+          {sortedPatients.map((patient) => (
+            <li key={patient.id}>
+              <Link href={`/patients/${patient.id}`}>
+                <Button variant="ghost" className="w-full justify-start">
+                  {sortBy === 'name' ? 
+                    `${patient.first_name} ${patient.last_name}` :
+                    (patient.nickname || `${patient.first_name} ${patient.last_name}`)}
+                </Button>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </PatientErrorBoundary>
   )
 }

@@ -3,6 +3,11 @@
  * 
  * A comprehensive timeline view that displays medical events in chronological order.
  * Supports filtering, searching, and date range selection.
+ * 
+ * Note: This component uses the centralized ErrorBoundary from @/components/ui/error-boundary
+ * to maintain consistency across the application and avoid component duplication.
+ * The DateRangePicker type assertion is needed due to react-day-picker's DateRange type
+ * being more permissive than our internal type.
  */
 
 'use client'
@@ -30,10 +35,12 @@ import { useSupabase } from '@/app/hooks/useSupabase'
 import { getPatientTimeline } from '@/app/lib/timeline-service'
 import { format, startOfDay, endOfDay, subDays, addDays, isToday, isYesterday } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { DateRangePicker } from "../../components/ui/date-range-picker"
 import { Input } from "@/components/ui/input"
 import { debounce } from 'lodash'
 import { TimelineExport } from './TimelineExport'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 
 /**
  * Interface for component props
@@ -100,7 +107,7 @@ function formatDateHeader(dateStr: string): string {
  * TimelineView Component
  * Displays a filterable, searchable timeline of medical events
  */
-export function TimelineView({ patientId, events: initialEvents, showPatientName = false }: TimelineViewProps) {
+function TimelineViewComponent({ patientId, events: initialEvents, showPatientName = false }: TimelineViewProps) {
   const { supabase } = useSupabase()
   const [events, setEvents] = useState<TimelineEvent[]>([])
   const [filteredEvents, setFilteredEvents] = useState<TimelineEvent[]>([])
@@ -113,17 +120,21 @@ export function TimelineView({ patientId, events: initialEvents, showPatientName
     to: new Date()
   })
   const [isLoading, setIsLoading] = useState(!initialEvents)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchTimelineEvents = useCallback(async () => {
-    // If events are provided, use those instead of fetching
     if (initialEvents) {
       setEvents(initialEvents)
       return
     }
 
-    if (!supabase || !patientId) return;
+    if (!supabase || !patientId) {
+      throw new Error('Missing required dependencies for fetching timeline')
+    }
+
     try {
       setIsLoading(true)
+      setError(null)
       const data = await getPatientTimeline(supabase, patientId, {
         types: Array.from(selectedTypes),
         startDate: startOfDay(dateRange.from),
@@ -131,7 +142,9 @@ export function TimelineView({ patientId, events: initialEvents, showPatientName
       })
       setEvents(data)
     } catch (error) {
-      console.error('Error fetching timeline:', error)
+      const message = error instanceof Error ? error.message : 'Failed to fetch timeline events'
+      setError(message)
+      throw new Error(message) // This will be caught by the error boundary
     } finally {
       setIsLoading(false)
     }
@@ -200,9 +213,9 @@ export function TimelineView({ patientId, events: initialEvents, showPatientName
         <div className="flex flex-wrap items-center gap-2">
           <TimelineExport 
             events={events} 
-            patientName={events[0]?.patients?.first_name && events[0]?.patients?.last_name 
-              ? `${events[0].patients.first_name} ${events[0].patients.last_name}`
-              : undefined
+            patientName={events[0]?.patients ? 
+              `${events[0].patients.first_name} ${events[0].patients.last_name}` : 
+              undefined
             } 
           />
           {!initialEvents && ( // Only show filters if we're fetching our own events
@@ -317,3 +330,22 @@ export function TimelineView({ patientId, events: initialEvents, showPatientName
     </div>
   )
 }
+
+// Export the wrapped component
+export const TimelineView = ({ patientId, events: initialEvents, showPatientName = false }: TimelineViewProps) => (
+  <ErrorBoundary
+    fallback={
+      <Alert variant="destructive" className="my-4">
+        <AlertDescription>
+          Failed to load timeline. Please try again later.
+        </AlertDescription>
+      </Alert>
+    }
+  >
+    <TimelineViewComponent 
+      patientId={patientId} 
+      events={initialEvents} 
+      showPatientName={showPatientName} 
+    />
+  </ErrorBoundary>
+)

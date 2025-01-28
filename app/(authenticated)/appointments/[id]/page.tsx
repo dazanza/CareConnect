@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon, Paperclip as PaperclipIcon, Mic as MicIcon, FileText as FileTextIcon, Plus } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon, Paperclip as PaperclipIcon, Mic as MicIcon, FileText as FileTextIcon, Plus, ChevronLeft } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -21,6 +21,7 @@ import { AddPrescriptionModal } from '@/app/components/prescriptions/AddPrescrip
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { AppointmentErrorBoundary } from '@/app/components/error-boundaries/AppointmentErrorBoundary'
 
 interface SpeechRecognitionEvent extends Event {
   results: {
@@ -423,253 +424,231 @@ export default function AppointmentDetailsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Appointment Details</h1>
-        <div className="space-x-2">
-          <Button onClick={handleSetNextAppointment} className="bg-green-500 hover:bg-green-600 text-white">
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            Set Next Appointment
+      <AppointmentErrorBoundary>
+        <div className="mb-6">
+          <Button variant="ghost" onClick={() => router.back()} className="mb-4">
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back
           </Button>
-          <Button onClick={() => {
-            form.reset({
-              patient_id: appointment.patient_id,
-              prescribed_by: appointment.doctor_id,
-              appointment_id: appointment.id,
-              start_date: new Date(),
-              medications: [{ name: '', dosage: '', frequency: '', refills: 0 }],
-              status: 'active'
-            });
-            setOpen(true);
-          }}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Prescription
-          </Button>
-          <AddPrescriptionModal 
-            open={open}
-            setOpen={setOpen}
-            form={form}
-            patients={[{
-              id: appointment.patient_id,
-              name: appointment.patients?.nickname || `${appointment.patients?.first_name} ${appointment.patients?.last_name}`
-            }]}
-            doctors={[{
-              id: appointment.doctor_id,
-              name: `${appointment.doctors?.first_name} ${appointment.doctors?.last_name}`
-            }]}
-            appointments={[{
-              id: appointment.id,
-              date: appointment.date,
-              title: appointment.type
-            }]}
-          />
-        </div>
-      </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Appointment Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h2 className="text-xl font-semibold mb-4">General Information</h2>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <CalendarIcon className="w-5 h-5" />
-                  <p>{formatLocalDate(new Date(appointment.date), 'MMMM d, yyyy')}</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <ClockIcon className="w-5 h-5" />
-                  <p>{formatLocalDate(new Date(appointment.date), 'h:mm a')}</p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <MapPinIcon className="w-5 h-5" />
-                  <p>{appointment.location}</p>
-                </div>
-                <p>
-                  Patient: 
-                  <Link href={`/patients/${appointment.patients?.id}`} className="text-blue-600 hover:underline ml-1">
-                    {appointment.patients?.nickname || `${appointment.patients?.first_name} ${appointment.patients?.last_name}`}
-                  </Link>
-                </p>
-                <p>
-                  Doctor: 
-                  <Link href={`/doctors/${appointment.doctors?.id}`} className="text-blue-600 hover:underline ml-1">
-                    Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name} ({appointment.doctors?.specialization})
-                  </Link>
-                </p>
-                <p>Purpose: {appointment.type}</p>
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-xl font-semibold mb-4">To-Do List</h2>
-              <div className="space-y-2 mb-4">
-                {todos.map((todo) => (
-                  <div key={todo.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={todo.completed}
-                      onCheckedChange={() => handleToggleTodo(todo.id)}
-                    />
-                    <span className={todo.completed ? 'line-through' : ''}>{todo.text}</span>
-                    {todo.due_date && (
-                      <span className="text-sm text-gray-500">
-                        Due: {format(new Date(todo.due_date), 'MMM d, yyyy')}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="flex space-x-2">
-                <Input
-                  value={newTodo}
-                  onChange={(e) => setNewTodo(e.target.value)}
-                  placeholder="New todo item"
-                />
-                <Input
-                  type="date"
-                  value={newTodoDueDate || ''}
-                  onChange={(e) => setNewTodoDueDate(e.target.value)}
-                />
-                <Button onClick={handleAddTodo}>Add</Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Notes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="mb-2"
-              rows={10}
-            />
-            <div className="flex space-x-2">
-              <Button onClick={handleSaveNotes}>Save Notes</Button>
-              <Button onClick={handleToggleDictation} variant={isRecording ? "destructive" : "secondary"}>
-                <MicIcon className="w-4 h-4 mr-2" />
-                {isRecording ? 'Stop Dictation' : 'Start Dictation'}
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold tracking-tight">Appointment Details</h1>
+            <div className="space-x-2">
+              <Button variant="outline" onClick={() => setIsRescheduleDialogOpen(true)}>
+                Reschedule
+              </Button>
+              <Button variant="outline" onClick={() => setIsCancelDialogOpen(true)}>
+                Cancel Appointment
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Medical Files</CardTitle>
+            <CardTitle>Appointment Details</CardTitle>
           </CardHeader>
           <CardContent>
-            {medicalFiles.length > 0 ? (
-              <ul className="space-y-2">
-                {medicalFiles.map((file) => (
-                  <li key={file.id} className="flex items-center space-x-2">
-                    <FileTextIcon className="w-4 h-4" />
-                    <a href={file.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      {file.file_name}
-                    </a>
-                    {file.file_type && <span className="text-sm text-gray-500">({file.file_type})</span>}
-                    {file.notes && <span className="text-sm text-gray-500"> - {file.notes}</span>}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No medical files found for this patient.</p>
-            )}
-            <Input type="file" onChange={handleFileUpload} className="mt-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h2 className="text-xl font-semibold mb-4">General Information</h2>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <CalendarIcon className="w-5 h-5" />
+                    <p>{formatLocalDate(new Date(appointment.date), 'MMMM d, yyyy')}</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <ClockIcon className="w-5 h-5" />
+                    <p>{formatLocalDate(new Date(appointment.date), 'h:mm a')}</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <MapPinIcon className="w-5 h-5" />
+                    <p>{appointment.location}</p>
+                  </div>
+                  <p>
+                    Patient: 
+                    <Link href={`/patients/${appointment.patients?.id}`} className="text-blue-600 hover:underline ml-1">
+                      {appointment.patients?.nickname || `${appointment.patients?.first_name} ${appointment.patients?.last_name}`}
+                    </Link>
+                  </p>
+                  <p>
+                    Doctor: 
+                    <Link href={`/doctors/${appointment.doctors?.id}`} className="text-blue-600 hover:underline ml-1">
+                      Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name} ({appointment.doctors?.specialization})
+                    </Link>
+                  </p>
+                  <p>Purpose: {appointment.type}</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-semibold mb-4">To-Do List</h2>
+                <div className="space-y-2 mb-4">
+                  {todos.map((todo) => (
+                    <div key={todo.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={todo.completed}
+                        onCheckedChange={() => handleToggleTodo(todo.id)}
+                      />
+                      <span className={todo.completed ? 'line-through' : ''}>{todo.text}</span>
+                      {todo.due_date && (
+                        <span className="text-sm text-gray-500">
+                          Due: {format(new Date(todo.due_date), 'MMM d, yyyy')}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex space-x-2">
+                  <Input
+                    value={newTodo}
+                    onChange={(e) => setNewTodo(e.target.value)}
+                    placeholder="New todo item"
+                  />
+                  <Input
+                    type="date"
+                    value={newTodoDueDate || ''}
+                    onChange={(e) => setNewTodoDueDate(e.target.value)}
+                  />
+                  <Button onClick={handleAddTodo}>Add</Button>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Attachments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Input type="file" onChange={handleFileUpload} />
-            {/* You might want to add a list of uploaded files here */}
-          </CardContent>
-        </Card>
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="mb-2"
+                rows={10}
+              />
+              <div className="flex space-x-2">
+                <Button onClick={handleSaveNotes}>Save Notes</Button>
+                <Button onClick={handleToggleDictation} variant={isRecording ? "destructive" : "secondary"}>
+                  <MicIcon className="w-4 h-4 mr-2" />
+                  {isRecording ? 'Stop Dictation' : 'Start Dictation'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-      {prevAppointment && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Previous Appointment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Link href={`/appointments/${prevAppointment.id}`} className="text-blue-600 hover:underline">
-              {formatLocalDate(new Date(prevAppointment.date), 'MMMM d, yyyy h:mm a')}
-            </Link>
-          </CardContent>
-        </Card>
-      )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Medical Files</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {medicalFiles.length > 0 ? (
+                <ul className="space-y-2">
+                  {medicalFiles.map((file) => (
+                    <li key={file.id} className="flex items-center space-x-2">
+                      <FileTextIcon className="w-4 h-4" />
+                      <a href={file.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {file.file_name}
+                      </a>
+                      {file.file_type && <span className="text-sm text-gray-500">({file.file_type})</span>}
+                      {file.notes && <span className="text-sm text-gray-500"> - {file.notes}</span>}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No medical files found for this patient.</p>
+              )}
+              <Input type="file" onChange={handleFileUpload} className="mt-4" />
+            </CardContent>
+          </Card>
 
-      <Dialog open={isSetNextAppointmentOpen} onOpenChange={setIsSetNextAppointmentOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Set Next Appointment</DialogTitle>
-          </DialogHeader>
-          <AddAppointmentForm
-            patientId={appointment.patient_id.toString()}
-            doctorId={appointment.doctor_id.toString()}
-            onSuccess={() => {
-              setIsSetNextAppointmentOpen(false)
-              // Optionally, refresh the appointments list or add other logic here
-            }}
-          />
-        </DialogContent>
-      </Dialog>
+          <Card>
+            <CardHeader>
+              <CardTitle>Attachments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Input type="file" onChange={handleFileUpload} />
+              {/* You might want to add a list of uploaded files here */}
+            </CardContent>
+          </Card>
+        </div>
 
-      <div className="mt-4 space-x-2">
-        <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline">Reschedule</Button>
-          </DialogTrigger>
-          <DialogContent>
+        {prevAppointment && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Previous Appointment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Link href={`/appointments/${prevAppointment.id}`} className="text-blue-600 hover:underline">
+                {formatLocalDate(new Date(prevAppointment.date), 'MMMM d, yyyy h:mm a')}
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        <Dialog open={isSetNextAppointmentOpen} onOpenChange={setIsSetNextAppointmentOpen}>
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Reschedule Appointment</DialogTitle>
-              <DialogDescription>
-                Please select a new date and time for this appointment.
-              </DialogDescription>
+              <DialogTitle>Set Next Appointment</DialogTitle>
             </DialogHeader>
-            <AddAppointmentForm 
-              initialData={appointment} 
-              mode="reschedule"
-              onSuccess={(newDate) => {
-                if (!newDate || !appointment) return;
-                setAppointment({
-                  ...appointment,
-                  date: newDate.toISOString()
-                });
-                setIsRescheduleDialogOpen(false);
+            <AddAppointmentForm
+              patientId={appointment.patient_id.toString()}
+              doctorId={appointment.doctor_id.toString()}
+              onSuccess={() => {
+                setIsSetNextAppointmentOpen(false)
+                // Optionally, refresh the appointments list or add other logic here
               }}
             />
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="destructive">Cancel Appointment</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Cancel Appointment</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to cancel this appointment? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={closeCancelDialog}>No, keep appointment</Button>
-              <Button variant="destructive" onClick={handleCancelAppointment}>Yes, cancel appointment</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+        <div className="mt-4 space-x-2">
+          <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">Reschedule</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reschedule Appointment</DialogTitle>
+                <DialogDescription>
+                  Please select a new date and time for this appointment.
+                </DialogDescription>
+              </DialogHeader>
+              <AddAppointmentForm 
+                initialData={appointment} 
+                mode="reschedule"
+                onSuccess={(newDate) => {
+                  if (!newDate || !appointment) return;
+                  setAppointment({
+                    ...appointment,
+                    date: newDate.toISOString()
+                  });
+                  setIsRescheduleDialogOpen(false);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="destructive">Cancel Appointment</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cancel Appointment</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to cancel this appointment? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeCancelDialog}>No, keep appointment</Button>
+                <Button variant="destructive" onClick={handleCancelAppointment}>Yes, cancel appointment</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </AppointmentErrorBoundary>
     </div>
   )
 }

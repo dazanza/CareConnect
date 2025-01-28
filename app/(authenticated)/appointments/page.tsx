@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { AppointmentErrorBoundary } from '@/app/components/error-boundaries/AppointmentErrorBoundary'
 
 interface Appointment {
   id: number;
@@ -397,7 +398,9 @@ function transformToCalendarAppointments(appointments: Appointment[]): CalendarA
 export default function AppointmentsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <AppointmentsContent />
+      <AppointmentErrorBoundary>
+        <AppointmentsContent />
+      </AppointmentErrorBoundary>
     </div>
   )
 }

@@ -22,6 +22,7 @@ import {
 import { toast } from "react-hot-toast"
 import { format } from 'date-fns'
 import type { PrescriptionFormProps, PrescriptionFormData } from '@/app/types'
+import { PatientErrorBoundary } from '@/app/components/error-boundaries/PatientErrorBoundary'
 
 export function PrescriptionForm({ 
   isOpen, 
@@ -79,79 +80,81 @@ export function PrescriptionForm({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add New Prescription</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <Select
-            value={String(formData.medication_id)} // Convert to string
-            onValueChange={(value) => setFormData({ ...formData, medication_id: Number(value) })} // Convert back to number
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select medication" />
-            </SelectTrigger>
-            <SelectContent>
-              {medications.map((med) => (
-                <SelectItem key={med.id} value={String(med.id)}> {/* Convert to string */}
-                  {med.name} ({med.strength})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <PatientErrorBoundary>
+          <DialogHeader>
+            <DialogTitle>Add New Prescription</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Select
+              value={String(formData.medication_id)} // Convert to string
+              onValueChange={(value) => setFormData({ ...formData, medication_id: Number(value) })} // Convert back to number
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select medication" />
+              </SelectTrigger>
+              <SelectContent>
+                {medications.map((med) => (
+                  <SelectItem key={med.id} value={String(med.id)}> {/* Convert to string */}
+                    {med.name} ({med.strength})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Input
-            placeholder="Dosage (e.g., 1 tablet)"
-            value={formData.dosage}
-            onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
-          />
+            <Input
+              placeholder="Dosage (e.g., 1 tablet)"
+              value={formData.dosage}
+              onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
+            />
 
-          <Input
-            placeholder="Frequency (e.g., twice daily)"
-            value={formData.frequency}
-            onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-          />
+            <Input
+              placeholder="Frequency (e.g., twice daily)"
+              value={formData.frequency}
+              onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+            />
 
-          <Input
-            type="number"
-            placeholder="Number of refills"
-            value={formData.refills}
-            onChange={(e) => setFormData({ ...formData, refills: parseInt(e.target.value) })}
-          />
+            <Input
+              type="number"
+              placeholder="Number of refills"
+              value={formData.refills}
+              onChange={(e) => setFormData({ ...formData, refills: parseInt(e.target.value) })}
+            />
 
-          <Select
-            value={String(formData.prescribed_by)} // Convert to string
-            onValueChange={(value) => setFormData({ ...formData, prescribed_by: Number(value) })} // Convert back to number
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select prescribing doctor" />
-            </SelectTrigger>
-            <SelectContent>
-              {doctors.map((doc) => (
-                <SelectItem key={doc.id} value={String(doc.id)}> {/* Convert to string */}
-                  Dr. {doc.first_name} {doc.last_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select
+              value={String(formData.prescribed_by)} // Convert to string
+              onValueChange={(value) => setFormData({ ...formData, prescribed_by: Number(value) })} // Convert back to number
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select prescribing doctor" />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors.map((doc) => (
+                  <SelectItem key={doc.id} value={String(doc.id)}> {/* Convert to string */}
+                    Dr. {doc.first_name} {doc.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Input
-            type="date"
-            value={formData.start_date}
-            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-          />
+            <Input
+              type="date"
+              value={formData.start_date}
+              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+            />
 
-          <Textarea
-            placeholder="Notes (optional)"
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-          />
-         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} isLoading={isLoading}>Add Prescription</Button>
-        </DialogFooter>
+            <Textarea
+              placeholder="Notes (optional)"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            />
+           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} isLoading={isLoading}>Add Prescription</Button>
+          </DialogFooter>
+        </PatientErrorBoundary>
       </DialogContent>
     </Dialog>
   )

@@ -12,6 +12,7 @@ import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog'
 import { CancelAppointmentDialog } from './CancelAppointmentDialog'
 import { fetchAppointments as fetchAppointmentsApi } from '@/app/lib/dataFetching'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AppointmentErrorBoundary } from '@/app/components/error-boundaries/AppointmentErrorBoundary'
 
 interface AppointmentsListProps {
   userId: string
@@ -99,16 +100,17 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Upcoming Appointments</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : appointments.length > 0 ? (
+    <AppointmentErrorBoundary>
+      <Card>
+        <CardHeader>
+          <CardTitle>Upcoming Appointments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {error ? (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : appointments.length > 0 ? (
           <ul className="space-y-4">
             {appointments.map((appointment) => (
               <li key={appointment.id} className="border-b pb-2">
@@ -165,21 +167,22 @@ export function AppointmentsList({ userId, patientId, doctorId, limit = 5, showA
         ) : (
           <p>No upcoming appointments</p>
         )}
-      </CardContent>
+        </CardContent>
 
-      <RescheduleAppointmentDialog
-        isOpen={isRescheduleDialogOpen}
-        onClose={() => setIsRescheduleDialogOpen(false)}
-        appointmentId={selectedAppointment?.id || 0}
-        onSuccess={handleRescheduleSuccess}
-      />
+        <RescheduleAppointmentDialog
+          isOpen={isRescheduleDialogOpen}
+          onClose={() => setIsRescheduleDialogOpen(false)}
+          appointmentId={selectedAppointment?.id || 0}
+          onSuccess={handleRescheduleSuccess}
+        />
 
-      <CancelAppointmentDialog
-        isOpen={isCancelDialogOpen}
-        onClose={() => setIsCancelDialogOpen(false)}
-        appointment={selectedAppointment}
-        onCancel={handleCancelSuccess}
-      />
-    </Card>
+        <CancelAppointmentDialog
+          isOpen={isCancelDialogOpen}
+          onClose={() => setIsCancelDialogOpen(false)}
+          appointment={selectedAppointment}
+          onCancel={handleCancelSuccess}
+        />
+      </Card>
+    </AppointmentErrorBoundary>
   )
 }
