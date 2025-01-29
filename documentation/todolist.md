@@ -12,10 +12,18 @@
 - [x] Add fallback UI components for error states
 - [x] Implement retry mechanisms for failed operations
 - [x] Add error logging and reporting
-- [ ] Fix router usage in appointment pages
-  - [ ] Add proper imports
-  - [ ] Ensure consistent router usage across components
-  - [ ] Add error handling for navigation failures
+- [x] Fix router usage in appointment pages
+  - [x] Add proper imports
+  - [x] Ensure consistent router usage across components
+  - [x] Add error handling for navigation failures
+- [x] Implement navigation utility for consistent routing
+  - [x] Add error handling for navigation
+  - [x] Add fallback routes
+  - [x] Add toast notifications
+  - [x] Update all components to use the utility
+  - [x] Add type-safe navigation methods
+  - [x] Implement consistent back navigation
+  - [x] Add route-specific navigation (goToPatient, goToDoctor)
 
 ### Loading States
 - [x] Add skeleton loaders for:
@@ -156,12 +164,19 @@
 - [x] Error boundary implementation for major sections
 - [x] Error handling improvements
 - [x] Loading state implementation with skeletons
+- [x] Navigation utility implementation
+- [x] Type-safe routing methods
+- [x] Consistent navigation patterns
 
 ### In Progress
 - [ ] Component documentation
 - [ ] Email notifications for sharing
+- [ ] Navigation analytics and monitoring
+- [ ] Route-based performance tracking
 
 ### Next Up
 - [ ] Share management features
 - [ ] Performance optimization
-- [ ] Testing implementation 
+- [ ] Testing implementation
+- [ ] Navigation pattern documentation
+- [ ] Route-based code splitting 

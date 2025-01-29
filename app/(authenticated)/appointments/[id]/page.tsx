@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { Appointment, Todo } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,19 +9,21 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon, Paperclip as PaperclipIcon, Mic as MicIcon, FileText as FileTextIcon, Plus, ChevronLeft } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock as ClockIcon, MapPin as MapPinIcon, Paperclip as PaperclipIcon, Mic as MicIcon, FileText as FileTextIcon, Plus, ChevronLeft, FileUp, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { AddAppointmentForm } from '@/app/components/AddAppointmentForm'
 import { rescheduleAppointment, cancelAppointment } from "@/app/lib/appointments"
-import { convertUTCToLocal, convertLocalToUTC, formatLocalDate } from '@/app/lib/dateUtils';
+import { convertUTCToLocal, convertLocalToUTC, formatLocalDate } from '@/app/lib/dateUtils'
 import { toast } from 'react-hot-toast'
 import { AddPrescriptionModal } from '@/app/components/prescriptions/AddPrescriptionModal'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { AppointmentErrorBoundary } from '@/app/components/error-boundaries/AppointmentErrorBoundary'
+import { UploadProgress, UploadStatus } from '@/app/components/ui/upload-progress'
+import { appNavigation } from '@/app/lib/navigation'
 
 interface SpeechRecognitionEvent extends Event {
   results: {
@@ -118,6 +120,7 @@ interface AddAppointmentFormProps {
 }
 
 export default function AppointmentDetailsPage() {
+  const router = useRouter()
   const { id } = useParams()
   const { supabase } = useSupabase()
   const [appointment, setAppointment] = useState<ExtendedAppointment | null>(null)
@@ -134,6 +137,9 @@ export default function AppointmentDetailsPage() {
   const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [open, setOpen] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'complete' | 'error'>('idle')
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const form = useForm<PrescriptionFormValues>({
     resolver: zodResolver(prescriptionFormSchema),
@@ -340,16 +346,39 @@ export default function AppointmentDetailsPage() {
     if (!supabase || !appointment || !event.target.files) return
 
     const file = event.target.files[0]
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${Date.now()}-${file.name}`
-    const filePath = `${appointment.patient_id}/${fileName}`
+    setUploadStatus('uploading')
+    setUploadProgress(0)
 
     try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${file.name}`
+      const filePath = `${appointment.patient_id}/${fileName}`
+
       const { error: uploadError } = await supabase.storage
         .from('medical-files')
-        .upload(filePath, file)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
       if (uploadError) throw uploadError
+
+      // Simulate upload progress since Supabase doesn't support progress events
+      const fileSize = file.size
+      const chunkSize = Math.floor(fileSize / 10) // Simulate 10 progress updates
+      let loaded = 0
+
+      const progressInterval = setInterval(() => {
+        loaded = Math.min(loaded + chunkSize, fileSize)
+        const percent = (loaded / fileSize) * 100
+        setUploadProgress(percent)
+        
+        if (loaded >= fileSize) {
+          clearInterval(progressInterval)
+        }
+      }, 200)
+
+      setUploadStatus('processing')
 
       const { data: insertData, error: insertError } = await supabase
         .from('medical_files')
@@ -371,10 +400,33 @@ export default function AppointmentDetailsPage() {
         .getPublicUrl(filePath)
 
       setMedicalFiles([...medicalFiles, { ...insertData, file_url: publicUrl }])
-      alert('File uploaded successfully')
+      setUploadStatus('complete')
+      toast.success('File uploaded successfully')
+
+      // Reset upload state after a brief delay
+      setTimeout(() => {
+        setUploadStatus('idle')
+        setUploadProgress(0)
+        setSelectedFile(null)
+      }, 1000)
     } catch (error) {
       console.error('Error uploading file:', error)
-      alert('Failed to upload file')
+      setUploadStatus('error')
+      toast.error('Failed to upload file')
+    }
+  }
+
+  // Handle upload cancellation
+  const handleCancelUpload = () => {
+    setUploadStatus('idle')
+    setUploadProgress(0)
+    setSelectedFile(null)
+  }
+
+  // Handle retry
+  const handleRetryUpload = () => {
+    if (selectedFile) {
+      handleFileUpload({ target: { files: [selectedFile] } } as any)
     }
   }
 
@@ -419,6 +471,19 @@ export default function AppointmentDetailsPage() {
     }
   }
 
+  // Update navigation handlers
+  const handleBackClick = () => {
+    appNavigation.goBack(router, '/appointments')
+  }
+
+  const handlePatientClick = (patientId: string) => {
+    appNavigation.goToPatient(router, patientId, { showToast: true })
+  }
+
+  const handleDoctorClick = (doctorId: string) => {
+    appNavigation.goToDoctor(router, doctorId, { showToast: true })
+  }
+
   if (isLoading) return <div>Loading...</div>
   if (!appointment) return <div>Appointment not found</div>
 
@@ -426,7 +491,7 @@ export default function AppointmentDetailsPage() {
     <div className="container mx-auto px-4 py-8">
       <AppointmentErrorBoundary>
         <div className="mb-6">
-          <Button variant="ghost" onClick={() => router.back()} className="mb-4">
+          <Button variant="ghost" onClick={handleBackClick} className="mb-4">
             <ChevronLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
@@ -464,18 +529,26 @@ export default function AppointmentDetailsPage() {
                     <MapPinIcon className="w-5 h-5" />
                     <p>{appointment.location}</p>
                   </div>
-                  <p>
-                    Patient: 
-                    <Link href={`/patients/${appointment.patients?.id}`} className="text-blue-600 hover:underline ml-1">
+                  <div className="flex items-center space-x-2">
+                    <span>Patient:</span>
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto font-normal hover:no-underline"
+                      onClick={() => appointment.patients?.id && handlePatientClick(appointment.patients.id.toString())}
+                    >
                       {appointment.patients?.nickname || `${appointment.patients?.first_name} ${appointment.patients?.last_name}`}
-                    </Link>
-                  </p>
-                  <p>
-                    Doctor: 
-                    <Link href={`/doctors/${appointment.doctors?.id}`} className="text-blue-600 hover:underline ml-1">
+                    </Button>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span>Doctor:</span>
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto font-normal hover:no-underline"
+                      onClick={() => appointment.doctors?.id && handleDoctorClick(appointment.doctors.id.toString())}
+                    >
                       Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name} ({appointment.doctors?.specialization})
-                    </Link>
-                  </p>
+                    </Button>
+                  </div>
                   <p>Purpose: {appointment.type}</p>
                 </div>
               </div>
@@ -543,23 +616,55 @@ export default function AppointmentDetailsPage() {
               <CardTitle>Medical Files</CardTitle>
             </CardHeader>
             <CardContent>
-              {medicalFiles.length > 0 ? (
-                <ul className="space-y-2">
-                  {medicalFiles.map((file) => (
-                    <li key={file.id} className="flex items-center space-x-2">
-                      <FileTextIcon className="w-4 h-4" />
-                      <a href={file.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {file.file_name}
-                      </a>
-                      {file.file_type && <span className="text-sm text-gray-500">({file.file_type})</span>}
-                      {file.notes && <span className="text-sm text-gray-500"> - {file.notes}</span>}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No medical files found for this patient.</p>
-              )}
-              <Input type="file" onChange={handleFileUpload} className="mt-4" />
+              {/* File upload section */}
+              <div className="space-y-4">
+                {(!selectedFile || uploadStatus === 'error') && (
+                  <label className="flex flex-col items-center px-4 py-6 bg-blue-50 text-blue-700 rounded-lg shadow-inner border border-dashed border-blue-300 cursor-pointer hover:bg-blue-100 transition-colors duration-200">
+                    <FileUp className="w-8 h-8 mb-2" />
+                    <span className="text-sm font-medium">Click to upload or drag and drop</span>
+                    <Input
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setSelectedFile(file)
+                          handleFileUpload(e)
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+
+                {/* Upload progress */}
+                {selectedFile && (
+                  <UploadProgress
+                    fileName={selectedFile.name}
+                    progress={uploadProgress}
+                    status={uploadStatus}
+                    onCancel={uploadStatus === 'uploading' ? handleCancelUpload : undefined}
+                    onRetry={uploadStatus === 'error' ? handleRetryUpload : undefined}
+                  />
+                )}
+
+                {/* File list */}
+                {medicalFiles.length > 0 ? (
+                  <ul className="space-y-2">
+                    {medicalFiles.map((file) => (
+                      <li key={file.id} className="flex items-center space-x-2">
+                        <FileTextIcon className="w-4 h-4" />
+                        <a href={file.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {file.file_name}
+                        </a>
+                        {file.file_type && <span className="text-sm text-gray-500">({file.file_type})</span>}
+                        {file.notes && <span className="text-sm text-gray-500"> - {file.notes}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No medical files found for this patient.</p>
+                )}
+              </div>
             </CardContent>
           </Card>
 

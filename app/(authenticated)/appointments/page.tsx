@@ -21,6 +21,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { AppointmentErrorBoundary } from '@/app/components/error-boundaries/AppointmentErrorBoundary'
+import { useRouter } from 'next/navigation'
+import { appNavigation } from '@/app/lib/navigation'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 interface Appointment {
   id: number;
@@ -36,6 +39,7 @@ interface Appointment {
     first_name: string;
     last_name: string;
     nickname?: string;
+    avatar_url?: string;
   };
   doctors?: {
     id: number;
@@ -59,6 +63,7 @@ interface AppointmentResponse {
     first_name: string;
     last_name: string;
     nickname?: string;
+    avatar_url?: string;
   }[];
   doctor: {
     id: number;
@@ -81,6 +86,7 @@ function AppointmentsContent() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+  const router = useRouter()
 
   const fetchAppointments = useCallback(async () => {
     if (!supabase) return
@@ -96,7 +102,8 @@ function AppointmentsContent() {
             id, 
             first_name,
             last_name,
-            nickname
+            nickname,
+            avatar_url
           ),
           doctor:doctors!doctor_id (
             id, 
@@ -179,6 +186,10 @@ function AppointmentsContent() {
     }
   }
 
+  const handleAppointmentClick = (appointmentId: string) => {
+    appNavigation.goToAppointment(router, appointmentId, { showToast: true })
+  }
+
   if (isLoading) {
     return <AppointmentSkeleton />
   }
@@ -240,36 +251,64 @@ function AppointmentsContent() {
                 sortedAppointments.map((appointment) => (
                   <TableRow key={appointment.id} className="group hover:bg-accent/50 transition-colors">
                     <TableCell>
-                      <Link href={`/appointments/${appointment.id}`} className="block">
-                        <div className="hover:underline">
-                          {appointment.patients?.nickname || appointment.patients?.first_name}
-                        </div>
-                        {appointment.patients?.nickname && (
-                          <div className="text-sm text-muted-foreground">
-                            {appointment.patients?.first_name}
+                      <Button
+                        variant="ghost"
+                        className="p-0 h-auto font-normal hover:no-underline w-full text-left"
+                        onClick={() => handleAppointmentClick(appointment.id.toString())}
+                      >
+                        <div className="flex items-center">
+                          <Avatar className="h-8 w-8 mr-2">
+                            <AvatarImage
+                              src={appointment.patients?.avatar_url || ''}
+                              alt={appointment.patients?.first_name || ''}
+                            />
+                            <AvatarFallback>
+                              {appointment.patients?.first_name?.[0]}
+                              {appointment.patients?.last_name?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">
+                              {appointment.patients?.nickname || `${appointment.patients?.first_name} ${appointment.patients?.last_name}`}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {appointment.type}
+                            </div>
                           </div>
-                        )}
-                      </Link>
+                        </div>
+                      </Button>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/appointments/${appointment.id}`} className="block">
+                      <Button
+                        variant="ghost"
+                        className="p-0 h-auto font-normal hover:no-underline w-full text-left"
+                        onClick={() => handleAppointmentClick(appointment.id.toString())}
+                      >
                         Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name}
-                      </Link>
+                      </Button>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/appointments/${appointment.id}`} className="block">
+                      <Button
+                        variant="ghost"
+                        className="p-0 h-auto font-normal hover:no-underline w-full text-left"
+                        onClick={() => handleAppointmentClick(appointment.id.toString())}
+                      >
                         <div className="flex flex-col">
                           <span>{format(new Date(appointment.date), 'MMMM d, yyyy')}</span>
                           <span className="text-muted-foreground">
                             {format(new Date(appointment.date), 'h:mm a')}
                           </span>
                         </div>
-                      </Link>
+                      </Button>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/appointments/${appointment.id}`} className="block">
+                      <Button
+                        variant="ghost"
+                        className="p-0 h-auto font-normal hover:no-underline w-full text-left"
+                        onClick={() => handleAppointmentClick(appointment.id.toString())}
+                      >
                         {appointment.location}
-                      </Link>
+                      </Button>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

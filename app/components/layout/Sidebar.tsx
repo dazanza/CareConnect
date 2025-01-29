@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
-import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   Home, 
   Users, 
@@ -46,8 +45,10 @@ import {
 import { cn } from '@/lib/utils'
 import { SignOutButton } from "@/app/components/auth/SignOutButton"
 import { UserNav } from './UserNav'
+import { appNavigation } from '@/app/lib/navigation'
 
 export default function AppSidebar() {
+  const router = useRouter()
   const pathname = usePathname()
   const [isAddPatientOpen, setIsAddPatientOpen] = useState(false)
   const [isAddDoctorOpen, setIsAddDoctorOpen] = useState(false)
@@ -63,6 +64,10 @@ export default function AppSidebar() {
     }, 1000)
     return () => clearTimeout(timer)
   }, [])
+
+  const handleNavigation = (route: string) => {
+    appNavigation.navigateTo(router, route)
+  }
 
   return (
     <SidebarProvider defaultOpen>
@@ -89,8 +94,9 @@ export default function AppSidebar() {
               ) : (
                 <>
                   <SidebarMenuItem>
-                    <Link 
-                      href="/dashboard" 
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleNavigation('/dashboard')}
                       className={cn(
                         "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
                         "hover:bg-blue-50 hover:text-blue-600",
@@ -102,7 +108,7 @@ export default function AppSidebar() {
                         <span>Dashboard</span>
                       </div>
                       <div className="w-4" />
-                    </Link>
+                    </Button>
                   </SidebarMenuItem>
 
                   <Collapsible
@@ -156,8 +162,9 @@ export default function AppSidebar() {
                   </Collapsible>
 
                   <SidebarMenuItem>
-                    <Link 
-                      href="/appointments"
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleNavigation('/appointments')}
                       className={cn(
                         "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
                         "hover:bg-blue-50 hover:text-blue-600",
@@ -169,12 +176,13 @@ export default function AppSidebar() {
                         <span>Appointments</span>
                       </div>
                       <div className="w-4" />
-                    </Link>
+                    </Button>
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <Link 
-                      href="/prescriptions"
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleNavigation('/prescriptions')}
                       className={cn(
                         "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
                         "hover:bg-blue-50 hover:text-blue-600",
@@ -186,12 +194,13 @@ export default function AppSidebar() {
                         <span>Prescriptions</span>
                       </div>
                       <div className="w-4" />
-                    </Link>
+                    </Button>
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <Link 
-                      href="/logs"
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleNavigation('/logs')}
                       className={cn(
                         "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
                         "hover:bg-blue-50 hover:text-blue-600",
@@ -203,12 +212,13 @@ export default function AppSidebar() {
                         <span>Logs</span>
                       </div>
                       <div className="w-4" />
-                    </Link>
+                    </Button>
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
-                    <Link 
-                      href="/shared"
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleNavigation('/shared')}
                       className={cn(
                         "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
                         "hover:bg-blue-50 hover:text-blue-600",
@@ -220,19 +230,17 @@ export default function AppSidebar() {
                         <span>Shares</span>
                       </div>
                       <div className="w-4" />
-                    </Link>
+                    </Button>
                   </SidebarMenuItem>
 
                   <SidebarMenuItem>
                     <Button
                       variant="ghost"
-                      asChild
+                      onClick={() => handleNavigation('/timeline')}
                       className="w-full justify-start"
                     >
-                      <Link href="/timeline">
-                        <Clock className="mr-2 h-4 w-4" />
-                        Medical Timeline
-                      </Link>
+                      <Clock className="mr-2 h-4 w-4" />
+                      Medical Timeline
                     </Button>
                   </SidebarMenuItem>
                 </>

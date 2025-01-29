@@ -18,9 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { FileUp, File, Trash2, Download, Eye } from 'lucide-react'
+import { FileUp, File, Trash2, Download, Eye, Plus } from 'lucide-react'
 import { toast } from "react-hot-toast"
 import { useSupabase } from '@/app/hooks/useSupabase'
+import { UploadProgress, UploadStatus } from './ui/upload-progress'
 
 interface Document {
   id: string
@@ -46,20 +47,25 @@ export function DocumentManager({
   const { supabase } = useSupabase()
   const [documents, setDocuments] = useState<Document[]>(initialDocuments)
   const [showUpload, setShowUpload] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle')
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [category, setCategory] = useState<Document['category']>('other')
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0])
+      setUploadStatus('idle')
+      setUploadProgress(0)
     }
   }
 
   const handleUpload = async () => {
     if (!selectedFile || !supabase) return
 
-    setUploading(true)
+    setUploadStatus('uploading')
+    setUploadProgress(0)
+
     try {
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop()
@@ -67,9 +73,29 @@ export function DocumentManager({
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documents')
-        .upload(fileName, selectedFile)
+        .upload(fileName, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
       if (uploadError) throw uploadError
+
+      // Simulate upload progress since Supabase doesn't support progress events
+      const fileSize = selectedFile.size
+      const chunkSize = Math.floor(fileSize / 10) // Simulate 10 progress updates
+      let loaded = 0
+
+      const progressInterval = setInterval(() => {
+        loaded = Math.min(loaded + chunkSize, fileSize)
+        const percent = (loaded / fileSize) * 100
+        setUploadProgress(percent)
+        
+        if (loaded >= fileSize) {
+          clearInterval(progressInterval)
+        }
+      }, 200)
+
+      setUploadStatus('processing')
 
       // Save document metadata to database
       const { data: docData, error: docError } = await supabase
@@ -88,15 +114,21 @@ export function DocumentManager({
       if (docError) throw docError
 
       setDocuments([docData, ...documents])
-      setShowUpload(false)
+      setUploadStatus('complete')
       toast.success('Document uploaded successfully')
+      
+      // Close dialog after a brief delay to show completion
+      setTimeout(() => {
+        setShowUpload(false)
+        setSelectedFile(null)
+        setCategory('other')
+        setUploadStatus('idle')
+        setUploadProgress(0)
+      }, 1000)
     } catch (error) {
       console.error('Error uploading document:', error)
+      setUploadStatus('error')
       toast.error('Failed to upload document')
-    } finally {
-      setUploading(false)
-      setSelectedFile(null)
-      setCategory('other')
     }
   }
 
@@ -148,14 +180,28 @@ export function DocumentManager({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  // Handle upload cancellation
+  const handleCancel = () => {
+    setUploadStatus('idle')
+    setUploadProgress(0)
+    setSelectedFile(null)
+  }
+
+  // Handle retry
+  const handleRetry = () => {
+    if (selectedFile) {
+      handleUpload()
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Documents</CardTitle>
         {canEdit && (
-          <Button onClick={() => setShowUpload(true)}>
-            <FileUp className="w-4 h-4 mr-2" />
-            Upload Document
+          <Button onClick={() => setShowUpload(true)} size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Document
           </Button>
         )}
       </CardHeader>
@@ -222,14 +268,28 @@ export function DocumentManager({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">File</label>
-              <Input
-                type="file"
-                onChange={handleFileSelect}
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            {/* Only show file input if no file is selected or upload failed */}
+            {(!selectedFile || uploadStatus === 'error') && (
+              <div>
+                <label className="block text-sm font-medium mb-1">File</label>
+                <Input
+                  type="file"
+                  onChange={handleFileSelect}
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                />
+              </div>
+            )}
+
+            {/* Show upload progress when a file is selected */}
+            {selectedFile && (
+              <UploadProgress
+                fileName={selectedFile.name}
+                progress={uploadProgress}
+                status={uploadStatus}
+                onCancel={uploadStatus === 'uploading' ? handleCancel : undefined}
+                onRetry={uploadStatus === 'error' ? handleRetry : undefined}
               />
-            </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowUpload(false)}>
@@ -237,9 +297,9 @@ export function DocumentManager({
             </Button>
             <Button
               onClick={handleUpload}
-              disabled={!selectedFile || uploading}
+              disabled={!selectedFile || !category || uploadStatus === 'uploading' || uploadStatus === 'processing'}
             >
-              {uploading ? 'Uploading...' : 'Upload'}
+              Upload
             </Button>
           </DialogFooter>
         </DialogContent>

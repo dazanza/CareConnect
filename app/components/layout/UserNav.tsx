@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -13,16 +14,21 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { User, Settings, LogOut } from 'lucide-react'
-import Link from 'next/link'
+import { appNavigation } from '@/app/lib/navigation'
 
 export function UserNav() {
   const { user, signOut } = useAuth()
+  const router = useRouter()
 
   if (!user) return null
 
   const initials = user.email
     ? user.email.substring(0, 2).toUpperCase()
     : 'U'
+
+  const handleSettingsClick = () => {
+    appNavigation.navigateTo(router, '/settings', { showToast: true })
+  }
 
   return (
     <DropdownMenu>
@@ -41,11 +47,9 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="/settings" className="w-full cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </Link>
+          <DropdownMenuItem onClick={handleSettingsClick}>
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

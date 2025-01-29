@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'react-hot-toast'
-import { AlertCircle, RefreshCw, Pencil, XCircle } from 'lucide-react'
+import { AlertCircle, RefreshCw, Pencil, XCircle, ChevronLeft } from 'lucide-react'
+import { appNavigation } from '@/app/lib/navigation'
 
 interface PrescriptionDetailsProps {
   params: {
@@ -21,10 +22,26 @@ interface PrescriptionDetailsProps {
   }
 }
 
+interface Patient {
+  id: number;
+  name: string;
+  nickname?: string;
+}
+
+interface Doctor {
+  id: number;
+  name: string;
+}
+
+interface PrescriptionWithDetails extends Prescription {
+  patient: Patient;
+  doctor: Doctor;
+}
+
 export default function PrescriptionDetailsPage({ params }: PrescriptionDetailsProps) {
   const router = useRouter()
   const { supabase } = useSupabase()
-  const [prescription, setPrescription] = useState<Prescription | null>(null)
+  const [prescription, setPrescription] = useState<PrescriptionWithDetails | null>(null)
   const [events, setEvents] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showRefillDialog, setShowRefillDialog] = useState(false)
@@ -47,7 +64,8 @@ export default function PrescriptionDetailsPage({ params }: PrescriptionDetailsP
           patient:patients (
             id,
             first_name,
-            last_name
+            last_name,
+            nickname
           ),
           doctor:doctors (
             id,
@@ -59,7 +77,22 @@ export default function PrescriptionDetailsPage({ params }: PrescriptionDetailsP
         .single();
 
       if (error) throw error;
-      setPrescription(data);
+
+      // Transform the data to match our expected types
+      const transformedData: PrescriptionWithDetails = {
+        ...data,
+        patient: {
+          id: data.patient.id,
+          name: `${data.patient.first_name} ${data.patient.last_name}`,
+          nickname: data.patient.nickname
+        },
+        doctor: {
+          id: data.doctor.id,
+          name: `Dr. ${data.doctor.first_name} ${data.doctor.last_name}`
+        }
+      };
+
+      setPrescription(transformedData);
     } catch (error) {
       console.error('Error loading prescription:', error);
       toast.error('Failed to load prescription');
@@ -135,70 +168,96 @@ export default function PrescriptionDetailsPage({ params }: PrescriptionDetailsP
     }
   }
 
+  const handleBackClick = () => {
+    appNavigation.goBack(router, '/prescriptions')
+  }
+
+  const handlePatientClick = (patientId: string) => {
+    appNavigation.goToPatient(router, patientId, { showToast: true })
+  }
+
+  const handleDoctorClick = (doctorId: string) => {
+    appNavigation.goToDoctor(router, doctorId, { showToast: true })
+  }
+
   if (isLoading) {
     return <div>Loading...</div>
   }
 
   if (!prescription) {
-    return null
+    return <div>Prescription not found</div>
   }
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Prescription Details</h1>
-        <div className="flex items-center gap-2">
-          {prescription.status === 'active' && (
-            <>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowRefillDialog(true)}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refill
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setShowUpdateDialog(true)}
-              >
-                <Pencil className="mr-2 h-4 w-4" />
-                Update
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={() => setShowDiscontinueDialog(true)}
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                Discontinue
-              </Button>
-            </>
-          )}
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <Button variant="ghost" onClick={handleBackClick} className="mb-4">
+          <ChevronLeft className="w-4 h-4 mr-2" />
+          Back to Prescriptions
+        </Button>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Prescription Details</h1>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <PrescriptionCard
-            prescription={prescription}
-            showPatient
-          />
-
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div>
-                <Label>Notes</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {prescription.notes || 'No notes available'}
-                </p>
+      <div className="grid gap-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold">Patient Information</h2>
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto font-normal hover:no-underline"
+                    onClick={() => prescription?.patient?.id && handlePatientClick(prescription.patient.id.toString())}
+                  >
+                    {prescription?.patient?.name}
+                    {prescription?.patient?.nickname && ` (${prescription.patient.nickname})`}
+                  </Button>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-xl font-semibold">Prescribed By</h2>
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto font-normal hover:no-underline"
+                    onClick={() => prescription?.doctor?.id && handleDoctorClick(prescription.doctor.id.toString())}
+                  >
+                    {prescription?.doctor?.name}
+                  </Button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              
+              <PrescriptionCard prescription={prescription} />
+              
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowUpdateDialog(true)}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Update
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRefillDialog(true)}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refill
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowDiscontinueDialog(true)}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Discontinue
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <PrescriptionHistory
-          prescription={prescription}
-          events={events}
-        />
+        <PrescriptionHistory prescription={prescription} events={events} />
       </div>
 
       <Dialog open={showRefillDialog} onOpenChange={setShowRefillDialog}>

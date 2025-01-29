@@ -229,6 +229,80 @@ All tables are protected by RLS policies:
 - Protected routes via middleware
 - Dynamic route parameters
 - Modal-based forms within pages
+- Navigation utility for consistent routing
+  - Error handling with fallbacks
+  - Toast notifications for navigation events
+  - Type-safe navigation methods
+  - Consistent back navigation
+  - Route-specific navigation methods (e.g., goToPatient, goToDoctor)
+
+### Navigation Utility
+The `appNavigation` utility provides a consistent way to handle navigation throughout the application:
+
+```typescript
+// Core navigation methods
+navigateTo(router, route, options) // General navigation with fallback
+goBack(router, fallbackRoute)      // Back navigation with fallback
+
+// Route-specific navigation
+goToPatient(router, id, options)   // Navigate to patient details
+goToDoctor(router, id, options)    // Navigate to doctor details
+goToAppointment(router, id, options) // Navigate to appointment details
+
+// Features
+- Error handling with fallbacks
+- Toast notifications for navigation events
+- Type-safe navigation methods
+- Consistent back navigation behavior
+- Route-specific navigation with proper typing
+```
+
+#### Navigation Features
+
+1. **Error Handling**
+   - Catches navigation errors gracefully
+   - Provides fallback routes for failed navigation
+   - Logs errors for debugging
+   - Shows user-friendly error messages
+
+2. **Type Safety**
+   - Route parameters are properly typed
+   - Navigation methods enforce correct parameter types
+   - TypeScript interfaces for all navigation options
+   - Compile-time route validation
+
+3. **User Experience**
+   - Toast notifications for navigation events
+   - Loading indicators during navigation
+   - Smooth transitions between routes
+   - Consistent back navigation behavior
+
+4. **Route-Specific Methods**
+   - Dedicated methods for common routes
+   - Proper parameter handling
+   - Optional configuration
+   - Context-aware navigation
+
+#### Usage Examples
+
+```typescript
+// Basic navigation
+appNavigation.navigateTo(router, '/dashboard')
+
+// Navigation with options
+appNavigation.navigateTo(router, '/settings', {
+  showToast: true,
+  fallbackRoute: '/dashboard'
+})
+
+// Route-specific navigation
+appNavigation.goToPatient(router, patientId, {
+  showToast: true
+})
+
+// Back navigation with fallback
+appNavigation.goBack(router, '/dashboard')
+```
 
 ## Development Practices
 

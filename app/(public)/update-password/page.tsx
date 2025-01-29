@@ -8,6 +8,7 @@ import { Info } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
+import { appNavigation } from '@/app/lib/navigation'
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState('')
@@ -48,11 +49,14 @@ export default function UpdatePasswordPage() {
 
       if (error) throw error
 
-      toast.success('Password updated successfully! Please sign in with your new password.')
-      router.push('/sign-in')
-    } catch (error: any) {
-      console.error('Update password error:', error)
-      toast.error(error?.message || 'Failed to update password. Please try again.')
+      toast.success('Password updated successfully')
+      appNavigation.navigateTo(router, '/sign-in', { 
+        showToast: true,
+        fallbackRoute: '/'
+      })
+    } catch (error) {
+      console.error('Error updating password:', error)
+      toast.error('Failed to update password')
     } finally {
       setIsLoading(false)
     }

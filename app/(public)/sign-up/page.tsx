@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'react-hot-toast'
 import { Link } from '@/components/ui/link'
+import { appNavigation } from '@/app/lib/navigation'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -29,13 +30,20 @@ export default function SignUpPage() {
 
     try {
       await signUp(email, password)
-      router.push('/patients')
-      router.refresh()
+      // Use navigation utility with fallback and toast
+      appNavigation.navigateTo(router, '/patients', { 
+        showToast: true,
+        fallbackRoute: '/sign-in'
+      })
     } catch (error) {
       toast.error('Failed to create account')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleSignInClick = () => {
+    appNavigation.navigateTo(router, '/sign-in', { showToast: true })
   }
 
   return (
@@ -54,10 +62,11 @@ export default function SignUpPage() {
             <Input
               id="email"
               type="email"
-              placeholder="m@example.com"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -68,29 +77,34 @@ export default function SignUpPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirm Password</Label>
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
             <Input
-              id="confirm-password"
+              id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
-
-          <Button className="w-full" type="submit" disabled={isLoading} isLoading={isLoading}>
-            Sign Up
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Creating account...' : 'Create account'}
           </Button>
         </form>
 
         <p className="px-8 text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/sign-in" className="underline hover:text-primary">
+          <Button 
+            variant="link" 
+            className="p-0 h-auto font-normal hover:no-underline"
+            onClick={handleSignInClick}
+          >
             Sign in
-          </Link>
+          </Button>
         </p>
       </div>
     </div>

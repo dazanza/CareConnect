@@ -1,19 +1,25 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info, ArrowLeft } from 'lucide-react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from 'react-hot-toast'
-import Link from 'next/link'
+import { appNavigation } from '@/app/lib/navigation'
 
 export default function ResetPasswordPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [debug, setDebug] = useState<any>(null)
   const supabase = createClientComponentClient()
+
+  const handleBackClick = () => {
+    appNavigation.goBack(router, '/sign-in')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,13 +53,14 @@ export default function ResetPasswordPage() {
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
       <div className="w-full max-w-md">
         <div className="mb-8">
-          <Link 
-            href="/sign-in"
+          <Button
+            variant="ghost"
+            onClick={handleBackClick}
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Sign In
-          </Link>
+          </Button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 space-y-6">

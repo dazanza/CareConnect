@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Phone, Mail, Trash2, Pencil, UserMinus, UserPlus, Share2, MoreHorizontal, MessageSquare } from 'lucide-react'
+import { Plus, Phone, Mail, Trash2, Pencil, UserMinus, UserPlus, Share2, MoreHorizontal, MessageSquare, ChevronLeft } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { MedicalHistoryTimeline } from '@/app/components/MedicalHistoryTimeline'
 import { AddMedicalHistoryForm } from '@/app/components/AddMedicalHistoryForm'
@@ -64,6 +64,7 @@ import Link from 'next/link'
 import { Textarea } from "@/components/ui/textarea"
 import { usePatientAccess } from '@/app/hooks/usePatientAccess'
 import { PatientErrorBoundary } from '@/app/components/error-boundaries/PatientErrorBoundary'
+import { appNavigation } from '@/app/lib/navigation'
 
 interface Doctor {
   id: number
@@ -206,6 +207,7 @@ interface PatientDetailsPageProps {
 }
 
 export default function PatientDetailsPage({ params }: PatientDetailsPageProps) {
+  const router = useRouter()
   const { supabase } = useSupabase()
   const { user } = useAuth()
   const { canEdit, isLoading: isLoadingAccess } = usePatientAccess(params.id)
@@ -253,6 +255,8 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [noteText, setNoteText] = useState('')
+
+  const [isAddMedicalHistoryOpen, setIsAddMedicalHistoryOpen] = useState(false)
 
   const fetchPatientData = useCallback(async () => {
     if (!supabase || !params.id) return;
@@ -637,6 +641,34 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
     }
   }
 
+  const handleBackClick = () => {
+    appNavigation.goBack(router, '/patients')
+  }
+
+  const handleAppointmentClick = (appointmentId: string) => {
+    appNavigation.goToAppointment(router, appointmentId, { showToast: true })
+  }
+
+  const handleDoctorClick = (doctorId: string) => {
+    appNavigation.goToDoctor(router, doctorId, { showToast: true })
+  }
+
+  const handlePrescriptionClick = (prescriptionId: string) => {
+    appNavigation.navigateTo(router, `/prescriptions/${prescriptionId}`, { showToast: true })
+  }
+
+  const handleMedicalHistoryClick = (event: MedicalEvent) => {
+    switch (event.type) {
+      case 'appointment':
+        handleAppointmentClick(event.id)
+        break
+      case 'prescription':
+        handlePrescriptionClick(event.id)
+        break
+      // Add other types as needed
+    }
+  }
+
   if (isLoading) {
     return <PatientCardSkeleton />
   }
@@ -647,28 +679,34 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
 
   return (
     <PatientErrorBoundary>
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-bold tracking-tight">
-                {patient.first_name} {patient.last_name}
-                {patient.nickname && ` (${patient.nickname})`}
-              </h1>
-              {canEdit && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsShareModalOpen(true)}
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-              )}
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <Button variant="ghost" onClick={handleBackClick} className="mb-4">
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back to Patients
+          </Button>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-4">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {patient.first_name} {patient.last_name}
+                  {patient.nickname && ` (${patient.nickname})`}
+                </h1>
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsShareModalOpen(true)}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </Button>
+                )}
+              </div>
+              <p className="text-muted-foreground">
+                Manage patient information, medical records, and documents
+              </p>
             </div>
-            <p className="text-muted-foreground">
-              Manage patient information, medical records, and documents
-            </p>
           </div>
         </div>
 
@@ -676,6 +714,7 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
           <TabsList className="w-full justify-start">
             <TabsTrigger value="main" className="flex-1 sm:flex-none">Main</TabsTrigger>
             <TabsTrigger value="documents" className="flex-1 sm:flex-none">Documents</TabsTrigger>
+            <TabsTrigger value="timeline" className="flex-1 sm:flex-none">Medical History</TabsTrigger>
           </TabsList>
 
           <TabsContent value="main" className="space-y-6 mt-0">
@@ -775,19 +814,18 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                             {appointments.map((appointment) => (
                               <TableRow key={appointment.id}>
                                 <TableCell>
-                                  <Link href={`/appointments/${appointment.id}`}>
-                                    <Button
-                                      variant="ghost"
-                                      className="w-full justify-start p-0 h-auto font-normal hover:bg-transparent"
-                                    >
-                                      {appointment.doctor ? `Dr. ${appointment.doctor.first_name} ${appointment.doctor.last_name}` : 'No doctor assigned'} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
-                                      {appointment.notes && (
-                                        <div className="mt-1 text-sm text-muted-foreground">
-                                          Note: {appointment.notes}
-                                        </div>
-                                      )}
-                                    </Button>
-                                  </Link>
+                                  <Button
+                                    variant="ghost"
+                                    className="p-0 h-auto font-normal hover:no-underline w-full text-left"
+                                    onClick={() => handleAppointmentClick(appointment.id)}
+                                  >
+                                    {appointment.doctor ? `Dr. ${appointment.doctor.first_name} ${appointment.doctor.last_name}` : 'No doctor assigned'} on {format(new Date(appointment.date), "MMMM d, yyyy")} at {format(new Date(appointment.date), "h:mm a")}
+                                    {appointment.notes && (
+                                      <div className="mt-1 text-sm text-muted-foreground">
+                                        Note: {appointment.notes}
+                                      </div>
+                                    )}
+                                  </Button>
                                 </TableCell>
                                 <TableCell>
                                   <DropdownMenu>
@@ -797,11 +835,9 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem asChild>
-                                        <Link href={`/appointments/${appointment.id}`}>
-                                          <Pencil className="h-4 w-4 mr-2" />
-                                          Edit Appointment
-                                        </Link>
+                                      <DropdownMenuItem onClick={() => handleAppointmentClick(appointment.id)}>
+                                        <Pencil className="h-4 w-4 mr-2" />
+                                        Edit Appointment
                                       </DropdownMenuItem>
                                       <DropdownMenuItem 
                                         className="text-destructive"
@@ -893,7 +929,13 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
                         {sortedDoctors.map((doctor) => (
                           <TableRow key={doctor.id}>
                             <TableCell className="font-medium">
-                              Dr. {doctor.first_name} {doctor.last_name}
+                              <Button
+                                variant="ghost"
+                                className="p-0 h-auto font-normal hover:no-underline w-full text-left"
+                                onClick={() => handleDoctorClick(doctor.id.toString())}
+                              >
+                                Dr. {doctor.first_name} {doctor.last_name}
+                              </Button>
                             </TableCell>
                             <TableCell>{doctor.specialization}</TableCell>
                             <TableCell>
@@ -955,6 +997,63 @@ export default function PatientDetailsPage({ params }: PatientDetailsPageProps) 
 
           <TabsContent value="documents" className="space-y-6 mt-0">
             <DocumentManager patientId={params.id} initialDocuments={documents} canEdit={canEdit} />
+          </TabsContent>
+
+          <TabsContent value="timeline" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Medical History Timeline</h2>
+              {canEdit && (
+                <Button onClick={() => setIsAddMedicalHistoryOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Event
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {medicalHistory.map((event) => (
+                <Card key={event.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <CardTitle>{event.title}</CardTitle>
+                        <CardDescription>
+                          {format(new Date(event.date), 'MMMM d, yyyy')}
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        className="p-0 h-auto font-normal hover:no-underline"
+                        onClick={() => handleDoctorClick(event.doctor.id)}
+                      >
+                        Dr. {event.doctor.first_name} {event.doctor.last_name}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p>{event.description}</p>
+                    {event.type === 'appointment' && (
+                      <Button
+                        variant="link"
+                        className="mt-2 p-0"
+                        onClick={() => handleAppointmentClick(event.id)}
+                      >
+                        View Appointment Details
+                      </Button>
+                    )}
+                    {event.type === 'prescription' && (
+                      <Button
+                        variant="link"
+                        className="mt-2 p-0"
+                        onClick={() => handlePrescriptionClick(event.id)}
+                      >
+                        View Prescription Details
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
         </Tabs>
 

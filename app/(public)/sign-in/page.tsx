@@ -6,9 +6,9 @@ import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'react-hot-toast'
-import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/app/components/ui/skeleton'
+import { appNavigation } from '@/app/lib/navigation'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -19,7 +19,10 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (user) {
-      router.refresh()
+      appNavigation.navigateTo(router, '/dashboard', { 
+        showToast: true,
+        fallbackRoute: '/'
+      })
     }
   }, [user, router])
 
@@ -34,6 +37,14 @@ export default function SignInPage() {
       toast.error(error?.message || 'Invalid email or password')
       setIsLoading(false)
     }
+  }
+
+  const handleSignUpClick = () => {
+    appNavigation.navigateTo(router, '/sign-up', { showToast: true })
+  }
+
+  const handleResetPasswordClick = () => {
+    appNavigation.navigateTo(router, '/reset-password', { showToast: true })
   }
 
   // Show loading state while checking auth
@@ -64,55 +75,55 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Welcome Back</h1>
-          <p className="text-gray-500">Sign in to your account</p>
+    <div className="container flex h-screen w-screen flex-col items-center justify-center">
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="flex flex-col space-y-2 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+          <p className="text-sm text-muted-foreground">
+            Enter your email and password to sign in to your account
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Input
-              id="email"
-              placeholder="Email"
-              required
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-            />
+        <div className="grid gap-6">
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-2">
+              <div className="grid gap-1">
+                <Input
+                  id="email"
+                  placeholder="name@example.com"
+                  type="email"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect="off"
+                  disabled={isLoading}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <Input
+                  id="password"
+                  placeholder="Password"
+                  type="password"
+                  autoComplete="current-password"
+                  disabled={isLoading}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <Button disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Sign In
+              </Button>
+            </div>
+          </form>
+          <div className="flex flex-col space-y-2">
+            <Button variant="ghost" onClick={handleSignUpClick}>
+              Don't have an account? Sign up
+            </Button>
+            <Button variant="ghost" onClick={handleResetPasswordClick}>
+              Forgot your password?
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Input
-              id="password"
-              placeholder="Password"
-              required
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <Link
-              href="/reset-password"
-              className="text-sm text-blue-600 hover:text-blue-500"
-            >
-              Forgot password?
-            </Link>
-          </div>
-          <Button className="w-full" type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </Button>
-        </form>
+        </div>
       </div>
     </div>
   )
