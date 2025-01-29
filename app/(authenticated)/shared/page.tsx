@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
+import { SharedResourcesSkeleton } from "@/app/components/ui/skeletons"
 
 interface PatientShare {
   id: string
@@ -288,6 +289,10 @@ export default function SharedResourcesPage() {
       return () => clearTimeout(timer);
     }
   }, [isLoading]);
+
+  if (isLoading) {
+    return <SharedResourcesSkeleton />
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">

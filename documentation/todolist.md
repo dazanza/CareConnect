@@ -18,15 +18,18 @@
   - [ ] Add error handling for navigation failures
 
 ### Loading States
-- [ ] Add skeleton loaders for:
-  - [ ] Patient list and details
-  - [ ] Prescription list and details
-  - [ ] Appointment calendar and list
-  - [ ] Medical records list
-  - [ ] Timeline events
-- [ ] Implement loading indicators for async operations
+- [x] Add skeleton loaders for:
+  - [x] Patient list and details
+  - [x] Prescription list and details
+  - [x] Appointment calendar and list
+  - [x] Medical records list
+  - [x] Timeline events
+  - [x] Shared resources view
+  - [x] Document list
+  - [x] Todo list
+- [x] Implement loading indicators for async operations
 - [ ] Add progress indicators for file uploads
-- [ ] Optimize loading sequences for better UX
+- [x] Optimize loading sequences for better UX
 
 ## Patient Sharing System
 
@@ -152,11 +155,13 @@
 - [x] API documentation
 - [x] Error boundary implementation for major sections
 - [x] Error handling improvements
+- [x] Loading state implementation with skeletons
 
 ### In Progress
-- [ ] Loading state implementation
 - [ ] Component documentation
+- [ ] Email notifications for sharing
 
 ### Next Up
-- Skeleton loaders
-- Email notifications for sharing 
+- [ ] Share management features
+- [ ] Performance optimization
+- [ ] Testing implementation 

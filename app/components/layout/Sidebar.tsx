@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -40,7 +40,8 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel
+  SidebarGroupLabel,
+  SidebarMenuSkeleton
 } from "@/components/ui/sidebar"
 import { cn } from '@/lib/utils'
 import { SignOutButton } from "@/app/components/auth/SignOutButton"
@@ -53,6 +54,15 @@ export default function AppSidebar() {
   const [isAddLogOpen, setIsAddLogOpen] = useState(false)
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false)
   const [openItem, setOpenItem] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate loading state for menu items
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
     <SidebarProvider defaultOpen>
@@ -70,153 +80,163 @@ export default function AppSidebar() {
 
           <SidebarContent className="px-1 py-2">
             <SidebarMenu>
-              <SidebarMenuItem>
-                <Link 
-                  href="/dashboard" 
-                  className={cn(
-                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
-                    "hover:bg-blue-50 hover:text-blue-600",
-                    pathname === '/dashboard' && "bg-blue-50 text-blue-600 font-medium"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Home className="h-4 w-4" />
-                    <span>Dashboard</span>
-                  </div>
-                  <div className="w-4" />
-                </Link>
-              </SidebarMenuItem>
+              {isLoading ? (
+                <div className="space-y-1">
+                  <SidebarMenuSkeleton showIcon />
+                  <SidebarMenuSkeleton showIcon />
+                  <SidebarMenuSkeleton showIcon />
+                </div>
+              ) : (
+                <>
+                  <SidebarMenuItem>
+                    <Link 
+                      href="/dashboard" 
+                      className={cn(
+                        "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                        "hover:bg-blue-50 hover:text-blue-600",
+                        pathname === '/dashboard' && "bg-blue-50 text-blue-600 font-medium"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Home className="h-4 w-4" />
+                        <span>Dashboard</span>
+                      </div>
+                      <div className="w-4" />
+                    </Link>
+                  </SidebarMenuItem>
 
-              <Collapsible
-                open={openItem === 'patients'}
-                onOpenChange={() => setOpenItem(openItem === 'patients' ? null : 'patients')}
-              >
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton 
-                    isActive={pathname === '/patients'}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors",
-                      "hover:bg-blue-50 hover:text-blue-600",
-                      pathname === '/patients' && "bg-blue-50 text-blue-600 font-medium"
-                    )}
+                  <Collapsible
+                    open={openItem === 'patients'}
+                    onOpenChange={() => setOpenItem(openItem === 'patients' ? null : 'patients')}
                   >
-                    <Users className="h-4 w-4" />
-                    <span>Patients</span>
-                    <ChevronRight className={`ml-auto h-4 w-4 transition-transform ${openItem === 'patients' ? 'rotate-90' : ''}`} />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="pl-4 pr-2 py-2 mt-1 bg-blue-50/50 rounded-md">
-                    <PatientsContent />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton 
+                        isActive={pathname === '/patients'}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                          "hover:bg-blue-50 hover:text-blue-600",
+                          pathname === '/patients' && "bg-blue-50 text-blue-600 font-medium"
+                        )}
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Patients</span>
+                        <ChevronRight className={`ml-auto h-4 w-4 transition-transform ${openItem === 'patients' ? 'rotate-90' : ''}`} />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="pl-4 pr-2 py-2 mt-1 bg-blue-50/50 rounded-md">
+                        <PatientsContent />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
 
-              <Collapsible
-                open={openItem === 'doctors'}
-                onOpenChange={() => setOpenItem(openItem === 'doctors' ? null : 'doctors')}
-              >
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton 
-                    isActive={pathname === '/doctors'}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors",
-                      "hover:bg-blue-50 hover:text-blue-600",
-                      pathname === '/doctors' && "bg-blue-50 text-blue-600 font-medium"
-                    )}
+                  <Collapsible
+                    open={openItem === 'doctors'}
+                    onOpenChange={() => setOpenItem(openItem === 'doctors' ? null : 'doctors')}
                   >
-                    <Stethoscope className="h-4 w-4" />
-                    <span>Doctors</span>
-                    <ChevronRight className={`ml-auto h-4 w-4 transition-transform ${openItem === 'doctors' ? 'rotate-90' : ''}`} />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="pl-4 pr-2 py-2 mt-1 bg-blue-50/50 rounded-md">
-                    <DoctorsContent />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton 
+                        isActive={pathname === '/doctors'}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                          "hover:bg-blue-50 hover:text-blue-600",
+                          pathname === '/doctors' && "bg-blue-50 text-blue-600 font-medium"
+                        )}
+                      >
+                        <Stethoscope className="h-4 w-4" />
+                        <span>Doctors</span>
+                        <ChevronRight className={`ml-auto h-4 w-4 transition-transform ${openItem === 'doctors' ? 'rotate-90' : ''}`} />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="pl-4 pr-2 py-2 mt-1 bg-blue-50/50 rounded-md">
+                        <DoctorsContent />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
 
-              <SidebarMenuItem>
-                <Link 
-                  href="/appointments"
-                  className={cn(
-                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
-                    "hover:bg-blue-50 hover:text-blue-600",
-                    pathname === '/appointments' && "bg-blue-50 text-blue-600 font-medium"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>Appointments</span>
-                  </div>
-                  <div className="w-4" />
-                </Link>
-              </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <Link 
+                      href="/appointments"
+                      className={cn(
+                        "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                        "hover:bg-blue-50 hover:text-blue-600",
+                        pathname === '/appointments' && "bg-blue-50 text-blue-600 font-medium"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>Appointments</span>
+                      </div>
+                      <div className="w-4" />
+                    </Link>
+                  </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <Link 
-                  href="/prescriptions"
-                  className={cn(
-                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
-                    "hover:bg-blue-50 hover:text-blue-600",
-                    pathname === '/prescriptions' && "bg-blue-50 text-blue-600 font-medium"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span>Prescriptions</span>
-                  </div>
-                  <div className="w-4" />
-                </Link>
-              </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <Link 
+                      href="/prescriptions"
+                      className={cn(
+                        "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                        "hover:bg-blue-50 hover:text-blue-600",
+                        pathname === '/prescriptions' && "bg-blue-50 text-blue-600 font-medium"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        <span>Prescriptions</span>
+                      </div>
+                      <div className="w-4" />
+                    </Link>
+                  </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <Link 
-                  href="/logs"
-                  className={cn(
-                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
-                    "hover:bg-blue-50 hover:text-blue-600",
-                    pathname === '/logs' && "bg-blue-50 text-blue-600 font-medium"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <ClipboardList className="h-4 w-4" />
-                    <span>Logs</span>
-                  </div>
-                  <div className="w-4" />
-                </Link>
-              </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <Link 
+                      href="/logs"
+                      className={cn(
+                        "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                        "hover:bg-blue-50 hover:text-blue-600",
+                        pathname === '/logs' && "bg-blue-50 text-blue-600 font-medium"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="h-4 w-4" />
+                        <span>Logs</span>
+                      </div>
+                      <div className="w-4" />
+                    </Link>
+                  </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <Link 
-                  href="/shared"
-                  className={cn(
-                    "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
-                    "hover:bg-blue-50 hover:text-blue-600",
-                    pathname === '/shared' && "bg-blue-50 text-blue-600 font-medium"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>Shares</span>
-                  </div>
-                  <div className="w-4" />
-                </Link>
-              </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <Link 
+                      href="/shared"
+                      className={cn(
+                        "w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-sm transition-colors",
+                        "hover:bg-blue-50 hover:text-blue-600",
+                        pathname === '/shared' && "bg-blue-50 text-blue-600 font-medium"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <span>Shares</span>
+                      </div>
+                      <div className="w-4" />
+                    </Link>
+                  </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <Button
-                  variant="ghost"
-                  asChild
-                  className="w-full justify-start"
-                >
-                  <Link href="/timeline">
-                    <Clock className="mr-2 h-4 w-4" />
-                    Medical Timeline
-                  </Link>
-                </Button>
-              </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <Button
+                      variant="ghost"
+                      asChild
+                      className="w-full justify-start"
+                    >
+                      <Link href="/timeline">
+                        <Clock className="mr-2 h-4 w-4" />
+                        Medical Timeline
+                      </Link>
+                    </Button>
+                  </SidebarMenuItem>
+                </>
+              )}
             </SidebarMenu>
           </SidebarContent>
 

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
+import { Skeleton } from '@/app/components/ui/skeleton'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -39,7 +40,20 @@ export default function SignInPage() {
   if (isAuthLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <div className="w-full max-w-sm space-y-6 p-4">
+          <div className="space-y-2 text-center">
+            <Skeleton className="h-8 w-32 mx-auto" />
+            <Skeleton className="h-4 w-48 mx-auto" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-2 text-center">
+            <Skeleton className="h-4 w-40 mx-auto" />
+          </div>
+        </div>
       </div>
     )
   }

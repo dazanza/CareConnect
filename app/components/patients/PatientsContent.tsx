@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState } from 'react'
 import { PatientErrorBoundary } from '@/app/components/error-boundaries/PatientErrorBoundary'
+import { PatientListSkeleton } from "@/app/components/ui/skeletons"
 
 interface Patient {
   id: string
@@ -38,7 +39,7 @@ export default function PatientsContent() {
   const { supabase } = useSupabase()
   const [sortBy, setSortBy] = useState<'name' | 'nickname'>('name')
 
-  const { data: patients = [] } = useQuery<Patient[]>({
+  const { data: patients = [], isLoading } = useQuery<Patient[]>({
     queryKey: ['patients', user?.id, sortBy],
     queryFn: async () => {
       if (!supabase || !user?.id) return []
@@ -105,6 +106,10 @@ export default function PatientsContent() {
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false
   })
+
+  if (isLoading) {
+    return <PatientListSkeleton />
+  }
 
   const sortedPatients = [...patients].sort((a, b) => {
     if (sortBy === 'name') {
