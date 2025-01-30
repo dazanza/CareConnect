@@ -1,29 +1,24 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useSupabase } from '@/app/hooks/useSupabase'
-import { Button } from "@/components/ui/button"
+import { useRouter } from 'next/navigation'
+import { format } from "date-fns"
 import { Calendar, Clock, MapPin, RefreshCw, Trash2, ArrowUpDown, Plus } from 'lucide-react'
-import { format } from 'date-fns'
 import { toast } from 'react-hot-toast'
+import { Button } from "@/components/ui/button"
+import { ResponsiveTable } from "@/app/components/ui/responsive-table"
+import { LazyComponent } from "@/app/components/ui/lazy-component"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from "@/app/components/auth/SupabaseAuthProvider"
+import { useSupabase } from "@/app/hooks/useSupabase"
+import { appNavigation } from "@/app/lib/navigation"
+import { AppointmentSkeleton } from "@/app/components/ui/skeletons"
+import { AppointmentCalendarEnhanced } from "@/app/components/AppointmentCalendarEnhanced"
+import type { CalendarAppointment } from '@/app/components/AppointmentCalendarEnhanced'
 import { RescheduleAppointmentDialog } from '@/app/components/RescheduleAppointmentDialog'
 import { CancelAppointmentDialog } from '@/app/components/CancelAppointmentDialog'
-import { AppointmentSkeleton } from '@/app/components/ui/skeletons'
-import { AppointmentCalendarEnhanced } from '@/app/components/AppointmentCalendarEnhanced'
-import type { CalendarAppointment } from '@/app/components/AppointmentCalendarEnhanced'
-import Link from 'next/link'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { AppointmentErrorBoundary } from '@/app/components/error-boundaries/AppointmentErrorBoundary'
-import { useRouter } from 'next/navigation'
-import { appNavigation } from '@/app/lib/navigation'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import Link from 'next/link'
 
 interface Appointment {
   id: number;
@@ -78,15 +73,16 @@ type SortOrder = 'asc' | 'desc'
 
 function AppointmentsContent() {
   const { supabase } = useSupabase()
+  const { user } = useAuth()
+  const router = useRouter()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [showReschedule, setShowReschedule] = useState(false)
   const [showCancel, setShowCancel] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
-  const router = useRouter()
 
   const fetchAppointments = useCallback(async () => {
     if (!supabase) return
@@ -190,6 +186,107 @@ function AppointmentsContent() {
     appNavigation.goToAppointment(router, appointmentId, { showToast: true })
   }
 
+  const columns = [
+    {
+      header: "Patient",
+      accessorKey: "patients",
+      cell: (value: any) => (
+        <Button
+          variant="ghost"
+          className="p-0 h-auto font-normal hover:no-underline w-full text-left"
+          onClick={() => handleAppointmentClick(value.id.toString())}
+        >
+          <div className="flex items-center">
+            <Avatar className="h-8 w-8 mr-2">
+              <AvatarImage
+                src={value?.avatar_url || ''}
+                alt={value?.first_name || ''}
+              />
+              <AvatarFallback>
+                {value?.first_name?.[0]}
+                {value?.last_name?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-medium">
+                {value?.nickname || `${value?.first_name} ${value?.last_name}`}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {value?.type}
+              </div>
+            </div>
+          </div>
+        </Button>
+      )
+    },
+    {
+      header: "Doctor",
+      accessorKey: "doctors",
+      cell: (value: any) => (
+        <div className="flex items-center">
+          <div>
+            <div className="font-medium">
+              Dr. {value?.first_name} {value?.last_name}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {value?.specialization}
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: "Date & Time",
+      accessorKey: "date",
+      cell: (value: string) => (
+        <div>
+          <div className="font-medium">
+            {format(new Date(value), "MMMM d, yyyy")}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {format(new Date(value), "h:mm a")}
+          </div>
+        </div>
+      )
+    },
+    {
+      header: "Location",
+      accessorKey: "location"
+    },
+    {
+      header: "Actions",
+      accessorKey: "id",
+      cell: (value: string) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation()
+              const apt = appointments.find(a => a.id.toString() === value)
+              setSelectedAppointment(apt || null)
+              setShowReschedule(true)
+            }}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation()
+              const apt = appointments.find(a => a.id.toString() === value)
+              setSelectedAppointment(apt || null)
+              setShowCancel(true)
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )
+    }
+  ]
+
   if (isLoading) {
     return <AppointmentSkeleton />
   }
@@ -206,147 +303,23 @@ function AppointmentsContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => handleSort('patient')}
-                    className="text-sm font-medium"
-                  >
-                    Patient <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => handleSort('doctor')}
-                    className="text-sm font-medium"
-                  >
-                    Doctor <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => handleSort('date')}
-                    className="text-sm font-medium"
-                  >
-                    Date & Time <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedAppointments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    No appointments scheduled.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                sortedAppointments.map((appointment) => (
-                  <TableRow key={appointment.id} className="group hover:bg-accent/50 transition-colors">
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        className="p-0 h-auto font-normal hover:no-underline w-full text-left"
-                        onClick={() => handleAppointmentClick(appointment.id.toString())}
-                      >
-                        <div className="flex items-center">
-                          <Avatar className="h-8 w-8 mr-2">
-                            <AvatarImage
-                              src={appointment.patients?.avatar_url || ''}
-                              alt={appointment.patients?.first_name || ''}
-                            />
-                            <AvatarFallback>
-                              {appointment.patients?.first_name?.[0]}
-                              {appointment.patients?.last_name?.[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">
-                              {appointment.patients?.nickname || `${appointment.patients?.first_name} ${appointment.patients?.last_name}`}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {appointment.type}
-                            </div>
-                          </div>
-                        </div>
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        className="p-0 h-auto font-normal hover:no-underline w-full text-left"
-                        onClick={() => handleAppointmentClick(appointment.id.toString())}
-                      >
-                        Dr. {appointment.doctors?.first_name} {appointment.doctors?.last_name}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        className="p-0 h-auto font-normal hover:no-underline w-full text-left"
-                        onClick={() => handleAppointmentClick(appointment.id.toString())}
-                      >
-                        <div className="flex flex-col">
-                          <span>{format(new Date(appointment.date), 'MMMM d, yyyy')}</span>
-                          <span className="text-muted-foreground">
-                            {format(new Date(appointment.date), 'h:mm a')}
-                          </span>
-                        </div>
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        className="p-0 h-auto font-normal hover:no-underline w-full text-left"
-                        onClick={() => handleAppointmentClick(appointment.id.toString())}
-                      >
-                        {appointment.location}
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedAppointment(appointment)
-                            setShowReschedule(true)
-                          }}
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedAppointment(appointment)
-                            setShowCancel(true)
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <ResponsiveTable
+            columns={columns}
+            data={sortedAppointments}
+            isLoading={isLoading}
+            onRowClick={(row) => handleAppointmentClick(row.id.toString())}
+            emptyMessage="No appointments scheduled."
+          />
         </div>
 
         <div className="lg:col-span-2">
-          <AppointmentCalendarEnhanced
-            appointments={transformToCalendarAppointments(appointments)}
-            onDateSelect={setSelectedDate}
-            defaultView="month"
-          />
+          <LazyComponent>
+            <AppointmentCalendarEnhanced
+              appointments={transformToCalendarAppointments(appointments)}
+              onDateSelect={setSelectedDate}
+              defaultView="month"
+            />
+          </LazyComponent>
         </div>
       </div>
 
@@ -436,10 +409,12 @@ function transformToCalendarAppointments(appointments: Appointment[]): CalendarA
 
 export default function AppointmentsPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <AppointmentErrorBoundary>
-        <AppointmentsContent />
-      </AppointmentErrorBoundary>
+    <div className="container mx-auto py-6">
+      <LazyComponent>
+        <AppointmentErrorBoundary>
+          <AppointmentsContent />
+        </AppointmentErrorBoundary>
+      </LazyComponent>
     </div>
   )
 }

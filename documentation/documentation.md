@@ -4,18 +4,227 @@
 
 ### Core Directories
 - `/app`: Next.js App Router application code
+  - `/(authenticated)`: Protected routes requiring authentication
+  - `/components`: Page-specific components
+  - `/hooks`: Custom React hooks
+  - `/lib`: Utility functions and services
 - `/components`: Reusable React components
+  - `/ui`: Core UI components
+  - `/forms`: Form components
+  - `/layouts`: Layout components
 - `/lib`: Utility functions and services
 - `/types`: TypeScript type definitions
 - `/public`: Static assets
 - `/styles`: Global styles and Tailwind config
 
-### Key Files
-- `app/layout.tsx`: Root layout with providers
-- `app/page.tsx`: Landing page
-- `components/ui`: Shared UI components
-- `lib/utils.ts`: Common utility functions
-- `types/index.ts`: Core type definitions
+### Key Components
+
+#### UI Components
+- `ResponsiveTable`: Mobile-friendly table with card view on small screens
+- `LazyComponent`: Wrapper for lazy-loaded components with loading states
+- `OptimizedImage`: Next.js Image wrapper with optimization features
+- `DocumentManager`: Complete document management system with versioning
+- `UploadProgress`: File upload progress indicator with status
+
+#### Form Components
+- `AddPatientForm`: Patient registration form with validation
+- `AddDoctorForm`: Doctor registration form with validation
+- `AddPrescriptionForm`: Prescription creation form with medication management
+
+#### Layout Components
+- `AppLayout`: Main application layout with navigation
+- `AuthLayout`: Authentication pages layout
+- `DashboardLayout`: Dashboard pages layout
+
+### Performance Optimizations
+
+#### Code Splitting
+- Dynamic imports for dialog components
+- Route-based code splitting
+- Lazy loading for heavy components
+- Component-level code splitting
+
+#### Image Optimization
+- Automatic WebP conversion
+- Responsive image sizes
+- Lazy loading
+- Blur placeholders
+
+#### Loading States
+- Skeleton loaders for lists
+- Progress indicators for uploads
+- Loading spinners for async operations
+- Suspense boundaries
+
+### Document Management
+
+#### Version Control
+- Complete version history tracking
+- Version comparison capability
+- Restore previous versions
+- Version metadata
+
+#### File Operations
+- Secure file uploads
+- Progress tracking
+- Error handling
+- Access control
+
+### Data Management
+
+#### State Management
+- React Query for server state
+- Local state with useState/useReducer
+- Form state with React Hook Form
+- Global state with Context
+
+#### Data Fetching
+- Optimized query patterns
+- Error handling
+- Loading states
+- Cache management
+
+### Security
+
+#### Authentication
+- Supabase authentication
+- Protected routes
+- Session management
+- Role-based access
+
+#### Data Protection
+- Row Level Security
+- Input validation
+- XSS prevention
+- CSRF protection
+
+### Error Handling
+
+#### Error Boundaries
+- Component-level error boundaries
+- Page-level error boundaries
+- API error handling
+- Form validation errors
+
+#### Recovery Mechanisms
+- Retry mechanisms
+- Fallback UI
+- Error logging
+- User feedback
+
+### Mobile Support
+
+#### Responsive Design
+- Mobile-first approach
+- Responsive tables
+- Touch-friendly controls
+- Adaptive layouts
+
+#### Mobile Features
+- Touch gestures
+- Mobile navigation
+- Offline support
+- Push notifications
+
+### Testing
+
+#### Unit Tests
+- Component tests
+- Hook tests
+- Utility tests
+- Form validation tests
+
+#### Integration Tests
+- API integration tests
+- Component interaction tests
+- Authentication flow tests
+- Error handling tests
+
+### Accessibility
+
+#### ARIA Support
+- Proper ARIA labels
+- Keyboard navigation
+- Screen reader support
+- Focus management
+
+#### UI Considerations
+- Color contrast
+- Text scaling
+- Focus indicators
+- Skip links
+
+### Best Practices
+
+#### Code Organization
+- Feature-based structure
+- Component composition
+- Custom hooks
+- Utility functions
+
+#### Performance
+- Code splitting
+- Lazy loading
+- Cache management
+- Bundle optimization
+
+#### Type Safety
+- TypeScript interfaces
+- Type guards
+- Generic types
+- Strict type checking
+
+#### Error Handling
+- Error boundaries
+- Try-catch blocks
+- Error logging
+- User feedback
+
+### Recent Implementations
+
+#### Document Management System
+- Version control with history
+- File upload with progress
+- Document organization
+- Access control
+
+#### Responsive Tables
+- Mobile-friendly layout
+- Sort functionality
+- Loading states
+- Row actions
+
+#### Performance Optimizations
+- Dynamic imports
+- Image optimization
+- Lazy loading
+- Code splitting
+
+#### Form Handling
+- Validation
+- Error handling
+- Loading states
+- Success feedback
+
+### Future Enhancements
+
+#### Security
+- Session timeout
+- Device tracking
+- Audit logging
+- Security monitoring
+
+#### Analytics
+- Usage tracking
+- Error monitoring
+- Performance metrics
+- User behavior
+
+#### Infrastructure
+- CI/CD pipeline
+- Automated testing
+- Deployment automation
+- Monitoring
 
 ## Development Guidelines
 
