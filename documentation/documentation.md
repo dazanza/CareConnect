@@ -339,4 +339,18 @@
 - Setup guide
 - Development flow
 - Testing process
-- Deployment guide 
+- Deployment guide
+
+# Project Documentation
+
+## Features
+
+### Document Management
+- **Document Versioning**: Complete version control system for medical documents
+  - Version history tracking with metadata
+  - Version comparison capabilities
+  - Restore previous versions
+  - Automatic version numbering
+- **Document Categories**: Organized storage by document type
+- **Upload Management**: Progress tracking and error handling
+- **Access Control**: Permission-based document access 

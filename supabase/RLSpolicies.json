@@ -243,6 +243,24 @@
     "policy_type": "PERMISSIVE"
   },
   {
+    "policy_name": "Users can view document versions",
+    "table_name": "document_versions",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM (documents d\n     LEFT JOIN patient_shares ps ON ((ps.patient_id = d.patient_id)))\n  WHERE ((d.id = document_versions.document_id) AND ((d.user_id = auth.uid()) OR ((ps.shared_with_user_id = auth.uid()) AND (ps.access_level = ANY (ARRAY['read'::text, 'write'::text, 'admin'::text])) AND ((ps.expires_at IS NULL) OR (ps.expires_at > now())))))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can create versions",
+    "table_name": "document_versions",
+    "policy_role": null,
+    "command": "a",
+    "policy_expression": null,
+    "with_check_expression": "(EXISTS ( SELECT 1\n   FROM documents d\n  WHERE ((d.id = document_versions.document_id) AND (d.user_id = auth.uid()))))",
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can view their family groups",
     "table_name": "family_groups",
     "policy_role": null,

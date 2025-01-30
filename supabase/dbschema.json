@@ -336,6 +336,69 @@
     "column_default": null
   },
   {
+    "table_name": "document_versions",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "document_versions",
+    "column_name": "document_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "document_versions",
+    "column_name": "version_number",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "document_versions",
+    "column_name": "file_path",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "document_versions",
+    "column_name": "size",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "document_versions",
+    "column_name": "created_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "document_versions",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "table_name": "document_versions",
+    "column_name": "comment",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "document_versions",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
     "table_name": "documents",
     "column_name": "id",
     "data_type": "uuid",
@@ -404,6 +467,20 @@
     "data_type": "timestamp with time zone",
     "is_nullable": "NO",
     "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "documents",
+    "column_name": "current_version",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": "1"
+  },
+  {
+    "table_name": "documents",
+    "column_name": "version_count",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": "1"
   },
   {
     "table_name": "family_groups",
