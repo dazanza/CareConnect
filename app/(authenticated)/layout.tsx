@@ -6,6 +6,7 @@ import Header from '@/app/components/layout/Header'
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { useRouter, usePathname } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
+import { useSessionTimeout } from '@/app/hooks/useSessionTimeout'
 
 export default function AuthenticatedLayout({
   children,
@@ -16,6 +17,9 @@ export default function AuthenticatedLayout({
   const router = useRouter()
   const pathname = usePathname()
   const isDashboard = pathname === '/dashboard'
+
+  // Initialize session timeout
+  useSessionTimeout()
 
   useEffect(() => {
     if (!isLoading && !user) {

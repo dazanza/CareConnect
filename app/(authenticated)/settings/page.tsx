@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { toast } from 'react-hot-toast'
+import { showToast } from '@/app/lib/toast'
 import { Loader2 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -50,10 +50,13 @@ export default function SettingsPage() {
         .single();
 
       if (error) throw error;
-      setProfile(data);
+      setFormData(prev => ({
+        ...prev,
+        ...data
+      }));
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      toast.error('Failed to load user profile');
+      showToast.error('Failed to load user profile');
     } finally {
       setIsLoading(false);
     }
@@ -93,10 +96,10 @@ export default function SettingsPage() {
 
       if (settingsError) throw settingsError
 
-      toast.success('Settings saved successfully')
+      showToast.success('Settings saved successfully')
     } catch (error) {
       console.error('Error saving profile:', error)
-      toast.error('Failed to save settings')
+      showToast.error('Failed to save settings')
     } finally {
       setIsLoading(false)
     }
@@ -105,13 +108,12 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     if (!user) return
     if (deleteConfirmation !== user.email) {
-      toast.error('Please enter your email correctly to confirm deletion')
+      showToast.error('Please enter your email correctly to confirm deletion')
       return
     }
 
     setIsLoading(true)
     try {
-      // Soft delete user data
       const { error: userError } = await supabase
         .from('users')
         .update({ 
@@ -124,10 +126,10 @@ export default function SettingsPage() {
 
       await signOut()
       router.push('/sign-in')
-      toast.success('Account deleted successfully')
+      showToast.success('Account deleted successfully')
     } catch (error) {
       console.error('Error deleting account:', error)
-      toast.error('Failed to delete account')
+      showToast.error('Failed to delete account')
     } finally {
       setIsLoading(false)
       setShowDeleteDialog(false)

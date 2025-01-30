@@ -31,7 +31,7 @@ import {
   Edit
 } from 'lucide-react'
 import Link from 'next/link'
-import { toast } from 'react-hot-toast'
+import { showToast } from '@/app/lib/toast'
 import { SharedResourcesSkeleton } from "@/app/components/ui/skeletons"
 
 interface PatientShare {
@@ -206,10 +206,10 @@ export default function SharedResourcesPage() {
             }
       })) || []);
     } catch (error) {
-      console.error('Error fetching shared resources:', error);
-      toast.error('Failed to load shared resources');
+      console.error('Error fetching shared resources:', error)
+      showToast.error('Failed to load shared resources')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }, [supabase, user])
 
@@ -225,17 +225,17 @@ export default function SharedResourcesPage() {
       const { error } = await supabase
         .from('patient_shares')
         .delete()
-        .eq('id', shareId);
+        .eq('id', shareId)
 
-      if (error) throw error;
+      if (error) throw error
 
-      toast.success('Share ended successfully');
-      fetchSharedResources();
+      showToast.success('Share ended successfully')
+      fetchSharedResources()
     } catch (error) {
-      console.error('Error ending share:', error);
-      toast.error('Failed to end share');
+      console.error('Error ending share:', error)
+      showToast.error('Failed to end share')
     }
-  };
+  }
 
   // Handle editing a share
   const handleEditShare = async (share: PatientShare) => {
@@ -249,11 +249,11 @@ export default function SharedResourcesPage() {
 
       if (error) throw error;
 
-      toast.success('Share updated successfully');
+      showToast.success('Share updated successfully');
       fetchSharedResources();
     } catch (error) {
       console.error('Error updating share:', error);
-      toast.error('Failed to update share');
+      showToast.error('Failed to update share');
     }
   };
 

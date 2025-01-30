@@ -1,10 +1,15 @@
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
-import { toast } from 'react-hot-toast'
+import { showToast } from '@/app/lib/toast'
 
 /**
  * Utility for handling navigation in the application
  * Provides consistent error handling and fallback behavior
  */
+interface NavigateOptions {
+  showToast?: boolean
+  fallbackRoute?: string
+}
+
 export const appNavigation = {
   /**
    * Navigate to a specific appointment
@@ -15,16 +20,14 @@ export const appNavigation = {
   goToAppointment: (
     router: AppRouterInstance, 
     id: string, 
-    options?: { 
-      showToast?: boolean 
-    }
+    options?: NavigateOptions
   ) => {
     try {
       router.push(`/appointments/${id}`)
     } catch (error) {
       console.error('Navigation error:', error)
       if (options?.showToast) {
-        toast.error('Failed to navigate to appointment')
+        showToast.error('Failed to navigate to appointment')
       }
       // Fallback to home page if navigation fails
       router.push('/appointments')
@@ -40,16 +43,14 @@ export const appNavigation = {
   goToPatient: (
     router: AppRouterInstance, 
     id: string,
-    options?: { 
-      showToast?: boolean 
-    }
+    options?: NavigateOptions
   ) => {
     try {
       router.push(`/patients/${id}`)
     } catch (error) {
       console.error('Navigation error:', error)
       if (options?.showToast) {
-        toast.error('Failed to navigate to patient')
+        showToast.error('Failed to navigate to patient')
       }
       router.push('/patients')
     }
@@ -81,17 +82,14 @@ export const appNavigation = {
   navigateTo: (
     router: AppRouterInstance, 
     route: string,
-    options?: {
-      showToast?: boolean
-      fallbackRoute?: string
-    }
+    options?: NavigateOptions
   ) => {
     try {
       router.push(route)
     } catch (error) {
       console.error('Navigation error:', error)
       if (options?.showToast) {
-        toast.error('Navigation failed')
+        showToast.error('Navigation failed')
       }
       if (options?.fallbackRoute) {
         router.push(options.fallbackRoute)
@@ -108,16 +106,14 @@ export const appNavigation = {
   goToDoctor: (
     router: AppRouterInstance, 
     id: string,
-    options?: { 
-      showToast?: boolean 
-    }
+    options?: NavigateOptions
   ) => {
     try {
       router.push(`/doctors/${id}`)
     } catch (error) {
       console.error('Navigation error:', error)
       if (options?.showToast) {
-        toast.error('Failed to navigate to doctor')
+        showToast.error('Failed to navigate to doctor')
       }
       router.push('/doctors')
     }

@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { useRouter } from 'next/navigation'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { User } from '@supabase/supabase-js'
-import { toast } from 'react-hot-toast'
+import { showToast } from '@/app/lib/toast'
 
 interface SupabaseAuthContextType {
   user: User | null
@@ -81,7 +81,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       } catch (error) {
         console.error('Error initializing auth:', error)
         if (mounted) {
-          toast.error('Error initializing authentication')
+          showToast.error('Error initializing authentication')
           setIsLoading(false)
         }
       }
@@ -106,7 +106,8 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       
       // Let the auth state change handler manage the user state and navigation
     } catch (error) {
-      console.error('Sign in error:', error)
+      console.error('Error signing in:', error)
+      showToast.error('Invalid email or password')
       throw error
     } finally {
       setIsLoading(false)

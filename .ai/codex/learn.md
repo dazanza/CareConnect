@@ -150,3 +150,26 @@ Performance patterns:
    - Release resources
    - Handle errors
    - Use proper disposal
+
+## Toast Notification Patterns
+
+### Implementation
+1. Create centralized toast utility
+2. Define type-safe methods (success, error, warning)
+3. Standardize durations and animations
+4. Use consistent styling and icons
+5. Implement clear error messaging
+
+### Migration Strategy
+1. Identify components using old toast
+2. Update imports systematically
+3. Replace direct toast calls
+4. Test notification flow
+5. Document changes
+
+### Performance Optimization
+1. Prevent multiple instances
+2. Manage toast queue
+3. Clear on route changes
+4. Handle rapid notifications
+5. Implement cleanup

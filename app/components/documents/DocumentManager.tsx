@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { FileUp, File, Trash2, Download, Eye, History, GitCompare } from 'lucide-react'
-import { toast } from 'react-hot-toast'
+import { showToast } from '@/app/lib/toast'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { UploadProgress } from '../ui/upload-progress'
 import { DocumentVersionHistory } from './DocumentVersionHistory'
@@ -223,7 +223,7 @@ export function DocumentManager({ patientId, initialDocuments = [], canEdit = tr
 
       setDocuments([data, ...documents])
       setUploadStatus('complete')
-      toast.success('Document uploaded successfully')
+      showToast.success('Document uploaded successfully')
       
       // Close dialog after a brief delay to show completion
       setTimeout(() => {
@@ -239,7 +239,7 @@ export function DocumentManager({ patientId, initialDocuments = [], canEdit = tr
     } catch (error) {
       console.error('Error uploading document:', error)
       setUploadStatus('error')
-      toast.error('Failed to upload document')
+      showToast.error('Failed to upload document')
     }
   }
 
@@ -294,10 +294,10 @@ export function DocumentManager({ patientId, initialDocuments = [], canEdit = tr
       if (error) throw error
 
       setDocuments(documents.filter(doc => doc.id !== id))
-      toast.success('Document deleted successfully')
+      showToast.success('Document deleted successfully')
     } catch (error) {
       console.error('Error deleting document:', error)
-      toast.error('Failed to delete document')
+      showToast.error('Failed to delete document')
     }
   }
 
@@ -351,10 +351,10 @@ export function DocumentManager({ patientId, initialDocuments = [], canEdit = tr
           : doc
       ))
 
-      toast.success('Document version restored')
+      showToast.success('Document version restored')
     } catch (error) {
       console.error('Error restoring version:', error)
-      toast.error('Failed to restore version')
+      showToast.error('Failed to restore version')
     }
   }
 

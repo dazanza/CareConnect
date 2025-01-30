@@ -6,7 +6,7 @@ import { useSupabase } from '@/app/hooks/useSupabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { toast } from 'react-hot-toast'
+import { showToast } from '@/app/lib/toast'
 import { useQueryClient } from '@tanstack/react-query'
 
 interface AddDoctorFormProps {
@@ -52,7 +52,7 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
 
       await queryClient.invalidateQueries({ queryKey: ['doctors'] })
       
-      toast.success('Doctor added successfully')
+      showToast.success('Doctor added successfully')
       onSuccess?.()
       setFormData({
         firstName: '',
@@ -65,7 +65,7 @@ export default function AddDoctorForm({ onSuccess }: AddDoctorFormProps) {
       })
     } catch (error) {
       console.error('Error adding doctor:', error)
-      toast.error('Failed to add doctor')
+      showToast.error('Failed to add doctor')
     } finally {
       setIsLoading(false)
     }

@@ -19,10 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { toast } from "react-hot-toast"
 import { format } from 'date-fns'
 import type { PrescriptionFormProps, PrescriptionFormData } from '@/app/types'
+import type { Medication } from '@/app/types/medications'
 import { PatientErrorBoundary } from '@/app/components/error-boundaries/PatientErrorBoundary'
+import { showToast } from '@/app/lib/toast'
+import { useRouter } from 'next/navigation'
 
 export function PrescriptionForm({ 
   isOpen, 
@@ -33,6 +35,7 @@ export function PrescriptionForm({
   onSuccess 
 }: PrescriptionFormProps) {
   const { supabase } = useSupabase()
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<PrescriptionFormData>({
     medication_id: 0,
     dosage: '',
@@ -43,8 +46,10 @@ export function PrescriptionForm({
     start_date: format(new Date(), 'yyyy-MM-dd'),
     notes: ''
   })
+  const router = useRouter()
 
   const handleSubmit = async () => {
+    setIsLoading(true)
     try {
       const { data: prescription, error: prescriptionError } = await supabase
         .from('prescriptions')
@@ -69,10 +74,14 @@ export function PrescriptionForm({
 
       onClose()
       onSuccess?.()
-      toast.success('Prescription added successfully')
+      showToast.success('Prescription created successfully')
+      router.push('/prescriptions')
+      router.refresh()
     } catch (error) {
-      console.error('Error adding prescription:', error)
-      toast.error('Failed to add prescription')
+      console.error('Error creating prescription:', error)
+      showToast.error('Failed to create prescription')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -86,16 +95,16 @@ export function PrescriptionForm({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <Select
-              value={String(formData.medication_id)} // Convert to string
-              onValueChange={(value) => setFormData({ ...formData, medication_id: Number(value) })} // Convert back to number
+              value={String(formData.medication_id)}
+              onValueChange={(value) => setFormData({ ...formData, medication_id: Number(value) })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select medication" />
               </SelectTrigger>
               <SelectContent>
                 {medications.map((med) => (
-                  <SelectItem key={med.id} value={String(med.id)}> {/* Convert to string */}
-                    {med.name} ({med.strength})
+                  <SelectItem key={med.id} value={String(med.id)}>
+                    {med.name} ({med.dosage})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -121,15 +130,15 @@ export function PrescriptionForm({
             />
 
             <Select
-              value={String(formData.prescribed_by)} // Convert to string
-              onValueChange={(value) => setFormData({ ...formData, prescribed_by: Number(value) })} // Convert back to number
+              value={String(formData.prescribed_by)}
+              onValueChange={(value) => setFormData({ ...formData, prescribed_by: Number(value) })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select prescribing doctor" />
               </SelectTrigger>
               <SelectContent>
                 {doctors.map((doc) => (
-                  <SelectItem key={doc.id} value={String(doc.id)}> {/* Convert to string */}
+                  <SelectItem key={doc.id} value={String(doc.id)}>
                     Dr. {doc.first_name} {doc.last_name}
                   </SelectItem>
                 ))}

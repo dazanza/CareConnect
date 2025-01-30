@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'react-hot-toast'
 import { AlertCircle, RefreshCw, Pencil, XCircle, ChevronLeft } from 'lucide-react'
 import { appNavigation } from '@/app/lib/navigation'
+import { showToast } from '@/app/lib/toast'
 
 interface PrescriptionDetailsProps {
   params: {
@@ -47,7 +48,7 @@ export default function PrescriptionDetailsPage({ params }: PrescriptionDetailsP
   const [showRefillDialog, setShowRefillDialog] = useState(false)
   const [showUpdateDialog, setShowUpdateDialog] = useState(false)
   const [showDiscontinueDialog, setShowDiscontinueDialog] = useState(false)
-  const [refillCount, setRefillCount] = useState('')
+  const [refillInput, setRefillInput] = useState('')
   const [updateReason, setUpdateReason] = useState('')
   const [discontinueReason, setDiscontinueReason] = useState('')
   const [updatedDosage, setUpdatedDosage] = useState('')
@@ -94,8 +95,8 @@ export default function PrescriptionDetailsPage({ params }: PrescriptionDetailsP
 
       setPrescription(transformedData);
     } catch (error) {
-      console.error('Error loading prescription:', error);
-      toast.error('Failed to load prescription');
+      console.error('Error loading prescription:', error)
+      showToast.error('Failed to load prescription')
     } finally {
       setIsLoading(false);
     }
@@ -105,66 +106,57 @@ export default function PrescriptionDetailsPage({ params }: PrescriptionDetailsP
     loadPrescriptionData();
   }, [loadPrescriptionData]);
 
-  async function handleRefill() {
+  const handleRefill = async () => {
     if (!prescription || !supabase) return
-
     try {
-      const count = parseInt(refillCount)
+      const count = parseInt(refillInput)
       if (isNaN(count) || count < 0) {
-        toast.error('Please enter a valid refill count')
+        showToast.error('Please enter a valid refill count')
         return
       }
 
       await refillPrescription(supabase, prescription.id, count)
       await loadPrescriptionData()
       setShowRefillDialog(false)
-      setRefillCount('')
-      toast.success('Prescription refilled successfully')
+      setRefillInput('')
+      showToast.success('Prescription refilled successfully')
     } catch (error) {
       console.error('Error refilling prescription:', error)
-      toast.error('Failed to refill prescription')
+      showToast.error('Failed to refill prescription')
     }
   }
 
-  async function handleUpdate() {
+  const handleUpdate = async () => {
     if (!prescription || !supabase) return
-
     try {
-      const updates: Partial<Prescription> = {
+      const updates = {
         dosage: updatedDosage || prescription.dosage,
         frequency: updatedFrequency || prescription.frequency
       }
-
       await updatePrescription(supabase, prescription.id, updates, updateReason)
       await loadPrescriptionData()
       setShowUpdateDialog(false)
       setUpdatedDosage('')
       setUpdatedFrequency('')
       setUpdateReason('')
-      toast.success('Prescription updated successfully')
+      showToast.success('Prescription updated successfully')
     } catch (error) {
       console.error('Error updating prescription:', error)
-      toast.error('Failed to update prescription')
+      showToast.error('Failed to update prescription')
     }
   }
 
-  async function handleDiscontinue() {
+  const handleDiscontinue = async () => {
     if (!prescription || !supabase) return
-
     try {
-      await updatePrescription(
-        supabase, 
-        prescription.id, 
-        { status: 'discontinued' }, 
-        discontinueReason
-      )
+      await updatePrescription(supabase, prescription.id, { status: 'discontinued' }, discontinueReason)
       await loadPrescriptionData()
       setShowDiscontinueDialog(false)
       setDiscontinueReason('')
-      toast.success('Prescription discontinued successfully')
+      showToast.success('Prescription discontinued successfully')
     } catch (error) {
       console.error('Error discontinuing prescription:', error)
-      toast.error('Failed to discontinue prescription')
+      showToast.error('Failed to discontinue prescription')
     }
   }
 
@@ -270,13 +262,13 @@ export default function PrescriptionDetailsPage({ params }: PrescriptionDetailsP
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="refillCount">Number of Refills</Label>
+              <Label htmlFor="refillInput">Number of Refills</Label>
               <Input
-                id="refillCount"
+                id="refillInput"
                 type="number"
                 min="0"
-                value={refillCount}
-                onChange={(e) => setRefillCount(e.target.value)}
+                value={refillInput}
+                onChange={(e) => setRefillInput(e.target.value)}
               />
             </div>
           </div>

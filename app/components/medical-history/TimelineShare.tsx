@@ -33,7 +33,7 @@ import { Share2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { toast } from 'sonner'
+import { showToast } from '@/app/lib/toast'
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { DatePicker } from '@/components/ui/date-picker'
 import { addDays } from 'date-fns'
@@ -79,7 +79,7 @@ export function TimelineShare({ events, patientId, patientName }: TimelineShareP
         .single()
 
       if (userError || !users) {
-        toast.error('User not found. Please check the email address.')
+        showToast.error('User not found. Please check the email address.')
         return
       }
 
@@ -95,12 +95,12 @@ export function TimelineShare({ events, patientId, patientName }: TimelineShareP
 
       if (shareError) throw shareError
 
-      toast.success('Timeline shared successfully')
+      showToast.success('Timeline shared successfully')
       setIsOpen(false)
       form.reset()
     } catch (error) {
       console.error('Error sharing timeline:', error)
-      toast.error('Failed to share timeline')
+      showToast.error('Failed to share timeline')
     } finally {
       setIsSharing(false)
     }

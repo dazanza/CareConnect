@@ -13,26 +13,27 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { toast } from "react-hot-toast"
-import { Pill, Plus, AlertCircle } from 'lucide-react'
-import type { Medication, MedicationForm, MedicationFormData } from '@/app/types'
+import { showToast } from '@/app/lib/toast'
+import { Pill, Plus } from 'lucide-react'
 
-const MEDICATION_FORMS: MedicationForm[] = [
-  'tablet',
-  'capsule',
-  'liquid',
-  'injection',
-  'topical',
-  'inhaler',
-  'patch'
-]
+interface Medication {
+  id: number
+  name: string
+  dosage: string
+  frequency: string
+  instructions?: string
+  status: string
+  side_effects?: string
+  user_id: string
+}
+
+interface MedicationFormData {
+  name: string
+  dosage: string
+  frequency: string
+  instructions?: string
+  side_effects?: string
+}
 
 interface MedicationManagerProps {
   initialMedications?: Medication[]
@@ -44,14 +45,10 @@ export function MedicationManager({ initialMedications = [] }: MedicationManager
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [formData, setFormData] = useState<MedicationFormData>({
     name: '',
-    generic_name: '',
-    strength: '',
-    form: 'tablet',
-    manufacturer: '',
-    description: '',
-    warnings: '',
-    side_effects: '',
-    interactions: ''
+    dosage: '',
+    frequency: '',
+    instructions: '',
+    side_effects: ''
   })
 
   const handleSubmit = async () => {
@@ -63,7 +60,8 @@ export function MedicationManager({ initialMedications = [] }: MedicationManager
         .from('medications')
         .insert({
           ...formData,
-          user_id: user.id
+          user_id: user.id,
+          status: 'active'
         })
         .select()
         .single()
@@ -72,10 +70,10 @@ export function MedicationManager({ initialMedications = [] }: MedicationManager
 
       setMedications([data, ...medications])
       setShowAddDialog(false)
-      toast.success('Medication added successfully')
+      showToast.success('Medication added successfully')
     } catch (error) {
       console.error('Error adding medication:', error)
-      toast.error('Failed to add medication')
+      showToast.error('Failed to add medication')
     }
   }
 
@@ -95,9 +93,13 @@ export function MedicationManager({ initialMedications = [] }: MedicationManager
             <div>
               <h4 className="font-medium">{med.name}</h4>
               <p className="text-sm text-muted-foreground">
-                {med.strength} • {med.form}
-                {med.generic_name && <span className="ml-2">({med.generic_name})</span>}
+                {med.dosage} • {med.frequency}
               </p>
+              {med.instructions && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Instructions: {med.instructions}
+                </p>
+              )}
             </div>
           </div>
         ))}
@@ -114,34 +116,24 @@ export function MedicationManager({ initialMedications = [] }: MedicationManager
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
               <Input
-                placeholder="Generic name (optional)"
-                value={formData.generic_name}
-                onChange={(e) => setFormData({ ...formData, generic_name: e.target.value })}
+                placeholder="Dosage (e.g., 50mg)"
+                value={formData.dosage}
+                onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
               />
               <Input
-                placeholder="Strength (e.g., 50mg)"
-                value={formData.strength}
-                onChange={(e) => setFormData({ ...formData, strength: e.target.value })}
+                placeholder="Frequency (e.g., twice daily)"
+                value={formData.frequency}
+                onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
               />
-              <Select
-                value={formData.form}
-                onValueChange={(value: MedicationForm) => setFormData({ ...formData, form: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select form" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MEDICATION_FORMS.map((form) => (
-                    <SelectItem key={form} value={form}>
-                      {form.charAt(0).toUpperCase() + form.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Textarea
-                placeholder="Description (optional)"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Instructions (optional)"
+                value={formData.instructions}
+                onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
+              />
+              <Textarea
+                placeholder="Side effects (optional)"
+                value={formData.side_effects}
+                onChange={(e) => setFormData({ ...formData, side_effects: e.target.value })}
               />
             </div>
             <DialogFooter>

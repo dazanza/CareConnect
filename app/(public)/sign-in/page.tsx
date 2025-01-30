@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast'
 import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/app/components/ui/skeleton'
 import { appNavigation } from '@/app/lib/navigation'
+import { showToast } from '@/app/lib/toast'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -32,9 +33,10 @@ export default function SignInPage() {
 
     try {
       await signIn(email, password)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Sign in error:', error)
-      toast.error(error?.message || 'Invalid email or password')
+      showToast.error(error?.message || 'Invalid email or password')
+    } finally {
       setIsLoading(false)
     }
   }

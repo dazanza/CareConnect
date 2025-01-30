@@ -9,6 +9,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { appNavigation } from '@/app/lib/navigation'
+import { showToast } from '@/app/lib/toast'
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState('')
@@ -35,7 +36,7 @@ export default function UpdatePasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canUpdate) {
-      toast.error('Please wait for password recovery verification')
+      showToast.error('Please wait for password recovery verification')
       return
     }
     setIsLoading(true)
@@ -49,14 +50,11 @@ export default function UpdatePasswordPage() {
 
       if (error) throw error
 
-      toast.success('Password updated successfully')
-      appNavigation.navigateTo(router, '/sign-in', { 
-        showToast: true,
-        fallbackRoute: '/'
-      })
+      showToast.success('Password updated successfully')
+      router.push('/sign-in')
     } catch (error) {
       console.error('Error updating password:', error)
-      toast.error('Failed to update password')
+      showToast.error('Failed to update password')
     } finally {
       setIsLoading(false)
     }

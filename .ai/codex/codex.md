@@ -56,6 +56,14 @@ E005:
 - Prevention: Define API types before implementing forms
 - Related: L078, L156
 
+E006:
+
+- Context: Toast notification implementation
+- Error: Inconsistent toast usage across components
+- Correction: Implement standardized toast utility
+- Prevention: Use centralized toast utility for all notifications
+- Related: L261, L262
+
 ## Learnings
 
 L251:
@@ -138,47 +146,39 @@ L260:
 - Impact: Improves application stability and maintainability
 - Related: L247, L248
 
+L261:
+
+- Context: Toast notification standardization
+- Insight: Centralized toast management improves consistency
+- Application: Create showToast utility with type-safe methods
+- Impact: Ensures consistent user feedback across application
+- Related: E006, L262
+
+L262:
+
+- Context: Component toast migration
+- Insight: Systematic approach to updating toast implementations
+- Application: Update all components to use standardized toast
+- Impact: Reduces code duplication and improves maintainability
+- Related: E006, L261
+
+L263:
+
+- Context: MedicationManager component
+- Insight: Proper database schema alignment for medications
+- Application: Update component to match database structure
+- Impact: Ensures data consistency and type safety
+- Related: E003, L077
+
+L264:
+
+- Context: Form data typing
+- Insight: Separate interfaces for form and database types
+- Application: Create specific interfaces for form state
+- Impact: Improves type safety in form handling
+- Related: L078, E005
+
 ## Type Safety Patterns
 
 ### Safe Database Response Transformation
-```typescript
-function transformData(raw: any): TypedResponse | null {
-  if (!raw?.requiredField) return null;
-  return {
-    // transform data
-  };
-}
-
-const validData = rawData
-  .map(transformData)
-  .filter((item): item is TypedResponse => item !== null);
 ```
-
-### Type Extension Pattern
-```typescript
-interface BaseType {
-  id: number;
-  date: string;
-}
-
-interface ExtendedType extends BaseType {
-  additionalField: string;
-}
-```
-
-## Code Documentation
-
-### Effective Comments
-- Document the "why" and "how" rather than just the "what"
-- Include parameter descriptions for complex interfaces
-- Note presence/absence of optional fields and their context
-- Document return values and side effects
-- Group related interfaces with explanatory comments
-
-## Error Handling
-
-### Database Query Error Handling
-- Check for query errors before processing results
-- Transform raw database responses into typed structures
-- Validate required fields before processing
-- Use type guards to ensure type safety in filtered results

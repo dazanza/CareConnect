@@ -226,6 +226,37 @@
 - Deployment automation
 - Monitoring
 
+### Toast Notifications
+- Standardized toast utility (`showToast`)
+  - Success notifications
+  - Error notifications
+  - Warning notifications
+  - Consistent styling and duration
+  - Type-safe implementation
+- Integration points:
+  - Authentication flows
+  - Form submissions
+  - CRUD operations
+  - Navigation events
+  - File operations
+
+### Medication Management
+- Database schema alignment
+  - Required fields: name, dosage, frequency, status
+  - Optional fields: instructions, side_effects
+- Component features:
+  - Add new medications
+  - Display medication list
+  - Show medication details
+  - Error handling
+  - Form validation
+- Future enhancements:
+  - Medication editing
+  - Deletion with confirmation
+  - History tracking
+  - Reminders system
+  - Interactions checking
+
 ## Development Guidelines
 
 ### Code Organization
