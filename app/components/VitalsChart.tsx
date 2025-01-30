@@ -12,13 +12,47 @@ import {
   Legend
 } from 'recharts'
 import { format } from 'date-fns'
-import { Vitals } from '@/types'
+import type { Vitals } from '@/app/types/vitals'
 
+/**
+ * Props for the VitalsChart component
+ * @interface VitalsChartProps
+ * @property {Vitals[]} vitals - Array of vitals measurements to display in the chart
+ * @property {string} [className] - Optional CSS class names for styling
+ */
 interface VitalsChartProps {
   vitals: Vitals[]
   className?: string
 }
 
+/**
+ * VitalsChart Component
+ * 
+ * A responsive line chart component for visualizing patient vital signs over time.
+ * Uses recharts library to create interactive and accessible charts.
+ * 
+ * Features:
+ * - Multiple vital sign tracking (BP, HR, temp, O2)
+ * - Interactive tooltips
+ * - Responsive design
+ * - Custom color coding for different vitals
+ * - Date formatting on x-axis
+ * - Automatic scaling on y-axis
+ * - Grid lines for better readability
+ * - Legend for identifying different measurements
+ * 
+ * @component
+ * @param {VitalsChartProps} props - Component props
+ * @returns {JSX.Element} Rendered component
+ * 
+ * @example
+ * ```tsx
+ * <VitalsChart
+ *   vitals={patientVitals}
+ *   className="h-[300px]"
+ * />
+ * ```
+ */
 export function VitalsChart({ vitals, className }: VitalsChartProps) {
   const formatDate = (dateStr: string) => {
     return format(new Date(dateStr), 'MMM d')
@@ -62,7 +96,7 @@ export function VitalsChart({ vitals, className }: VitalsChartProps) {
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
-                dataKey="date"
+                dataKey="date_time"
                 tickFormatter={formatDate}
               />
               <YAxis yAxisId="left" />
@@ -81,9 +115,9 @@ export function VitalsChart({ vitals, className }: VitalsChartProps) {
               <Line
                 yAxisId="right"
                 type="monotone"
-                dataKey="oxygen_level"
+                dataKey="oxygen_saturation"
                 stroke="#22c55e"
-                name="Oxygen Level"
+                name="Oxygen Saturation"
                 unit="%"
                 dot={false}
               />
@@ -108,7 +142,7 @@ export function VitalsChart({ vitals, className }: VitalsChartProps) {
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
-                dataKey="date"
+                dataKey="date_time"
                 tickFormatter={formatDate}
               />
               <YAxis />
@@ -116,17 +150,9 @@ export function VitalsChart({ vitals, className }: VitalsChartProps) {
               <Legend />
               <Line
                 type="monotone"
-                dataKey="blood_pressure_systolic"
+                dataKey="blood_pressure"
                 stroke="#3b82f6"
-                name="Systolic"
-                unit=" mmHg"
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="blood_pressure_diastolic"
-                stroke="#6366f1"
-                name="Diastolic"
+                name="Blood Pressure"
                 unit=" mmHg"
                 dot={false}
               />

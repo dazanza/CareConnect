@@ -14,29 +14,82 @@ import {
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useSupabase } from "@/app/hooks/useSupabase"
-import { Todo } from '@/types'
+import { Todo } from '@/app/types/todos'
 import { toast } from "react-hot-toast"
 import { TodoListSkeleton } from "@/app/components/ui/skeletons"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { useAuth } from '@/app/components/auth/SupabaseAuthProvider'
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select"
 
+/**
+ * Props for the AppTodoList component
+ * @interface AppTodoListProps
+ * @property {string} [patientId] - Optional ID of the patient to filter todos
+ * @property {string} [appointmentId] - Optional ID of the appointment to filter todos
+ * @property {string} [userId] - Optional ID of the user to filter todos
+ */
 type AppTodoListProps = {
   patientId?: string
   appointmentId?: string
   userId?: string
 }
 
+/**
+ * Represents a patient option in the todo list
+ * @interface PatientOption
+ * @property {number} id - Unique identifier for the patient
+ * @property {string} name - Full name of the patient
+ */
 interface PatientOption {
   id: number
   name: string
 }
 
+/**
+ * AppTodoList Component
+ * 
+ * A versatile todo list component used throughout the application for:
+ * - Patient-specific tasks
+ * - Appointment-related tasks
+ * - User/staff tasks
+ * - General practice management
+ * 
+ * Features:
+ * - Real-time updates using Supabase
+ * - Task filtering by patient, appointment, or user
+ * - Due date management with calendar picker
+ * - Task completion tracking
+ * - Priority levels
+ * - Error boundary protection
+ * - Loading states with skeletons
+ * 
+ * The component uses:
+ * - Suspense for loading states
+ * - Error boundaries for error handling
+ * - Real-time subscriptions for updates
+ * - Optimistic updates for better UX
+ * 
+ * @component
+ * @param {AppTodoListProps} props - Component props
+ * @returns {JSX.Element} Rendered component
+ * 
+ * @example
+ * ```tsx
+ * // For patient-specific todos
+ * <AppTodoList patientId="123" />
+ * 
+ * // For appointment-specific todos
+ * <AppTodoList appointmentId="456" />
+ * 
+ * // For user-specific todos
+ * <AppTodoList userId="789" />
+ * ```
+ */
 export default function AppTodoList({ patientId, appointmentId, userId }: AppTodoListProps) {
   const { supabase } = useSupabase()
   const { user } = useAuth()
   const [todos, setTodos] = useState<Todo[]>([])
-  const [newTask, setNewTask] = useState("")
+  const [newTodo, setNewTodo] = useState("")
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -45,6 +98,10 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
     patientId ? parseInt(patientId) : null
   )
 
+  /**
+   * Fetches todos from the database based on filters
+   * @returns {Promise<void>}
+   */
   const fetchTodos = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -98,28 +155,35 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
     fetchPatients()
   }, [supabase, user, fetchTodos, fetchPatients])
 
-  const addTodo = async (e: React.FormEvent) => {
+  /**
+   * Handles adding a new todo
+   * @param {React.FormEvent} e - Form submission event
+   * @returns {Promise<void>}
+   */
+  const handleAddTodo = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTask.trim() || !user) return
+    if (!newTodo.trim() || !supabase) return
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('todos')
         .insert([
           {
-            task: newTask,
-            user_id: user.id,
-            patient_id: selectedPatientId,
-            due_date: dueDate?.toISOString(),
-            completed: false
+            text: newTodo,
+            completed: false,
+            user_id: userId,
+            patient_id: patientId,
+            appointment_id: appointmentId,
+            due_date: dueDate?.toISOString()
           }
         ])
+        .select()
 
       if (error) throw error
 
-      setNewTask("")
-      setDueDate(undefined)
-      fetchTodos()
+      setTodos([...todos, data[0]])
+      setNewTodo('')
+      setDueDate(null)
       toast.success('Todo added successfully')
     } catch (error) {
       console.error('Error adding todo:', error)
@@ -127,7 +191,13 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
     }
   }
 
-  const toggleTodo = async (id: number, completed: boolean) => {
+  /**
+   * Handles toggling a todo's completion status
+   * @param {number} id - ID of the todo to toggle
+   * @param {boolean} completed - New completion status
+   * @returns {Promise<void>}
+   */
+  const handleToggleTodo = async (id: number, completed: boolean) => {
     try {
       const { error } = await supabase
         .from('todos')
@@ -145,7 +215,12 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
     }
   }
 
-  const deleteTodo = async (id: number) => {
+  /**
+   * Handles deleting a todo
+   * @param {number} id - ID of the todo to delete
+   * @returns {Promise<void>}
+   */
+  const handleDeleteTodo = async (id: number) => {
     try {
       const { error } = await supabase
         .from('todos')
@@ -174,8 +249,8 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
               <Input
                 type="text"
                 placeholder="Add a new task"
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
+                value={newTodo}
+                onChange={(e) => setNewTodo(e.target.value)}
                 className="flex-grow"
               />
               {!patientId && (
@@ -212,7 +287,7 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
                   />
                 </PopoverContent>
               </Popover>
-              <Button onClick={addTodo}>
+              <Button onClick={handleAddTodo}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -225,14 +300,14 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       checked={todo.completed}
-                      onCheckedChange={(checked) => toggleTodo(todo.id, checked as boolean)}
+                      onCheckedChange={(checked) => handleToggleTodo(todo.id, checked as boolean)}
                     />
                     <div>
                       <p className={cn(
                         "text-sm font-medium leading-none",
                         todo.completed && "line-through text-muted-foreground"
                       )}>
-                        {todo.task}
+                        {todo.text}
                       </p>
                       {todo.patientName && (
                         <p className="text-sm text-muted-foreground mt-1">
@@ -249,7 +324,7 @@ export default function AppTodoList({ patientId, appointmentId, userId }: AppTod
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => deleteTodo(todo.id)}
+                    onClick={() => handleDeleteTodo(todo.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

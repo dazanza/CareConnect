@@ -23,6 +23,17 @@ import { toast } from "react-hot-toast"
 import { useSupabase } from '@/app/hooks/useSupabase'
 import { UploadProgress, UploadStatus } from './ui/upload-progress'
 
+/**
+ * Document type representing a medical document in the system
+ * @interface Document
+ * @property {string} id - Unique identifier for the document
+ * @property {string} name - Name of the document
+ * @property {string} type - MIME type of the document
+ * @property {number} size - Size of the document in bytes
+ * @property {string} url - Storage URL of the document
+ * @property {string} uploaded_at - Timestamp when the document was uploaded
+ * @property {'lab_result' | 'prescription' | 'imaging' | 'other'} category - Category of the medical document
+ */
 interface Document {
   id: string
   name: string
@@ -33,12 +44,40 @@ interface Document {
   category: 'lab_result' | 'prescription' | 'imaging' | 'other'
 }
 
+/**
+ * Props for the DocumentManager component
+ * @interface DocumentManagerProps
+ * @property {string} patientId - ID of the patient whose documents are being managed
+ * @property {Document[]} initialDocuments - Initial list of documents to display
+ * @property {boolean} [canEdit=true] - Whether the user has permission to edit documents
+ */
 interface DocumentManagerProps {
   patientId: string
   initialDocuments: Document[]
   canEdit?: boolean
 }
 
+/**
+ * DocumentManager Component
+ * 
+ * A comprehensive document management system for medical records that allows:
+ * - Uploading new medical documents
+ * - Categorizing documents (lab results, prescriptions, imaging, etc.)
+ * - Viewing document details
+ * - Downloading documents
+ * - Deleting documents (with proper permissions)
+ * 
+ * Features:
+ * - Real-time upload progress tracking
+ * - File type validation
+ * - Secure storage using Supabase
+ * - Responsive design
+ * - Error handling with user feedback
+ * 
+ * @component
+ * @param {DocumentManagerProps} props - Component props
+ * @returns {JSX.Element} Rendered component
+ */
 export function DocumentManager({ 
   patientId, 
   initialDocuments = [],
@@ -132,6 +171,11 @@ export function DocumentManager({
     }
   }
 
+  /**
+   * Handles document deletion
+   * @param {string} documentId - ID of the document to delete
+   * @returns {Promise<void>}
+   */
   const handleDelete = async (documentId: string) => {
     if (!supabase) return
 
@@ -152,6 +196,11 @@ export function DocumentManager({
     }
   }
 
+  /**
+   * Handles document download
+   * @param {Document} document - Document to download
+   * @returns {Promise<void>}
+   */
   const handleDownload = async (document: Document) => {
     if (!document.url || !supabase) return
     
@@ -162,6 +211,11 @@ export function DocumentManager({
     window.open(publicUrl, '_blank')
   }
 
+  /**
+   * Handles document viewing in a new tab
+   * @param {Document} document - Document to view
+   * @returns {Promise<void>}
+   */
   const handleView = async (document: Document) => {
     if (!document.url || !supabase) return
     
@@ -172,6 +226,11 @@ export function DocumentManager({
     window.open(publicUrl, '_blank')
   }
 
+  /**
+   * Formats file size into human-readable format
+   * @param {number} bytes - Size in bytes
+   * @returns {string} Formatted size (e.g., "1.5 MB")
+   */
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes'
     const k = 1024

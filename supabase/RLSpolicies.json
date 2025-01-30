@@ -180,6 +180,51 @@
     "policy_type": "PERMISSIVE"
   },
   {
+    "policy_name": "Users can view audit logs for their shares",
+    "table_name": "share_audit_logs",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "((auth.uid() = changed_by_user_id) OR (EXISTS ( SELECT 1\n   FROM patient_shares ps\n  WHERE ((ps.id = share_audit_logs.share_id) AND ((ps.shared_by_user_id = auth.uid()) OR (ps.shared_with_user_id = auth.uid()))))) OR (EXISTS ( SELECT 1\n   FROM pending_shares ps\n  WHERE ((ps.id = share_audit_logs.share_id) AND (ps.shared_by_user_id = auth.uid())))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "System can insert audit logs",
+    "table_name": "share_audit_logs",
+    "policy_role": null,
+    "command": "a",
+    "policy_expression": null,
+    "with_check_expression": "(auth.uid() = changed_by_user_id)",
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "No updates to audit logs",
+    "table_name": "share_audit_logs",
+    "policy_role": null,
+    "command": "w",
+    "policy_expression": "false",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "No deletes from audit logs",
+    "table_name": "share_audit_logs",
+    "policy_role": null,
+    "command": "d",
+    "policy_expression": "false",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users can view share analytics",
+    "table_name": "share_analytics",
+    "policy_role": null,
+    "command": "r",
+    "policy_expression": "true",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can delete doctors",
     "table_name": "doctors",
     "policy_role": null,

@@ -4,6 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Pill, Calendar, Clock, AlertCircle } from 'lucide-react'
 import { addDays } from 'date-fns'
 
+/**
+ * Prescription data structure for analytics
+ * @interface PrescriptionAnalyticsData
+ * @property {number} id - Unique identifier for the prescription
+ * @property {string} medication - Name of the prescribed medication
+ * @property {'active' | 'completed' | 'discontinued'} status - Current status of the prescription
+ * @property {string} start_date - Date when the prescription was started
+ * @property {string} [end_date] - Optional date when the prescription ended/will end
+ * @property {number} refills - Number of refills remaining/allowed
+ */
 interface PrescriptionAnalyticsProps {
   prescriptions: Array<{
     id: number
@@ -15,6 +25,41 @@ interface PrescriptionAnalyticsProps {
   }>
 }
 
+/**
+ * PrescriptionAnalytics Component
+ * 
+ * A dashboard component that provides analytical insights into prescription data:
+ * - Active vs. completed/discontinued prescriptions
+ * - Prescription duration tracking
+ * - Refill status monitoring
+ * - Medication adherence patterns
+ * 
+ * Features:
+ * - Visual analytics using charts and metrics
+ * - Status-based filtering
+ * - Timeline visualization
+ * - Refill tracking
+ * - Responsive layout
+ * 
+ * @component
+ * @param {PrescriptionAnalyticsProps} props - Component props containing prescription data
+ * @returns {JSX.Element} Rendered component
+ * 
+ * @example
+ * ```tsx
+ * const prescriptions = [
+ *   {
+ *     id: 1,
+ *     medication: "Amoxicillin",
+ *     status: "active",
+ *     start_date: "2024-01-01",
+ *     refills: 2
+ *   }
+ * ]
+ * 
+ * return <PrescriptionAnalytics prescriptions={prescriptions} />
+ * ```
+ */
 export function PrescriptionAnalytics({ prescriptions }: PrescriptionAnalyticsProps) {
   // Calculate statistics
   const stats = {

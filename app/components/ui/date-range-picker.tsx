@@ -13,12 +13,50 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
+/**
+ * Props for the DateRangePicker component
+ * @interface DateRangePickerProps
+ * @property {DateRange} value - Currently selected date range
+ * @property {(date: DateRange) => void} onChange - Callback function when date range changes
+ * @property {string} [className] - Optional CSS class names
+ */
 interface DateRangePickerProps {
   value: DateRange
   onChange: (date: DateRange) => void
   className?: string
 }
 
+/**
+ * DateRangePicker Component
+ * 
+ * A reusable date range picker component that allows users to select a start and end date.
+ * Built on top of react-day-picker with a custom UI using shadcn/ui components.
+ * 
+ * Features:
+ * - Clean and intuitive UI
+ * - Popup calendar with month navigation
+ * - Range selection with visual feedback
+ * - Formatted date display
+ * - Keyboard navigation support
+ * - Responsive design
+ * 
+ * @component
+ * @param {DateRangePickerProps} props - Component props
+ * @returns {JSX.Element} Rendered component
+ * 
+ * @example
+ * ```tsx
+ * const [dateRange, setDateRange] = useState<DateRange>({ from: new Date() })
+ * 
+ * return (
+ *   <DateRangePicker
+ *     value={dateRange}
+ *     onChange={setDateRange}
+ *     className="w-[300px]"
+ *   />
+ * )
+ * ```
+ */
 export function DateRangePicker({
   value,
   onChange,

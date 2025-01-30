@@ -1323,6 +1323,111 @@
     "column_default": null
   },
   {
+    "table_name": "share_analytics",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "share_analytics",
+    "column_name": "total_active_shares",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "share_analytics",
+    "column_name": "pending_invitations",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "share_analytics",
+    "column_name": "shares_by_access_level",
+    "data_type": "jsonb",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "share_analytics",
+    "column_name": "expiring_soon",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "share_analytics",
+    "column_name": "avg_time_to_claim",
+    "data_type": "double precision",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "share_analytics",
+    "column_name": "calculated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "share_audit_logs",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "uuid_generate_v4()"
+  },
+  {
+    "table_name": "share_audit_logs",
+    "column_name": "share_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "share_audit_logs",
+    "column_name": "action",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "share_audit_logs",
+    "column_name": "previous_state",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "share_audit_logs",
+    "column_name": "new_state",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "table_name": "share_audit_logs",
+    "column_name": "changed_by_user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "table_name": "share_audit_logs",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "column_default": "timezone('utc'::text, now())"
+  },
+  {
+    "table_name": "share_audit_logs",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
     "table_name": "timeline_events",
     "column_name": "id",
     "data_type": "uuid",

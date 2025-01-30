@@ -18,6 +18,18 @@ import { VitalsChart } from '@/app/components/VitalsChart'
 import { parseBloodPressure, formatBloodPressure, transformVitalsForChart } from '@/app/lib/vitals-utils'
 import { createTimelineEvent } from '@/app/lib/timeline'
 
+/**
+ * Represents a single vitals measurement record
+ * @interface VitalsData
+ * @property {string} id - Unique identifier for the vitals record
+ * @property {string} date_time - Timestamp of when vitals were recorded
+ * @property {string} blood_pressure - Blood pressure reading in "systolic/diastolic" format
+ * @property {number} heart_rate - Heart rate in beats per minute
+ * @property {number} temperature - Body temperature in Celsius
+ * @property {number} oxygen_saturation - Blood oxygen saturation percentage
+ * @property {number} [blood_sugar] - Optional blood sugar level in mg/dL
+ * @property {string} patient_id - ID of the patient these vitals belong to
+ */
 interface VitalsData {
   id: string
   date_time: string
@@ -29,6 +41,14 @@ interface VitalsData {
   patient_id: string
 }
 
+/**
+ * Props for the VitalsTracker component
+ * @interface VitalsTrackerProps
+ * @property {string} patientId - ID of the patient being monitored
+ * @property {VitalsData[]} [initialVitals] - Initial vitals data to display
+ * @property {boolean} [canEdit=true] - Whether the user can add/edit vitals
+ * @property {boolean} [showBloodSugar=false] - Whether to show blood sugar tracking
+ */
 interface VitalsTrackerProps {
   patientId: string
   initialVitals?: VitalsData[]
@@ -36,6 +56,37 @@ interface VitalsTrackerProps {
   showBloodSugar?: boolean
 }
 
+/**
+ * VitalsTracker Component
+ * 
+ * A comprehensive vitals monitoring component that allows healthcare providers to:
+ * - Track multiple vital signs (BP, HR, temp, O2 sat, blood sugar)
+ * - View historical vitals data in a chart format
+ * - Add new vitals measurements
+ * - Monitor trends over time
+ * 
+ * Features:
+ * - Real-time data updates
+ * - Interactive charts using VitalsChart component
+ * - Input validation for vital signs
+ * - Automatic timeline event creation for significant changes
+ * - Responsive design for various screen sizes
+ * 
+ * @component
+ * @param {VitalsTrackerProps} props - Component props
+ * @returns {JSX.Element} Rendered component
+ * 
+ * @example
+ * ```tsx
+ * return (
+ *   <VitalsTracker
+ *     patientId="123"
+ *     initialVitals={patientVitals}
+ *     showBloodSugar={true}
+ *   />
+ * )
+ * ```
+ */
 export function VitalsTracker({ patientId, initialVitals = [], canEdit = true, showBloodSugar = false }: VitalsTrackerProps) {
   const { supabase } = useSupabase()
   const [showAddVitals, setShowAddVitals] = useState(false)

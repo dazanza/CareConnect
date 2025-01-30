@@ -16,8 +16,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { useDebounce } from '@/lib/hooks/useDebounce'
+import { useDebounce } from '@/hooks/useDebounce'
 
+/**
+ * Represents a medication in the system
+ * @interface Medication
+ * @property {string} id - Unique identifier for the medication
+ * @property {string} name - Name of the medication
+ * @property {string} [form] - Optional dosage form (e.g., tablet, capsule, liquid)
+ * @property {string} [strength] - Optional medication strength (e.g., "500mg", "10mg/ml")
+ */
 interface Medication {
   id: string
   name: string
@@ -25,10 +33,41 @@ interface Medication {
   strength?: string
 }
 
+/**
+ * Props for the MedicationSearch component
+ * @interface MedicationSearchProps
+ * @property {(medication: Medication) => void} onSelect - Callback function when a medication is selected
+ */
 interface MedicationSearchProps {
   onSelect: (medication: Medication) => void
 }
 
+/**
+ * MedicationSearch Component
+ * 
+ * A searchable medication selector component that provides:
+ * - Type-ahead search functionality
+ * - Debounced API calls for performance
+ * - Rich dropdown interface
+ * - Keyboard navigation
+ * - Clear error states
+ * 
+ * Uses Radix UI's Command component for accessibility and keyboard navigation,
+ * combined with a debounced search to prevent excessive API calls.
+ * 
+ * @component
+ * @param {MedicationSearchProps} props - Component props
+ * @returns {JSX.Element} Rendered component
+ * 
+ * @example
+ * ```tsx
+ * const handleMedicationSelect = (medication: Medication) => {
+ *   console.log('Selected medication:', medication)
+ * }
+ * 
+ * return <MedicationSearch onSelect={handleMedicationSelect} />
+ * ```
+ */
 export function MedicationSearch({ onSelect }: MedicationSearchProps) {
   const [open, setOpen] = React.useState(false)
   const [value, setValue] = React.useState('')
