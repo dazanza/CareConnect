@@ -1,0 +1,119 @@
+[main 1367185] Remove .next from git tracking
+ 103 files changed, 3334 deletions(-)
+ delete mode 100644 .next/cache/webpack/client-development-fallback/0.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development-fallback/1.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development-fallback/2.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development-fallback/index.pack.gz.old
+ delete mode 100644 .next/cache/webpack/client-development/0.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/1.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/10.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/11.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/12.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/13.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/14.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/15.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/16.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/17.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/18.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/19.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/2.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/20.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/21.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/22.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/23.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/24.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/25.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/26.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/27.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/28.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/29.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/3.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/30.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/31.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/32.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/33.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/34.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/35.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/36.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/4.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/5.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/6.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/7.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/8.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/9.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/index.pack.gz
+ delete mode 100644 .next/cache/webpack/client-development/index.pack.gz.old
+ delete mode 100644 .next/cache/webpack/edge-server-development/0.pack.gz
+ delete mode 100644 .next/cache/webpack/edge-server-development/1.pack.gz
+ delete mode 100644 .next/cache/webpack/edge-server-development/2.pack.gz
+ delete mode 100644 .next/cache/webpack/edge-server-development/3.pack.gz
+ delete mode 100644 .next/cache/webpack/edge-server-development/4.pack.gz
+ delete mode 100644 .next/cache/webpack/edge-server-development/5.pack.gz
+ delete mode 100644 .next/cache/webpack/edge-server-development/6.pack.gz
+ delete mode 100644 .next/cache/webpack/edge-server-development/7.pack.gz
+ delete mode 100644 .next/cache/webpack/edge-server-development/index.pack.gz
+ delete mode 100644 .next/cache/webpack/edge-server-development/index.pack.gz.old
+ delete mode 100644 .next/cache/webpack/edge-server-production/0.pack
+ delete mode 100644 .next/cache/webpack/edge-server-production/index.pack
+ delete mode 100644 .next/cache/webpack/server-development/0.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/1.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/10.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/11.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/12.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/13.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/14.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/15.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/16.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/17.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/18.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/19.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/2.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/20.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/21.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/22.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/23.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/24.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/25.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/26.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/27.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/28.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/29.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/3.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/4.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/5.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/6.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/7.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/8.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/9.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/index.pack.gz
+ delete mode 100644 .next/cache/webpack/server-development/index.pack.gz.old
+ delete mode 100644 .next/cache/webpack/server-production/0.pack
+ delete mode 100644 .next/cache/webpack/server-production/index.pack
+ delete mode 100644 .next/package.json
+ delete mode 100644 .next/server/app-paths-manifest.json
+ delete mode 100644 .next/server/app/(public)/page.js
+ delete mode 100644 .next/server/edge-runtime-webpack.js
+ delete mode 100644 .next/server/middleware-manifest.json
+ delete mode 100644 .next/server/middleware.js
+ delete mode 100644 .next/server/pages-manifest.json
+ delete mode 100644 .next/server/server-reference-manifest.js
+ delete mode 100644 .next/server/server-reference-manifest.json
+ delete mode 100644 .next/server/webpack-runtime.js
+ delete mode 100644 .next/trace
+ delete mode 100644 .next/types/app/(public)/page.ts
+ delete mode 100644 .next/types/app/layout.ts
+ delete mode 100644 .next/types/package.json
+Enumerating objects: 529, done.
+Counting objects: 100% (529/529), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (376/376), done.
+Writing objects: 100% (437/437), 49.73 MiB | 3.13 MiB/s, done.
+Total 437 (delta 177), reused 14 (delta 7), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (177/177), completed with 53 local objects.
+remote: error: Trace: c0a3b18c8164f7254d428237e556437e9032b606a7486a9ff5a5a054f9431f4d
+remote: error: See https://gh.io/lfs for more information.
+remote: error: File .next/cache/webpack/server-production/0.pack is 137.50 MB; this exceeds GitHub's file size limit of 100.00 MB
+remote: error: GH001: Large files detected. You may want to try Git Large File Storage - https://git-lfs.github.com.
+To https://github.com/dazanza/HealthAF
+ ! [remote rejected] main -> main (pre-receive hook declined)
+error: failed to push some refs to 'https://github.com/dazanza/HealthAF'
