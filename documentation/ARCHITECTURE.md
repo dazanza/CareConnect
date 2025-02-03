@@ -128,6 +128,24 @@ graph TD
 - created_at (timestamp)
 - updated_at (timestamp)
 
+#### medications
+- id (UUID, PK)
+- name (string)
+- dosage (string)
+- frequency (string)
+- start_date (date)
+- end_date (date, nullable)
+- instructions (text, nullable)
+- status (enum: 'active', 'discontinued', 'completed')
+- reason_for_discontinuation (text, nullable)
+- side_effects (text, nullable)
+- adherence_rate (numeric, nullable)
+- doctor_id (UUID, FK to doctors)
+- patient_id (UUID, FK to patients)
+- user_id (UUID, FK to auth.users)
+- created_at (timestamp)
+- prescription_id (UUID, FK to prescriptions, nullable)
+
 ## Security
 
 ### Authentication
@@ -142,6 +160,19 @@ graph TD
 - Password reset flow
 - Email templates for auth events
 
+### Session Management
+
+- Automatic session timeout after 60 minutes of inactivity
+- 5-minute warning notification before session expiration
+- Automatic activity tracking (mouse, keyboard, scroll events)
+- Real-time auth state monitoring
+- Concurrent session handling through Supabase
+- Device tracking via session metadata
+- Secure session refresh mechanism
+- Protected route middleware
+- CSP headers for enhanced security
+- Automatic redirection for expired sessions
+
 ### Auth Flow
 
 1. User signs in with email/password via Supabase Auth
@@ -150,6 +181,8 @@ graph TD
 4. Subsequent requests include the access token automatically
 5. Server validates token and authorizes requests using RLS policies
 6. Token refresh is handled automatically by Supabase Auth Helpers
+7. Session timeout monitoring through useSessionTimeout hook
+8. Automatic signout on session expiration
 
 ### Security
 
@@ -219,6 +252,13 @@ All tables are protected by RLS policies:
 - GET /api/logs/[id]
 - PUT /api/logs/[id]
 - DELETE /api/logs/[id]
+
+### Medications
+- GET /api/medications
+- POST /api/medications
+- GET /api/medications/[id]
+- PATCH /api/medications/[id]
+- DELETE /api/medications/[id]
 
 ## Frontend Architecture
 

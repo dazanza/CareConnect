@@ -178,6 +178,38 @@ L264:
 - Impact: Improves type safety in form handling
 - Related: L078, E005
 
+L265:
+
+- Context: Medication management system
+- Insight: Comprehensive approach to medication tracking
+- Application: Implement full CRUD with proper types and validation
+- Impact: Enables accurate medication tracking and monitoring
+- Related: L263, L264
+
+L266:
+
+- Context: Medication form validation
+- Insight: Proper validation for medication data
+- Application: Use Zod schema for type-safe validation
+- Impact: Ensures data integrity and proper error handling
+- Related: L264, E005
+
+L267:
+
+- Context: Medication component architecture
+- Insight: Separation of concerns in medication management
+- Application: Split into manager and form components
+- Impact: Improves maintainability and reusability
+- Related: L258, L263
+
+L268:
+
+- Context: Medication data relationships
+- Insight: Proper handling of medication relationships
+- Application: Implement proper foreign key relationships
+- Impact: Maintains data consistency across the system
+- Related: L257, L263
+
 ## Type Safety Patterns
 
 ### Safe Database Response Transformation

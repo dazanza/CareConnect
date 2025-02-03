@@ -173,3 +173,47 @@ Performance patterns:
 3. Clear on route changes
 4. Handle rapid notifications
 5. Implement cleanup
+
+## Medication Management Patterns
+
+### Implementation
+1. Match database schema exactly
+   - Use proper types for all fields
+   - Handle nullable fields correctly
+   - Include proper foreign key relationships
+   - Document status enums
+
+2. Form handling
+   - Separate form data types from database types
+   - Implement proper validation
+   - Handle optional fields
+   - Track loading states
+   - Show proper error messages
+
+3. Component structure
+   - Split into manager and form components
+   - Use proper loading states
+   - Implement error boundaries
+   - Handle optimistic updates
+   - Use proper toast notifications
+
+4. Data management
+   - Implement proper caching
+   - Handle concurrent updates
+   - Track medication history
+   - Monitor adherence rates
+   - Handle discontinuation
+
+### Migration Strategy
+1. Review existing implementations
+2. Update database schema
+3. Create proper interfaces
+4. Update components systematically
+5. Test all scenarios
+
+### Performance Optimization
+1. Implement proper caching
+2. Use optimistic updates
+3. Handle loading states
+4. Batch related updates
+5. Monitor query performance
