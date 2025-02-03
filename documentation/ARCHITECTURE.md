@@ -546,3 +546,80 @@ All tables are protected by RLS policies:
 - File backups
 - System state
 - Recovery plans
+
+## Database Optimizations
+
+### Query Performance
+- Strategic indexes on frequently accessed columns:
+  - `appointments(user_id, date)` for efficient appointment lookups
+  - `medications(patient_id, status)` for medication status filtering
+  - `patient_shares(user_id)` for quick access to shared patients
+  - `patients(user_id, created_at)` for sorted patient lists
+  - `medications_patient_date(patient_id, start_date)` for timeline queries
+  - `appointments_patient_date(patient_id, date)` for timeline filtering
+
+### Materialized Views
+- `mv_user_stats`: Caches aggregated user statistics
+  - Patient count
+  - Appointment count
+  - Active medication count
+  - Active share count
+- `mv_patient_timeline`: Unified timeline of patient events
+  - Combines medications and appointments
+  - Sorted by date
+  - Includes event metadata
+- `mv_patient_analytics`: Patient-level analytics
+  - Medication statistics
+  - Appointment tracking
+  - Share management
+- `mv_medication_adherence`: Medication tracking
+  - Expected doses calculation
+  - Status tracking
+  - Frequency analysis
+- `mv_patient_search`: Full-text search optimization
+  - Combined patient data
+  - Medication history
+  - Appointment records
+  - GIN indexes for fast search
+
+### Query Patterns
+- Consolidated queries using joins to reduce round trips
+- Optimized select statements with specific column lists
+- Parallel data fetching using Promise.all where appropriate
+- Type-safe query responses using TypeScript generics
+- Full-text search with trigram similarity
+- Array-based filtering for complex queries
+
+### Security
+- Row-level security policies on all tables
+- Secure views for materialized data access
+- Share-based access control
+- Automatic expiration handling
+- User-specific data isolation
+
+### View Management
+- Automatic refresh triggers on data changes
+- Concurrent view updates
+- Optimized refresh scheduling
+- Efficient data aggregation
+
+### Type Safety
+- Comprehensive TypeScript interfaces
+- Query result type validation
+- Error handling patterns
+- Toast notifications for failures
+
+### Query Functions
+- `fetchDashboardData`: Optimized dashboard loading
+- `fetchPatientTimeline`: Efficient timeline queries
+- `fetchPatientAnalytics`: Fast analytics retrieval
+- `fetchMedicationAdherence`: Medication tracking
+- `searchPatients`: Full-text patient search
+
+### Performance Features
+- GIN indexes for text search
+- Composite indexes for common queries
+- Materialized view caching
+- Efficient pagination
+- Optimized sorting
+- Filtered aggregations

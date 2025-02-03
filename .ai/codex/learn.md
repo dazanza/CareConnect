@@ -217,3 +217,41 @@ Performance patterns:
 3. Handle loading states
 4. Batch related updates
 5. Monitor query performance
+
+## Database Optimization Patterns (L270-L275)
+
+L270: Context: Database query optimization for healthcare application
+Insight: Using materialized views for frequently accessed aggregations significantly improves performance
+Application: Created materialized views for user stats, patient timeline, and analytics with automatic refresh triggers
+Impact: Reduced query time by pre-computing common aggregations
+Related: L263, L264
+
+L271: Context: Full-text search optimization in PostgreSQL
+Insight: Combining GIN indexes with trigram similarity provides flexible and fast search capabilities
+Application: Implemented combined search using tsvector and gin_trgm_ops for patient search
+Impact: Enabled efficient fuzzy search across patient records and related data
+Related: L270, E008
+
+L272: Context: Secure view pattern for materialized data
+Insight: Using regular views on top of materialized views enables row-level security with performance benefits
+Application: Created secure views that filter materialized data based on user access
+Impact: Maintained security while keeping performance optimizations
+Related: L270, L265
+
+L273: Context: Composite index strategy for timeline queries
+Insight: Strategic composite indexes on date columns with nulls last improves timeline performance
+Application: Added optimized indexes for patient timeline and medication tracking
+Impact: Faster timeline queries and better sorting performance
+Related: L270, L271
+
+L274: Context: Type-safe database queries
+Insight: Combining TypeScript interfaces with Supabase query builders ensures type safety
+Application: Created comprehensive interfaces for all materialized views and query functions
+Impact: Caught type errors at compile time and improved maintainability
+Related: L265, L266
+
+L275: Context: Efficient data aggregation with array_agg
+Insight: Using array_agg with DISTINCT in materialized views reduces query complexity
+Application: Implemented efficient data grouping in search and analytics views
+Impact: Simplified query patterns and improved performance
+Related: L270, L273

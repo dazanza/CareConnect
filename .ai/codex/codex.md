@@ -213,4 +213,134 @@ L268:
 ## Type Safety Patterns
 
 ### Safe Database Response Transformation
+
+## Database Optimization Patterns
+
+### Materialized Views
+```sql
+-- Create materialized view for aggregated data
+CREATE MATERIALIZED VIEW mv_user_stats AS
+SELECT 
+  u.id as user_id,
+  COUNT(DISTINCT p.id) as patient_count,
+  COUNT(DISTINCT a.id) as appointment_count
+FROM users u
+LEFT JOIN patients p ON u.id = p.user_id
+LEFT JOIN appointments a ON u.id = a.user_id
+GROUP BY u.id;
+
+-- Create secure view on top
+CREATE VIEW user_stats AS
+SELECT s.*
+FROM mv_user_stats s
+WHERE s.user_id = auth.uid();
+
+-- Create refresh function and trigger
+CREATE FUNCTION refresh_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+  REFRESH MATERIALIZED VIEW CONCURRENTLY mv_user_stats;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER refresh_stats_trigger
+AFTER INSERT OR UPDATE OR DELETE ON patients
+FOR EACH STATEMENT EXECUTE FUNCTION refresh_stats();
 ```
+
+### Full-Text Search
+```sql
+-- Enable trigram extension
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Create search document view
+CREATE MATERIALIZED VIEW mv_patient_search AS
+SELECT 
+  p.id,
+  p.first_name,
+  p.last_name,
+  to_tsvector('english',
+    concat_ws(' ',
+      p.first_name,
+      p.last_name,
+      string_agg(m.name, ' ')
+    )
+  ) as search_vector
+FROM patients p
+LEFT JOIN medications m ON p.id = m.patient_id
+GROUP BY p.id;
+
+-- Create GIN indexes
+CREATE INDEX idx_search_trgm 
+ON mv_patient_search USING GIN ((first_name || ' ' || last_name) gin_trgm_ops);
+
+CREATE INDEX idx_search_vector 
+ON mv_patient_search USING GIN (search_vector);
+```
+
+### Optimized Timeline Queries
+```sql
+-- Create composite indexes
+CREATE INDEX idx_medications_patient_date 
+ON medications (patient_id, start_date DESC NULLS LAST);
+
+CREATE INDEX idx_appointments_patient_date 
+ON appointments (patient_id, date DESC NULLS LAST);
+
+-- Create timeline view
+CREATE MATERIALIZED VIEW mv_patient_timeline AS
+SELECT 
+  'medication' as event_type,
+  m.id as event_id,
+  m.patient_id,
+  m.name as title,
+  m.start_date as event_date
+FROM medications m
+UNION ALL
+SELECT 
+  'appointment' as event_type,
+  a.id as event_id,
+  a.patient_id,
+  a.type as title,
+  a.date as event_date
+FROM appointments a;
+```
+
+### Type-Safe Queries
+```typescript
+interface TimelineEvent {
+  event_type: 'medication' | 'appointment'
+  event_id: number
+  patient_id: number
+  title: string
+  event_date: string
+}
+
+async function fetchTimeline(
+  supabase: SupabaseClient,
+  patientId: number
+): Promise<TimelineEvent[]> {
+  const { data, error } = await supabase
+    .from('patient_timeline')
+    .select('*')
+    .eq('patient_id', patientId)
+    .order('event_date', { ascending: false })
+    .returns<TimelineEvent[]>()
+
+  if (error) throw error
+  return data || []
+}
+```
+
+### Performance Best Practices
+1. Use materialized views for expensive computations
+2. Add composite indexes for common query patterns
+3. Implement concurrent view refreshes
+4. Use array_agg for efficient grouping
+5. Add type safety with TypeScript interfaces
+6. Implement proper error handling
+7. Use toast notifications for user feedback
+8. Monitor query performance
+9. Cache frequently accessed data
+10. Use pagination for large datasets
