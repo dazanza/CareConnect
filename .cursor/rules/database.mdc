@@ -1,0 +1,202 @@
+# Database Rules
+
+## Schema Design
+
+1. Use plural table names (e.g., 'users', not 'user')
+2. Primary keys should be UUIDs
+3. Include timestamps (created_at, updated_at)
+4. Use soft deletes where appropriate (deleted_at)
+5. Foreign keys must have indexes
+
+## Data Types
+
+### Standard Types
+```sql
+-- Use these standard types
+id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+created_at TIMESTAMPTZ DEFAULT NOW()
+updated_at TIMESTAMPTZ DEFAULT NOW()
+deleted_at TIMESTAMPTZ
+user_id UUID REFERENCES auth.users(id)
+```
+
+### JSON Handling
+```sql
+-- Use JSONB for flexible data
+metadata JSONB DEFAULT '{}'::jsonb
+settings JSONB DEFAULT '{}'::jsonb
+
+-- Index JSON fields that are queried
+CREATE INDEX idx_metadata ON table_name USING GIN (metadata);
+```
+
+## Row Level Security
+
+### Policy Template
+```sql
+-- Enable RLS
+ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;
+
+-- Read policy
+CREATE POLICY "users can read own data"
+ON table_name
+FOR SELECT
+USING (
+  auth.uid() = user_id
+  OR EXISTS (
+    SELECT 1 FROM patient_shares
+    WHERE patient_id = table_name.patient_id
+    AND shared_with_user_id = auth.uid()
+  )
+);
+
+-- Write policy
+CREATE POLICY "users can write own data"
+ON table_name
+FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+```
+
+## Migrations
+
+### File Structure
+```
+migrations/
+  ├── YYYYMMDDHHMMSS_description.up.sql
+  ├── YYYYMMDDHHMMSS_description.down.sql
+  └── schema.sql
+```
+
+### Migration Guidelines
+1. All migrations must be reversible
+2. Include both up and down migrations
+3. Test migrations in isolation
+4. Document breaking changes
+5. Back up data before migrations
+
+## Indexes
+
+### Index Types
+```sql
+-- B-tree for equality and range queries
+CREATE INDEX idx_user_id ON table_name(user_id);
+
+-- GIN for full-text search
+CREATE INDEX idx_search ON table_name USING GIN (to_tsvector('english', content));
+
+-- Partial indexes for filtered queries
+CREATE INDEX idx_active_users ON users(id) WHERE deleted_at IS NULL;
+```
+
+## Performance
+
+### Query Optimization
+1. Use appropriate indexes
+2. Avoid N+1 queries
+3. Use materialized views for complex queries
+4. Implement query caching
+5. Monitor query performance
+
+### Example Optimizations
+```sql
+-- Materialized view for expensive computations
+CREATE MATERIALIZED VIEW mv_user_stats AS
+SELECT 
+  user_id,
+  COUNT(*) as total_records,
+  MAX(updated_at) as last_update
+FROM table_name
+GROUP BY user_id;
+
+-- Refresh strategy
+CREATE FUNCTION refresh_mv_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+  REFRESH MATERIALIZED VIEW CONCURRENTLY mv_user_stats;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+## Data Validation
+
+### Constraints
+```sql
+-- Use appropriate constraints
+ALTER TABLE users
+  ADD CONSTRAINT valid_email 
+  CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+
+-- Ensure data integrity
+ALTER TABLE prescriptions
+  ADD CONSTRAINT valid_dates 
+  CHECK (start_date <= end_date);
+```
+
+## Supabase Integration
+
+### Type Generation
+```bash
+# Generate types from database
+supabase gen types typescript --project-id your-project-id > types/supabase.ts
+```
+
+### Database Functions
+```sql
+-- Create type-safe functions
+CREATE FUNCTION get_user_data(user_id UUID)
+RETURNS TABLE (
+  id UUID,
+  email TEXT,
+  metadata JSONB
+) AS $$
+  SELECT id, email, metadata
+  FROM users
+  WHERE id = user_id;
+$$ LANGUAGE sql SECURITY DEFINER;
+```
+
+## Testing
+
+### Test Data
+```sql
+-- Create test data
+INSERT INTO users (id, email) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'test1@example.com'),
+  ('00000000-0000-0000-0000-000000000002', 'test2@example.com');
+```
+
+### Test Queries
+```typescript
+// Test database operations
+describe('Database Operations', () => {
+  beforeEach(async () => {
+    await resetTestData()
+  })
+
+  it('should enforce RLS policies', async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+    
+    expect(error).toBeNull()
+    expect(data).toHaveLength(1) // Only own data visible
+  })
+})
+```
+
+## Monitoring
+
+1. Track query performance
+2. Monitor table sizes
+3. Audit data access
+4. Check index usage
+5. Monitor connection pools
+
+## Backup Strategy
+
+1. Regular full backups
+2. Point-in-time recovery
+3. Backup verification
+4. Retention policy
+5. Recovery testing 

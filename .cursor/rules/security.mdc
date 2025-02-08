@@ -1,0 +1,212 @@
+# Security Rules
+
+## Authentication
+
+### Implementation
+1. Use Supabase Auth for authentication
+2. Implement proper session management
+3. Use secure password policies
+4. Handle token refresh securely
+5. Implement MFA where appropriate
+
+### Session Management
+```typescript
+// Session handling
+import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs'
+
+export async function getServerSideProps({ req, res }) {
+  const supabase = createServerSupabaseClient({ req, res })
+  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: '/auth/login',
+        permanent: false,
+      },
+    }
+  }
+
+  return {
+    props: {
+      initialSession: session,
+      user: session.user,
+    },
+  }
+}
+```
+
+## Authorization
+
+### Row Level Security
+```sql
+-- Basic RLS policy
+ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;
+
+-- Read policy
+CREATE POLICY "users can read own data"
+ON table_name
+FOR SELECT
+USING (auth.uid() = user_id);
+
+-- Write policy
+CREATE POLICY "users can write own data"
+ON table_name
+FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+```
+
+### Role-Based Access
+```typescript
+// Role checking middleware
+export function withRole(role: string) {
+  return async (req: NextApiRequest, res: NextApiResponse, next: NextFunction) => {
+    const user = await getCurrentUser(req)
+    
+    if (!user || user.role !== role) {
+      return res.status(403).json({ error: 'Unauthorized' })
+    }
+    
+    return next()
+  }
+}
+```
+
+## Data Protection
+
+### Input Validation
+```typescript
+import { z } from 'zod'
+
+const UserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  role: z.enum(['user', 'admin']),
+})
+
+export async function validateUser(data: unknown) {
+  return UserSchema.parseAsync(data)
+}
+```
+
+### Data Encryption
+```typescript
+import { encrypt, decrypt } from '@/lib/encryption'
+
+// Encrypt sensitive data using secure methods
+const encrypted = await encrypt(sensitiveData)
+
+// Decrypt when needed
+const decrypted = await decrypt(encrypted)
+```
+
+## API Security
+
+1. Use HTTPS only
+2. Implement rate limiting
+3. Set security headers
+4. Validate all inputs
+5. Use CSRF protection
+
+### Security Headers
+```typescript
+// Security middleware
+export const securityHeaders = {
+  'Content-Security-Policy': 
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';",
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+}
+```
+
+## Error Handling
+
+1. Don't expose sensitive info in errors
+2. Log security events
+3. Implement rate limiting
+4. Monitor for suspicious activity
+5. Have incident response plan
+
+### Secure Error Handling
+```typescript
+// Error handler
+export function handleError(error: unknown) {
+  // Log full error internally
+  logger.error(error)
+
+  // Return safe error to client
+  return {
+    message: 'An error occurred',
+    code: 'INTERNAL_ERROR'
+  }
+}
+```
+
+## Security Monitoring
+
+1. Implement audit logging
+2. Monitor authentication attempts
+3. Track suspicious activity
+4. Set up alerts
+5. Regular security reviews
+
+### Audit Logging
+```typescript
+// Audit log
+interface AuditLog {
+  userId: string
+  action: string
+  resource: string
+  timestamp: Date
+  metadata: Record<string, unknown>
+}
+
+async function logAudit(log: AuditLog) {
+  await db.insert('audit_logs').values(log)
+}
+```
+
+## Best Practices
+
+### Password Security
+1. Use strong password requirements
+2. Implement password history
+3. Regular password changes
+4. Secure password reset
+5. MFA support
+
+### Data Access
+1. Principle of least privilege
+2. Regular access reviews
+3. Audit logging
+4. Data classification
+5. Access expiration
+
+## Security Testing
+
+1. Regular penetration testing
+2. Vulnerability scanning
+3. Security code reviews
+4. Dependency audits
+5. Configuration reviews
+
+## Incident Response
+
+1. Have response plan
+2. Document procedures
+3. Regular drills
+4. Contact list
+5. Recovery procedures
+
+## Compliance
+
+1. HIPAA compliance
+2. Data protection
+3. Regular audits
+4. Documentation
+5. Training 

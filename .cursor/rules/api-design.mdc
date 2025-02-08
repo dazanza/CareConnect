@@ -1,0 +1,314 @@
+# API Design Rules
+
+## RESTful Endpoints
+
+### URL Structure
+```typescript
+// Patient endpoints
+GET    /api/patients
+POST   /api/patients
+GET    /api/patients/:id
+PUT    /api/patients/:id
+DELETE /api/patients/:id
+
+// Medical records
+GET    /api/patients/:id/records
+POST   /api/patients/:id/records
+GET    /api/patients/:id/records/:recordId
+PUT    /api/patients/:id/records/:recordId
+DELETE /api/patients/:id/records/:recordId
+
+// Prescriptions
+GET    /api/prescriptions
+POST   /api/prescriptions
+GET    /api/prescriptions/:id
+PATCH  /api/prescriptions/:id
+DELETE /api/prescriptions/:id
+```
+
+## Request/Response Types
+
+### Base Types
+```typescript
+interface ApiResponse<T> {
+  data: T | null
+  error: ApiError | null
+  metadata?: {
+    timestamp: string
+    requestId: string
+  }
+}
+
+interface ApiError {
+  code: string
+  message: string
+  details?: unknown
+}
+
+interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  metadata: {
+    total: number
+    page: number
+    pageSize: number
+    hasMore: boolean
+  }
+}
+```
+
+### Request Validation
+```typescript
+import { z } from 'zod'
+
+const PatientSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  dateOfBirth: z.string().datetime(),
+  email: z.string().email().optional(),
+  phone: z.string().optional()
+})
+
+const MedicalRecordSchema = z.object({
+  patientId: z.string().uuid(),
+  type: z.enum(['note', 'prescription', 'lab', 'diagnosis']),
+  date: z.string().datetime(),
+  content: z.string(),
+  attachments: z.array(z.string().url()).optional()
+})
+```
+
+## Error Handling
+
+### Error Types
+```typescript
+enum ApiErrorCode {
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  FORBIDDEN = 'FORBIDDEN',
+  NOT_FOUND = 'NOT_FOUND',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  HIPAA_VIOLATION = 'HIPAA_VIOLATION'
+}
+
+class ApiError extends Error {
+  constructor(
+    public code: ApiErrorCode,
+    message: string,
+    public details?: unknown
+  ) {
+    super(message)
+  }
+}
+```
+
+### Error Responses
+```typescript
+function handleApiError(error: unknown): ApiResponse<never> {
+  if (error instanceof ApiError) {
+    return {
+      data: null,
+      error: {
+        code: error.code,
+        message: error.message,
+        details: error.details
+      }
+    }
+  }
+
+  return {
+    data: null,
+    error: {
+      code: ApiErrorCode.INTERNAL_ERROR,
+      message: 'An unexpected error occurred'
+    }
+  }
+}
+```
+
+## Authentication
+
+### Auth Middleware
+```typescript
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return new NextResponse(
+      JSON.stringify({
+        error: {
+          code: ApiErrorCode.UNAUTHORIZED,
+          message: 'Authentication required'
+        }
+      }),
+      { status: 401 }
+    )
+  }
+
+  return res
+}
+```
+
+## Rate Limiting
+
+### Rate Limit Configuration
+```typescript
+const rateLimiter = new RateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many requests, please try again later'
+    }
+  }
+})
+```
+
+## API Documentation
+
+### OpenAPI Schema
+```yaml
+openapi: 3.0.0
+info:
+  title: HealthAF API
+  version: 1.0.0
+paths:
+  /api/patients:
+    get:
+      summary: List patients
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPatientsResponse'
+```
+
+## Security Headers
+
+### Security Configuration
+```typescript
+const securityHeaders = {
+  'Content-Security-Policy': 
+    "default-src 'self'; img-src 'self' data: https:; script-src 'self'",
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+}
+```
+
+## HIPAA Compliance
+
+### Data Encryption
+```typescript
+async function encryptSensitiveData(data: SensitiveData): Promise<string> {
+  const key = await getEncryptionKey()
+  return encrypt(JSON.stringify(data), key)
+}
+
+async function decryptSensitiveData<T>(encrypted: string): Promise<T> {
+  const key = await getEncryptionKey()
+  const decrypted = await decrypt(encrypted, key)
+  return JSON.parse(decrypted)
+}
+```
+
+## API Versioning
+
+### Version Header
+```typescript
+interface VersionedRequest extends NextApiRequest {
+  version: string
+}
+
+function getApiVersion(req: NextApiRequest): string {
+  return req.headers['x-api-version'] as string || 'v1'
+}
+
+function handleVersionedRequest(
+  req: VersionedRequest,
+  handlers: Record<string, RequestHandler>
+) {
+  const version = getApiVersion(req)
+  const handler = handlers[version]
+  
+  if (!handler) {
+    throw new ApiError(
+      ApiErrorCode.NOT_FOUND,
+      `API version ${version} not found`
+    )
+  }
+  
+  return handler(req)
+}
+```
+
+## Performance
+
+### Caching
+```typescript
+const cacheConfig = {
+  maxAge: 60, // 1 minute
+  staleWhileRevalidate: 300, // 5 minutes
+  private: true
+}
+
+function setCacheHeaders(res: NextApiResponse): void {
+  res.setHeader(
+    'Cache-Control',
+    `private, max-age=${cacheConfig.maxAge}, stale-while-revalidate=${cacheConfig.staleWhileRevalidate}`
+  )
+}
+```
+
+## Monitoring
+
+### Request Logging
+```typescript
+interface ApiLog {
+  timestamp: Date
+  method: string
+  path: string
+  query: Record<string, string>
+  userId?: string
+  duration: number
+  status: number
+  error?: string
+}
+
+async function logApiRequest(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  duration: number
+): Promise<void> {
+  const log: ApiLog = {
+    timestamp: new Date(),
+    method: req.method!,
+    path: req.url!,
+    query: req.query as Record<string, string>,
+    userId: req.user?.id,
+    duration,
+    status: res.statusCode
+  }
+  
+  await logger.info('api_request', log)
+} 

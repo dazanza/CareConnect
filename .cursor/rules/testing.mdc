@@ -1,0 +1,179 @@
+# Testing Rules
+
+## Test Structure
+
+1. Use descriptive test names
+2. Follow AAA pattern (Arrange, Act, Assert)
+3. One assertion per test
+4. Group related tests
+5. Keep tests focused
+
+## Test Types
+
+### Unit Tests
+```typescript
+import { render, screen } from '@testing-library/react'
+import { Example } from './Example'
+
+describe('Example', () => {
+  it('should render correctly', () => {
+    // Arrange
+    const props = { title: 'Test' }
+
+    // Act
+    render(<Example {...props} />)
+
+    // Assert
+    expect(screen.getByText('Test')).toBeInTheDocument()
+  })
+})
+```
+
+### Integration Tests
+```typescript
+import { renderWithProviders } from '@/test-utils'
+import { UserProfile } from './UserProfile'
+
+describe('UserProfile integration', () => {
+  it('should load and display user data', async () => {
+    // Arrange
+    const { user } = await setupTestUser()
+
+    // Act
+    renderWithProviders(<UserProfile userId={user.id} />)
+
+    // Assert
+    expect(await screen.findByText(user.name)).toBeInTheDocument()
+  })
+})
+```
+
+### E2E Tests
+```typescript
+import { test, expect } from '@playwright/test'
+
+test('user can login and view dashboard', async ({ page }) => {
+  // Arrange
+  await page.goto('/')
+  
+  // Act
+  await page.fill('[data-testid="email"]', 'test@example.com')
+  await page.fill('[data-testid="password"]', 'password')
+  await page.click('[data-testid="login-button"]')
+  
+  // Assert
+  await expect(page).toHaveURL('/dashboard')
+})
+```
+
+## Test Coverage
+
+1. Minimum 80% coverage for all metrics
+2. Cover all critical paths
+3. Test edge cases
+4. Test error scenarios
+5. Test loading states
+
+## Best Practices
+
+### Mocking
+1. Mock external dependencies
+2. Use test doubles appropriately
+3. Keep mocks simple
+4. Reset mocks between tests
+5. Document mock behavior
+
+### Data Setup
+1. Use factories for test data
+2. Reset state between tests
+3. Use realistic test data
+4. Clean up after tests
+5. Isolate test data
+
+## Component Testing
+
+1. Test user interactions
+2. Test accessibility
+3. Test loading states
+4. Test error states
+5. Test edge cases
+
+## API Testing
+
+1. Test all endpoints
+2. Test request validation
+3. Test error responses
+4. Test authentication
+5. Test rate limiting
+
+## Database Testing
+
+1. Use test database
+2. Reset between tests
+3. Test migrations
+4. Test queries
+5. Test transactions
+
+## Test Organization
+
+### Directory Structure
+```
+__tests__/
+  ├── unit/
+  │   └── components/
+  ├── integration/
+  │   └── features/
+  └── e2e/
+      └── flows/
+```
+
+### Test Utils
+```typescript
+// Test setup
+export function setupTest() {
+  // Common test setup
+}
+
+// Custom matchers
+expect.extend({
+  toBeValidDate(received) {
+    const pass = received instanceof Date && !isNaN(received)
+    return {
+      pass,
+      message: () => `expected ${received} to be a valid date`
+    }
+  }
+})
+```
+
+## Test Documentation
+
+1. Document test setup
+2. Document test data
+3. Document test utilities
+4. Document test patterns
+5. Document test coverage
+
+## Performance Testing
+
+1. Test load times
+2. Test resource usage
+3. Test response times
+4. Test concurrent users
+5. Test under load
+
+## Security Testing
+
+1. Test authentication
+2. Test authorization
+3. Test input validation
+4. Test data protection
+5. Test security headers
+
+## Monitoring
+
+1. Track test coverage
+2. Monitor test performance
+3. Track flaky tests
+4. Monitor CI/CD pipeline
+5. Track test failures 

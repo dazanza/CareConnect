@@ -1,0 +1,200 @@
+# Infrastructure Rules
+
+## Deployment Environments
+
+1. Development (dev)
+2. Staging (staging)
+3. Production (prod)
+4. HIPAA-compliant production (hipaa-prod)
+
+## Environment Configuration
+
+### Environment Variables
+```bash
+# Required environment variables
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+### Security Configuration
+```typescript
+// Environment validation
+const envSchema = z.object({
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1)
+})
+```
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflow
+```yaml
+name: HealthAF CI/CD
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - HIPAA compliance check
+      - Security scan
+      - Type check
+      - Lint
+      - Test
+      - Build
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - Environment setup
+      - Database migrations
+      - Deploy application
+      - Health check
+```
+
+## Cloud Resources
+
+### Supabase
+1. Database (PostgreSQL)
+2. Authentication
+3. Storage (for medical documents)
+4. Edge Functions
+5. Real-time subscriptions
+
+### Vercel
+1. Next.js hosting
+2. Edge functions
+3. Analytics
+4. Performance monitoring
+5. Error tracking
+
+## Monitoring
+
+### Health Checks
+```typescript
+// Health check endpoint
+export default async function healthCheck(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  try {
+    // Check database connection
+    await supabase.from('health_checks').select('count').single()
+    
+    // Check encryption service
+    await testEncryption()
+    
+    return res.status(200).json({ status: 'healthy' })
+  } catch (error) {
+    return res.status(500).json({ status: 'unhealthy', error })
+  }
+}
+```
+
+### Logging
+```typescript
+// Structured logging
+const logger = {
+  info: (message: string, meta?: Record<string, unknown>) => {
+    console.log(JSON.stringify({
+      level: 'info',
+      timestamp: new Date().toISOString(),
+      message,
+      ...meta,
+      environment: process.env.NODE_ENV
+    }))
+  },
+  error: (error: Error, meta?: Record<string, unknown>) => {
+    console.error(JSON.stringify({
+      level: 'error',
+      timestamp: new Date().toISOString(),
+      message: error.message,
+      stack: error.stack,
+      ...meta,
+      environment: process.env.NODE_ENV
+    }))
+  }
+}
+```
+
+## Backup and Recovery
+
+### Database Backups
+1. Daily automated backups
+2. Point-in-time recovery enabled
+3. Backup retention: 30 days
+4. Monthly backup verification
+5. Documented recovery procedures
+
+### Document Storage
+1. Redundant storage
+2. Version history
+3. Soft delete with 30-day recovery
+4. Encrypted at rest
+5. Geographic redundancy
+
+## Security Measures
+
+### Infrastructure Security
+1. VPC configuration
+2. Network isolation
+3. IP allowlisting
+4. SSL/TLS enforcement
+5. Security group rules
+
+### Access Control
+1. IAM roles and policies
+2. Service account management
+3. Key rotation
+4. Audit logging
+5. Access reviews
+
+## Scaling
+
+### Auto-scaling Rules
+1. CPU threshold: 70%
+2. Memory threshold: 80%
+3. Response time threshold: 1000ms
+4. Concurrent users threshold
+5. Cost optimization
+
+## Compliance
+
+### HIPAA Requirements
+1. Encryption in transit
+2. Encryption at rest
+3. Access logging
+4. Backup procedures
+5. Disaster recovery
+
+### Audit Trail
+```typescript
+interface AuditEvent {
+  timestamp: Date
+  actor: string
+  action: string
+  resource: string
+  details: Record<string, unknown>
+  environment: string
+}
+
+async function logAuditEvent(event: AuditEvent) {
+  await supabase.from('audit_events').insert(event)
+}
+```
+
+## Deployment Checklist
+
+1. Security scan passed
+2. HIPAA compliance verified
+3. Database migrations tested
+4. Backup verified
+5. Rollback plan documented 

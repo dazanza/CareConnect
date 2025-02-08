@@ -14,7 +14,7 @@ import { TimelineView } from './TimelineView'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { format } from 'date-fns'
-import { withErrorBoundary } from '@/components/ui/error-boundary'
+import { ErrorBoundary, withErrorBoundary } from '@/components/ui/error-boundary'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 /**
@@ -147,7 +147,7 @@ function DashboardTimelineComponent({ userId }: DashboardTimelineProps) {
 }
 
 // Wrap with error boundary and export
-export const DashboardTimeline = withErrorBoundary(
+const WrappedDashboardTimeline = withErrorBoundary(
   DashboardTimelineComponent,
   <Alert variant="destructive">
     <AlertDescription>
@@ -155,4 +155,6 @@ export const DashboardTimeline = withErrorBoundary(
     </AlertDescription>
   </Alert>,
   () => window.location.reload()
-) 
+)
+
+export { WrappedDashboardTimeline as DashboardTimeline } 

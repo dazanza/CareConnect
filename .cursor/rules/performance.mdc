@@ -1,0 +1,326 @@
+# Performance Rules
+
+## Code Splitting
+
+### Dynamic Imports
+```typescript
+// Lazy load heavy components
+const MedicalRecordViewer = dynamic(() => import('@/components/MedicalRecordViewer'), {
+  loading: () => <LoadingSkeleton />,
+  ssr: false // Disable SSR for PDF viewer
+})
+
+// Route-based code splitting
+const PatientDashboard = dynamic(() => import('@/pages/patients/[id]/dashboard'), {
+  loading: () => <PageLoadingSkeleton />
+})
+```
+
+### Bundle Analysis
+```json
+{
+  "scripts": {
+    "analyze": "ANALYZE=true next build",
+    "analyze:server": "BUNDLE_ANALYZE=server next build",
+    "analyze:browser": "BUNDLE_ANALYZE=browser next build"
+  }
+}
+```
+
+## Image Optimization
+
+### Next.js Image Component
+```tsx
+const PatientAvatar: FC<Props> = ({ patient }) => {
+  return (
+    <Image
+      src={patient.avatarUrl}
+      alt={`${patient.name}'s avatar`}
+      width={64}
+      height={64}
+      placeholder="blur"
+      blurDataURL={patient.avatarBlur}
+      priority={false}
+    />
+  )
+}
+```
+
+### Image Loading Strategy
+```typescript
+const imageLoadingConfig = {
+  priority: {
+    hero: true,
+    avatar: false,
+    thumbnail: false
+  },
+  sizes: {
+    hero: '100vw',
+    avatar: '64px',
+    thumbnail: '(max-width: 768px) 100vw, 33vw'
+  }
+}
+```
+
+## Data Fetching
+
+### SWR Configuration
+```typescript
+const swrConfig = {
+  fetcher: async (url: string) => {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error('Failed to fetch data')
+    return res.json()
+  },
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  dedupingInterval: 2000,
+  focusThrottleInterval: 5000
+}
+
+// Usage
+const { data, error } = useSWR<Patient>(
+  `/api/patients/${id}`,
+  {
+    ...swrConfig,
+    suspense: true
+  }
+)
+```
+
+### Query Optimization
+```typescript
+// Batch related queries
+const usePatientData = (patientId: string) => {
+  const { data: patient } = useSWR<Patient>(
+    `/api/patients/${patientId}`
+  )
+  
+  const { data: records } = useSWR<MedicalRecord[]>(
+    patient ? `/api/patients/${patientId}/records` : null
+  )
+  
+  const { data: prescriptions } = useSWR<Prescription[]>(
+    patient ? `/api/patients/${patientId}/prescriptions` : null
+  )
+  
+  return {
+    patient,
+    records,
+    prescriptions,
+    isLoading: !patient || !records || !prescriptions
+  }
+}
+```
+
+## Caching Strategy
+
+### Browser Cache
+```typescript
+// Cache control headers
+export async function getServerSideProps({ req, res }) {
+  res.setHeader(
+    'Cache-Control',
+    'public, s-maxage=10, stale-while-revalidate=59'
+  )
+  
+  return {
+    props: {
+      // ...
+    }
+  }
+}
+```
+
+### Memory Cache
+```typescript
+const cache = new Map<string, {
+  data: unknown
+  timestamp: number
+}>()
+
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+function getCachedData<T>(key: string): T | null {
+  const cached = cache.get(key)
+  if (!cached) return null
+  
+  if (Date.now() - cached.timestamp > CACHE_TTL) {
+    cache.delete(key)
+    return null
+  }
+  
+  return cached.data as T
+}
+```
+
+## React Optimization
+
+### Memo Usage
+```typescript
+interface RecordListProps {
+  records: MedicalRecord[]
+  onSelect: (id: string) => void
+}
+
+const RecordList = memo<RecordListProps>(
+  ({ records, onSelect }) => {
+    return (
+      <div>
+        {records.map(record => (
+          <RecordItem
+            key={record.id}
+            record={record}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    )
+  },
+  (prev, next) => {
+    return (
+      prev.records.length === next.records.length &&
+      prev.records.every((r, i) => r.id === next.records[i].id)
+    )
+  }
+)
+```
+
+### useCallback and useMemo
+```typescript
+const MedicalTimeline: FC<Props> = ({ patientId }) => {
+  const sortRecords = useMemo(() => {
+    return records.sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime()
+    })
+  }, [records])
+  
+  const handleRecordSelect = useCallback((id: string) => {
+    setSelectedRecord(id)
+  }, [])
+  
+  return (
+    <RecordList
+      records={sortRecords}
+      onSelect={handleRecordSelect}
+    />
+  )
+}
+```
+
+## Virtual Scrolling
+
+### Virtual List
+```typescript
+const VirtualizedRecordList: FC<Props> = ({ records }) => {
+  return (
+    <VirtualList
+      height={400}
+      itemCount={records.length}
+      itemSize={64}
+      width="100%"
+    >
+      {({ index, style }) => (
+        <RecordItem
+          record={records[index]}
+          style={style}
+        />
+      )}
+    </VirtualList>
+  )
+}
+```
+
+## Web Vitals
+
+### Monitoring
+```typescript
+export function reportWebVitals(metric: NextWebVitalsMetric) {
+  const { id, name, label, value } = metric
+  
+  // Analytics
+  analytics.track('Web Vitals', {
+    metric: name,
+    value: Math.round(name === 'CLS' ? value * 1000 : value),
+    label: label === 'web-vital' ? 'Web Vital' : 'Custom'
+  })
+}
+```
+
+### Performance Budget
+```json
+{
+  "performance": {
+    "budgets": [
+      {
+        "metric": "TTFB",
+        "budget": 100
+      },
+      {
+        "metric": "FCP",
+        "budget": 1800
+      },
+      {
+        "metric": "LCP",
+        "budget": 2500
+      },
+      {
+        "metric": "CLS",
+        "budget": 0.1
+      },
+      {
+        "metric": "FID",
+        "budget": 100
+      }
+    ]
+  }
+}
+```
+
+## Database Optimization
+
+### Query Performance
+```typescript
+// Use indexes for frequent queries
+const queryConfig = {
+  indexes: [
+    'CREATE INDEX idx_patient_records ON medical_records(patient_id, date)',
+    'CREATE INDEX idx_prescriptions ON prescriptions(patient_id, status)'
+  ],
+  
+  // Use materialized views for complex queries
+  materializedViews: [
+    `CREATE MATERIALIZED VIEW patient_stats AS
+     SELECT 
+       patient_id,
+       COUNT(*) as record_count,
+       MAX(date) as last_visit
+     FROM medical_records
+     GROUP BY patient_id`
+  ]
+}
+```
+
+## API Performance
+
+### Response Compression
+```typescript
+import compression from 'compression'
+
+// Enable compression
+const shouldCompress = (req, res) => {
+  if (req.headers['x-no-compression']) return false
+  return compression.filter(req, res)
+}
+
+app.use(compression({ filter: shouldCompress }))
+```
+
+### Rate Limiting
+```typescript
+const rateLimit = {
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests, please try again later'
+}
+``` 

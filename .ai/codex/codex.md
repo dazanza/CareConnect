@@ -64,6 +64,22 @@ E006:
 - Prevention: Use centralized toast utility for all notifications
 - Related: L261, L262
 
+E007:
+
+- Context: Next.js configuration
+- Error: Deprecated experimental.serverActions configuration
+- Correction: Remove experimental.serverActions as it's now default in Next.js 14
+- Prevention: Keep up with Next.js documentation for deprecated features
+- Related: L276, L277
+
+E008:
+
+- Context: React dependency resolution
+- Error: Conflicting peer dependencies with @react-email/components
+- Correction: Use --legacy-peer-deps for development environment
+- Prevention: Check peer dependencies before adding new packages
+- Related: L276, L278
+
 ## Learnings
 
 L251:
@@ -209,6 +225,38 @@ L268:
 - Application: Implement proper foreign key relationships
 - Impact: Maintains data consistency across the system
 - Related: L257, L263
+
+L276:
+
+- Context: Next.js 14 configuration
+- Insight: Server Actions are now available by default
+- Application: Remove experimental.serverActions from next.config.js
+- Impact: Cleaner configuration and better maintainability
+- Related: E007, L277
+
+L277:
+
+- Context: Next.js configuration validation
+- Insight: Next.js strictly validates config object types
+- Application: Use proper type structure for experimental features
+- Impact: Prevents runtime errors from misconfigured options
+- Related: E007, L276
+
+L278:
+
+- Context: React dependency management
+- Insight: Modern npm peer dependency resolution can be too strict
+- Application: Use --legacy-peer-deps for complex React ecosystems
+- Impact: Enables development while maintaining package compatibility
+- Related: E008, L279
+
+L279:
+
+- Context: Package deprecation handling
+- Insight: Several core packages showing deprecation warnings
+- Application: Plan migration path for deprecated packages
+- Impact: Maintains long-term project maintainability
+- Related: L278, E008
 
 ## Type Safety Patterns
 

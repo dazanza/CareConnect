@@ -1,0 +1,118 @@
+---
+description: Used for frontend development
+globs: app/**/*.{tsx,ts},components/**/*.{tsx,ts},pages/**/*.{tsx,ts},hooks/**/*.{ts,tsx},utils/client/**/*.ts,styles/**/*.{css,scss},types/components/**/*.ts,**/__tests__/components/**/*.test.{ts,tsx},**/__tests__/pages/**/*.test.{ts,tsx},**/__tests__/hooks/**/*.test.ts,lib/client/**/*.ts,contexts/**/*.{tsx,ts},!app/api/**/*,!pages/api/**/*,!**/*.server.ts,!**/*.api.ts,!lib/db/**/*,!lib/server/**/*
+---
+ # Frontend Development Rules
+
+## Component Structure
+
+1. All components must be functional components using TypeScript
+2. Props must be explicitly typed with interfaces
+3. Use composition over inheritance
+4. Keep components focused and single-responsibility
+5. Maximum component size: 250 lines (excluding tests)
+
+## State Management
+
+1. Use hooks for local state
+2. Prefer controlled components
+3. Implement proper loading states
+4. Handle all error cases
+5. Clean up side effects
+
+## Performance
+
+1. Use React.memo for expensive renders
+2. Implement proper code splitting
+3. Lazy load non-critical components
+4. Optimize re-renders
+5. Use proper key props for lists
+
+## Component Guidelines
+
+### Required Component Structure
+```tsx
+import { type FC } from 'react'
+import type { ComponentProps } from '@/types'
+
+export interface ExampleProps {
+  // Props interface
+}
+
+export const Example: FC<ExampleProps> = ({
+  // Destructured props
+}) => {
+  // Component logic
+  return (
+    // JSX
+  )
+}
+```
+
+### Loading States
+1. Always implement skeleton loaders
+2. Use suspense boundaries
+3. Show loading indicators for async operations
+4. Handle partial loading states
+5. Implement error boundaries
+
+### Error Handling
+1. Use ErrorBoundary components
+2. Implement fallback UI
+3. Log errors appropriately
+4. Show user-friendly error messages
+5. Provide recovery options
+
+## Styling
+
+1. Use CSS Modules or Tailwind
+2. Follow BEM naming convention for CSS Modules
+3. Maintain consistent spacing
+4. Use design tokens
+5. Implement responsive design
+
+## Accessibility
+
+1. Proper ARIA labels
+2. Keyboard navigation
+3. Color contrast
+4. Screen reader support
+5. Focus management
+
+## Testing
+
+1. Unit tests for components
+2. Integration tests for features
+3. E2E tests for critical paths
+4. Test loading states
+5. Test error scenarios
+
+## Code Organization
+
+### Directory Structure
+```
+components/
+  ├── feature/
+  │   ├── ComponentName.tsx
+  │   ├── ComponentName.test.tsx
+  │   └── ComponentName.module.css
+  ├── ui/
+  │   └── shared components
+  └── layout/
+      └── layout components
+```
+
+### Import Order
+1. React/Next.js imports
+2. External dependencies
+3. Internal components
+4. Types
+5. Styles
+
+## Documentation
+
+1. JSDoc for components
+2. Prop documentation
+3. Usage examples
+4. Edge cases
+5. Performance considerations

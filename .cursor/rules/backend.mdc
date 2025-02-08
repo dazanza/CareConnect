@@ -1,0 +1,140 @@
+# Backend Development Rules
+
+## API Route Structure
+
+1. All API routes must be typed with TypeScript
+2. Use Next.js API routes with proper error handling
+3. Implement request validation
+4. Follow RESTful conventions
+5. Document all endpoints
+
+## Database Interactions
+
+1. Use Row Level Security (RLS)
+2. Implement proper error handling
+3. Use transactions where necessary
+4. Optimize queries
+5. Validate data before insertion
+
+## Security
+
+### Authentication
+1. Use Supabase Auth
+2. Implement proper session management
+3. Handle token refresh
+4. Validate all requests
+5. Implement rate limiting
+
+### Data Protection
+1. Sanitize all inputs
+2. Validate request bodies
+3. Implement CSRF protection
+4. Use prepared statements
+5. Encrypt sensitive data
+
+## Error Handling
+
+1. Use custom error classes
+2. Implement proper logging
+3. Return appropriate status codes
+4. Provide meaningful error messages
+5. Handle edge cases
+
+## API Route Template
+```typescript
+import { type NextApiRequest, type NextApiResponse } from 'next'
+import { createRouteHandler } from '@/lib/api'
+import { validateRequest } from '@/lib/validation'
+
+export interface RequestBody {
+  // Request type
+}
+
+export interface ResponseData {
+  // Response type
+}
+
+export default createRouteHandler({
+  async GET(req: NextApiRequest, res: NextApiResponse<ResponseData>) {
+    try {
+      // Validation
+      await validateRequest(req)
+
+      // Logic
+      const data = await getData()
+
+      // Response
+      return res.status(200).json(data)
+    } catch (error) {
+      // Error handling
+      handleApiError(error, res)
+    }
+  }
+})
+```
+
+## Database Guidelines
+
+### Query Structure
+```typescript
+// Use type-safe queries
+const { data, error } = await supabase
+  .from('table')
+  .select('*')
+  .eq('column', value)
+  .single()
+
+if (error) throw error
+return data
+```
+
+### RLS Policies
+```sql
+-- Example RLS policy
+ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "policy_name"
+ON table_name
+FOR SELECT
+TO authenticated
+USING (
+  auth.uid() = user_id
+  OR EXISTS (
+    SELECT 1 FROM patient_shares
+    WHERE patient_id = table_name.patient_id
+    AND shared_with_user_id = auth.uid()
+  )
+);
+```
+
+## Performance
+
+1. Implement query caching
+2. Use proper indexes
+3. Optimize database queries
+4. Implement rate limiting
+5. Use connection pooling
+
+## Testing
+
+1. Unit tests for API routes
+2. Integration tests for database
+3. Security tests
+4. Performance tests
+5. Load tests
+
+## Documentation
+
+1. OpenAPI/Swagger specs
+2. API documentation
+3. Database schema
+4. Security policies
+5. Performance guidelines
+
+## Monitoring
+
+1. Error tracking
+2. Performance monitoring
+3. Security auditing
+4. Usage analytics
+5. Health checks

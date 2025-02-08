@@ -1,0 +1,178 @@
+# TypeScript Development Rules
+
+## Type Safety
+
+1. Enable strict mode
+2. No implicit any
+3. No unchecked indexed access
+4. Exact optional property types
+5. Strict null checks
+
+## Type Definitions
+
+### Basic Types
+```typescript
+// Use specific types
+type ID = string
+type Timestamp = string
+type UUID = string
+
+// Use unions for specific values
+type Status = 'active' | 'inactive' | 'pending'
+type Role = 'admin' | 'user' | 'guest'
+
+// Use interfaces for objects
+interface User {
+  id: ID
+  email: string
+  role: Role
+  createdAt: Timestamp
+}
+```
+
+### Generic Types
+```typescript
+// Use generics for reusable types
+interface ApiResponse<T> {
+  data: T
+  error: null | string
+  status: number
+}
+
+// Use constraints when needed
+interface WithId {
+  id: ID
+}
+
+function findById<T extends WithId>(items: T[], id: ID): T | undefined {
+  return items.find(item => item.id === id)
+}
+```
+
+## Type Organization
+
+1. Group related types in feature-specific files
+2. Use barrel exports for types
+3. Keep type definitions close to usage
+4. Document complex types
+5. Use type aliases for readability
+
+## Best Practices
+
+### Type Inference
+1. Let TypeScript infer types when obvious
+2. Explicitly type function parameters
+3. Explicitly type function returns
+4. Use type assertions sparingly
+5. Document type assertions
+
+### Type Guards
+```typescript
+// Use type predicates
+function isError(value: unknown): value is Error {
+  return value instanceof Error
+}
+
+// Use discriminated unions
+interface Success<T> {
+  type: 'success'
+  data: T
+}
+
+interface Failure {
+  type: 'error'
+  error: string
+}
+
+type Result<T> = Success<T> | Failure
+```
+
+## Error Handling
+
+1. Use custom error classes
+2. Type error states
+3. Handle all error cases
+4. Provide type-safe error messages
+5. Use Result types for operations
+
+## Async Code
+
+1. Use Promise types
+2. Handle async errors
+3. Type async functions
+4. Use async/await
+5. Type async results
+
+## Testing
+
+1. Type test functions
+2. Use type-safe assertions
+3. Test type errors
+4. Mock with proper types
+5. Test edge cases
+
+## Documentation
+
+1. Document type definitions
+2. Document type constraints
+3. Document type parameters
+4. Document type assertions
+5. Document type guards
+
+## Code Organization
+
+### File Structure
+```
+types/
+  ├── index.ts          # Barrel exports
+  ├── api.ts           # API types
+  ├── models.ts        # Data models
+  ├── components.ts    # Component types
+  └── utils.ts         # Utility types
+```
+
+### Import/Export
+```typescript
+// Use named exports
+export interface User { ... }
+export type ID = string
+
+// Use barrel exports
+export * from './api'
+export * from './models'
+
+// Group related types
+export * from './feature-name'
+```
+
+## Type Safety Patterns
+
+### Exhaustive Checks
+```typescript
+function assertNever(x: never): never {
+  throw new Error(`Unexpected object: ${x}`)
+}
+
+type Shape = Circle | Square
+
+function getArea(shape: Shape): number {
+  switch (shape.type) {
+    case 'circle':
+      return Math.PI * shape.radius ** 2
+    case 'square':
+      return shape.size ** 2
+    default:
+      return assertNever(shape)
+  }
+}
+```
+
+### Branded Types
+```typescript
+declare const brand: unique symbol
+
+type Brand<T, B> = T & { readonly [brand]: B }
+
+type UserId = Brand<string, 'userId'>
+type Email = Brand<string, 'email'>
+``` 

@@ -1,0 +1,254 @@
+# Documentation Rules
+
+## Code Documentation
+
+### Component Documentation
+```typescript
+/**
+ * MedicalRecord component displays and manages patient medical records
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <MedicalRecord
+ *   patientId="123"
+ *   recordType="prescription"
+ *   editable={true}
+ * />
+ * ```
+ * 
+ * @security
+ * - Requires authentication
+ * - Requires patient access permission
+ * - Encrypts sensitive data
+ * 
+ * @hipaa
+ * - Compliant with §164.312(a)(1)
+ * - Implements access control
+ * - Maintains audit logs
+ */
+export interface MedicalRecordProps {
+  /** UUID of the patient */
+  patientId: string
+  /** Type of medical record */
+  recordType: 'prescription' | 'diagnosis' | 'lab' | 'note'
+  /** Whether the record can be edited */
+  editable?: boolean
+}
+```
+
+### Function Documentation
+```typescript
+/**
+ * Encrypts sensitive patient data before storage
+ * 
+ * @param data - The sensitive data to encrypt
+ * @param key - The encryption key (from env)
+ * @returns The encrypted data
+ * 
+ * @security
+ * - Uses AES-256-GCM encryption
+ * - Key rotation every 90 days
+ * 
+ * @hipaa
+ * - Compliant with §164.312(a)(2)(iv)
+ * - Implements encryption requirements
+ * 
+ * @throws {EncryptionError}
+ * - When encryption fails
+ * - When key is invalid
+ */
+async function encryptPatientData(
+  data: SensitiveData,
+  key: string
+): Promise<EncryptedData>
+```
+
+## API Documentation
+
+### OpenAPI Specification
+```yaml
+openapi: 3.0.0
+info:
+  title: HealthAF API
+  version: 1.0.0
+  description: |
+    Healthcare management API with HIPAA compliance
+    
+    Security:
+    - Requires authentication
+    - Rate limited
+    - Encrypted data transfer
+    
+    Compliance:
+    - HIPAA compliant
+    - Audit logging
+    - Data encryption
+```
+
+### API Endpoint Documentation
+```typescript
+/**
+ * @api {post} /api/medical-records Create medical record
+ * @apiName CreateMedicalRecord
+ * @apiGroup MedicalRecords
+ * 
+ * @apiHeader {String} Authorization JWT token
+ * 
+ * @apiParam {String} patientId Patient's UUID
+ * @apiParam {String} type Record type
+ * @apiParam {Object} data Record data
+ * 
+ * @apiSuccess {String} id Created record ID
+ * 
+ * @apiError {403} Forbidden Insufficient permissions
+ * @apiError {400} BadRequest Invalid input data
+ * 
+ * @security
+ * - Requires patient access
+ * - Data encryption
+ * - Audit logging
+ */
+```
+
+## Architecture Documentation
+
+### System Architecture
+```markdown
+# System Architecture
+
+## Components
+1. Next.js Frontend
+2. Supabase Backend
+3. Document Storage
+4. Authentication Service
+5. Encryption Service
+
+## Security Measures
+1. End-to-end encryption
+2. Role-based access
+3. Audit logging
+4. Data backups
+5. HIPAA compliance
+```
+
+### Data Flow Documentation
+```mermaid
+sequenceDiagram
+    Client->>Auth: Authenticate
+    Auth->>API: Validate Token
+    API->>Database: Query Data
+    Database->>Encryption: Decrypt Data
+    Encryption->>API: Return Decrypted Data
+    API->>Client: Send Response
+```
+
+## Changelog Requirements
+
+### Version Format
+```markdown
+## [1.0.0] - YYYY-MM-DD
+
+### Security
+- Enhanced encryption for patient data
+- Added audit logging for record access
+
+### Added
+- New medical record types
+- Patient sharing functionality
+
+### Changed
+- Updated authentication flow
+- Improved error handling
+
+### Fixed
+- Security vulnerabilities
+- Performance issues
+```
+
+## User Documentation
+
+### Feature Documentation
+```markdown
+# Patient Records Management
+
+## Features
+1. Create and edit records
+2. Share records securely
+3. Track medication history
+4. Set reminders
+5. Export records
+
+## Security
+- End-to-end encryption
+- Access control
+- Audit trails
+```
+
+## Development Guidelines
+
+### Pull Request Template
+```markdown
+## Description
+[Description of changes]
+
+## Security Checklist
+- [ ] HIPAA compliance verified
+- [ ] Security scan passed
+- [ ] Encryption implemented
+- [ ] Access control tested
+- [ ] Audit logging added
+
+## Testing
+- [ ] Unit tests added
+- [ ] Integration tests passed
+- [ ] Security tests completed
+```
+
+## Compliance Documentation
+
+### HIPAA Compliance
+```markdown
+# HIPAA Compliance
+
+## Technical Safeguards
+1. Access Control (§164.312(a)(1))
+2. Encryption (§164.312(a)(2)(iv))
+3. Audit Controls (§164.312(b))
+4. Integrity Controls (§164.312(c)(1))
+5. Transmission Security (§164.312(e)(1))
+
+## Implementation
+- Authentication system
+- Encryption service
+- Audit logging
+- Data validation
+- Secure transmission
+```
+
+## Documentation Organization
+
+### Directory Structure
+```
+documentation/
+  ├── api/
+  │   ├── endpoints.md
+  │   └── security.md
+  ├── architecture/
+  │   ├── overview.md
+  │   └── security.md
+  ├── compliance/
+  │   └── hipaa.md
+  ├── development/
+  │   └── guidelines.md
+  └── user/
+      └── features.md
+```
+
+## Review Process
+
+1. Technical accuracy
+2. Security compliance
+3. HIPAA requirements
+4. Completeness
+5. Clarity 

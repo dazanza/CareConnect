@@ -1,0 +1,345 @@
+# Accessibility Rules
+
+## ARIA Implementation
+
+### Form Controls
+```tsx
+// Form input with proper accessibility
+const FormInput: FC<InputProps> = ({
+  id,
+  label,
+  error,
+  required,
+  ...props
+}) => {
+  const inputId = useId()
+  const errorId = useId()
+  
+  return (
+    <div role="group">
+      <label
+        htmlFor={inputId}
+        className="block text-sm font-medium"
+      >
+        {label}
+        {required && (
+          <span aria-label="required" className="text-red-500">*</span>
+        )}
+      </label>
+      
+      <input
+        id={inputId}
+        aria-invalid={!!error}
+        aria-describedby={error ? errorId : undefined}
+        aria-required={required}
+        {...props}
+      />
+      
+      {error && (
+        <div
+          id={errorId}
+          role="alert"
+          className="text-red-500 text-sm mt-1"
+        >
+          {error}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Navigation
+```tsx
+// Accessible navigation menu
+const Navigation: FC = () => {
+  return (
+    <nav
+      role="navigation"
+      aria-label="Main navigation"
+    >
+      <ul role="menubar">
+        <li role="none">
+          <a
+            href="/dashboard"
+            role="menuitem"
+            aria-current={isCurrentPage('/dashboard')}
+          >
+            Dashboard
+          </a>
+        </li>
+        {/* More menu items */}
+      </ul>
+    </nav>
+  )
+}
+```
+
+## Keyboard Navigation
+
+### Focus Management
+```tsx
+// Focus trap for modals
+const Modal: FC<ModalProps> = ({ isOpen, onClose, children }) => {
+  const focusTrapRef = useFocusTrap(isOpen)
+  
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose()
+      }
+    }
+    
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onClose])
+  
+  return (
+    <div
+      ref={focusTrapRef}
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+    >
+      {children}
+    </div>
+  )
+}
+```
+
+### Keyboard Shortcuts
+```tsx
+const useKeyboardShortcuts = () => {
+  useEffect(() => {
+    const shortcuts = {
+      'mod+f': () => setSearchFocus(),
+      'mod+1': () => navigateToDashboard(),
+      'mod+2': () => navigateToPatients(),
+      'esc': () => closeModal()
+    }
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const shortcut = `${e.ctrlKey || e.metaKey ? 'mod+' : ''}${e.key}`
+      shortcuts[shortcut]?.()
+    }
+    
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+}
+```
+
+## Color and Contrast
+
+### Color Variables
+```css
+:root {
+  /* Primary colors with contrast ratios ≥ 4.5:1 */
+  --color-primary: #0052CC; /* Passes AA */
+  --color-primary-dark: #003D99; /* Passes AAA */
+  
+  /* Text colors */
+  --color-text: #1A1A1A; /* Passes AAA */
+  --color-text-secondary: #666666; /* Passes AA */
+  
+  /* Error states */
+  --color-error: #D92916; /* Passes AA */
+  --color-error-light: #FFE8E6; /* Background */
+  
+  /* Success states */
+  --color-success: #008767; /* Passes AA */
+  --color-success-light: #E6F4F1; /* Background */
+}
+```
+
+### High Contrast Mode
+```tsx
+const useHighContrastMode = () => {
+  const [isHighContrast, setIsHighContrast] = useState(false)
+  
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(forced-colors: active)')
+    setIsHighContrast(mediaQuery.matches)
+    
+    const handler = (e: MediaQueryListEvent) => {
+      setIsHighContrast(e.matches)
+    }
+    
+    mediaQuery.addEventListener('change', handler)
+    return () => mediaQuery.removeEventListener('change', handler)
+  }, [])
+  
+  return isHighContrast
+}
+```
+
+## Screen Reader Support
+
+### Announcements
+```tsx
+const useAnnounce = () => {
+  const announce = useCallback((message: string, priority: 'polite' | 'assertive' = 'polite') => {
+    const element = document.createElement('div')
+    element.setAttribute('role', 'status')
+    element.setAttribute('aria-live', priority)
+    element.classList.add('sr-only')
+    element.textContent = message
+    
+    document.body.appendChild(element)
+    setTimeout(() => document.body.removeChild(element), 1000)
+  }, [])
+  
+  return announce
+}
+```
+
+### Hidden Content
+```tsx
+// Visually hidden but screen reader accessible
+const ScreenReaderOnly: FC<PropsWithChildren> = ({ children }) => {
+  return (
+    <span className="sr-only">
+      {children}
+    </span>
+  )
+}
+
+// Usage example
+<button onClick={handleAction}>
+  <Icon name="edit" />
+  <ScreenReaderOnly>Edit patient record</ScreenReaderOnly>
+</button>
+```
+
+## Dynamic Content
+
+### Loading States
+```tsx
+const LoadingState: FC = () => {
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Loading content"
+    >
+      <div className="animate-pulse">
+        {/* Loading skeleton */}
+      </div>
+    </div>
+  )
+}
+```
+
+### Live Regions
+```tsx
+const Notifications: FC = () => {
+  return (
+    <div
+      role="log"
+      aria-live="polite"
+      aria-atomic="true"
+      className="notifications-container"
+    >
+      {notifications.map(notification => (
+        <div
+          key={notification.id}
+          role="alert"
+        >
+          {notification.message}
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+## Form Validation
+
+### Error Messaging
+```tsx
+const FormField: FC<FormFieldProps> = ({
+  label,
+  error,
+  touched,
+  children
+}) => {
+  const fieldId = useId()
+  const errorId = useId()
+  
+  return (
+    <div>
+      <label
+        htmlFor={fieldId}
+        className="block text-sm font-medium"
+      >
+        {label}
+      </label>
+      
+      {React.cloneElement(children, {
+        id: fieldId,
+        'aria-invalid': touched && !!error,
+        'aria-describedby': error ? errorId : undefined
+      })}
+      
+      {touched && error && (
+        <div
+          id={errorId}
+          role="alert"
+          className="text-red-500 text-sm mt-1"
+        >
+          {error}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Testing
+
+### Accessibility Tests
+```typescript
+describe('Accessibility', () => {
+  it('should have proper ARIA attributes', () => {
+    render(<Component />)
+    expect(screen.getByRole('button')).toHaveAttribute('aria-label')
+  })
+  
+  it('should be keyboard navigable', () => {
+    render(<Component />)
+    const element = screen.getByRole('button')
+    element.focus()
+    expect(document.activeElement).toBe(element)
+  })
+  
+  it('should announce status changes', () => {
+    render(<Component />)
+    const status = screen.getByRole('status')
+    expect(status).toHaveAttribute('aria-live', 'polite')
+  })
+})
+```
+
+## Compliance
+
+### WCAG Checklist
+1. Perceivable
+   - Text alternatives
+   - Time-based media
+   - Adaptable content
+   - Distinguishable content
+
+2. Operable
+   - Keyboard accessible
+   - Enough time
+   - Seizures prevention
+   - Navigable
+
+3. Understandable
+   - Readable
+   - Predictable
+   - Input assistance
+
+4. Robust
+   - Compatible
+   - Standards compliant 

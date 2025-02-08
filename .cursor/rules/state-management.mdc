@@ -1,0 +1,305 @@
+# State Management Rules
+
+## Global State Management
+
+### Zustand Store Structure
+```typescript
+interface HealthStore {
+  // Authentication
+  user: User | null
+  session: Session | null
+  
+  // Patient Data
+  currentPatient: Patient | null
+  patientRecords: Record<string, MedicalRecord[]>
+  
+  // UI State
+  isLoading: boolean
+  activeModals: string[]
+  notifications: Notification[]
+  
+  // Actions
+  setUser: (user: User | null) => void
+  setCurrentPatient: (patient: Patient | null) => void
+  addMedicalRecord: (patientId: string, record: MedicalRecord) => void
+}
+
+const useStore = create<HealthStore>((set) => ({
+  // Initial state
+  user: null,
+  session: null,
+  currentPatient: null,
+  patientRecords: {},
+  isLoading: false,
+  activeModals: [],
+  notifications: [],
+  
+  // Actions
+  setUser: (user) => set({ user }),
+  setCurrentPatient: (patient) => set({ currentPatient: patient }),
+  addMedicalRecord: (patientId, record) => 
+    set((state) => ({
+      patientRecords: {
+        ...state.patientRecords,
+        [patientId]: [...(state.patientRecords[patientId] || []), record]
+      }
+    }))
+}))
+```
+
+## Context Management
+
+### Authentication Context
+```typescript
+interface AuthContext {
+  user: User | null
+  session: Session | null
+  isLoading: boolean
+  signIn: (email: string, password: string) => Promise<void>
+  signOut: () => Promise<void>
+}
+
+export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
+  // Context implementation
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  
+  useEffect(() => {
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+      }
+    )
+    
+    return () => subscription.unsubscribe()
+  }, [])
+  
+  return (
+    <AuthContext.Provider value={{ user, session, isLoading, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+```
+
+### Patient Context
+```typescript
+interface PatientContext {
+  currentPatient: Patient | null
+  patientRecords: MedicalRecord[]
+  isLoading: boolean
+  error: Error | null
+  loadPatient: (id: string) => Promise<void>
+  addRecord: (record: MedicalRecord) => Promise<void>
+}
+
+export const PatientProvider: FC<PropsWithChildren> = ({ children }) => {
+  // Implementation
+}
+```
+
+## Local State Management
+
+### Form State
+```typescript
+interface MedicalRecordForm {
+  type: string
+  date: Date
+  notes: string
+  attachments: File[]
+}
+
+const MedicalRecordComponent: FC = () => {
+  const form = useForm<MedicalRecordForm>({
+    defaultValues: {
+      type: '',
+      date: new Date(),
+      notes: '',
+      attachments: []
+    },
+    resolver: zodResolver(MedicalRecordSchema)
+  })
+  
+  // Form implementation
+}
+```
+
+### Component State
+```typescript
+const Timeline: FC = () => {
+  // Local state
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week')
+  const [filters, setFilters] = useState<TimelineFilters>({
+    recordTypes: ['all'],
+    dateRange: [startOfWeek(new Date()), endOfWeek(new Date())]
+  })
+  
+  // Implementation
+}
+```
+
+## Real-time Updates
+
+### Supabase Subscriptions
+```typescript
+function useRealtimeUpdates(patientId: string) {
+  useEffect(() => {
+    const subscription = supabase
+      .from(`medical_records:patient_id=eq.${patientId}`)
+      .on('*', (payload) => {
+        // Handle real-time updates
+        handleRealtimeUpdate(payload)
+      })
+      .subscribe()
+      
+    return () => {
+      supabase.removeSubscription(subscription)
+    }
+  }, [patientId])
+}
+```
+
+## State Persistence
+
+### Local Storage
+```typescript
+interface StorageConfig {
+  key: string
+  version: number
+  ttl: number
+}
+
+const persistState = <T>(state: T, config: StorageConfig): void => {
+  const item = {
+    version: config.version,
+    timestamp: Date.now(),
+    data: state
+  }
+  
+  localStorage.setItem(config.key, JSON.stringify(item))
+}
+```
+
+## Error State Management
+
+### Error Boundaries
+```typescript
+interface ErrorState {
+  error: Error | null
+  errorInfo: ErrorInfo | null
+}
+
+class HealthErrorBoundary extends Component<PropsWithChildren, ErrorState> {
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+  
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log error to monitoring service
+    logError(error, errorInfo)
+  }
+  
+  render() {
+    if (this.state.error) {
+      return <ErrorFallback error={this.state.error} />
+    }
+    
+    return this.props.children
+  }
+}
+```
+
+## Loading State Management
+
+### Loading States
+```typescript
+interface LoadingState {
+  isLoading: boolean
+  loadingMessage?: string
+}
+
+const useLoadingState = (initialMessage = '') => {
+  const [state, setState] = useState<LoadingState>({
+    isLoading: false,
+    loadingMessage: initialMessage
+  })
+  
+  const startLoading = (message = '') => 
+    setState({ isLoading: true, loadingMessage: message })
+  
+  const stopLoading = () => 
+    setState({ isLoading: false, loadingMessage: '' })
+    
+  return { ...state, startLoading, stopLoading }
+}
+```
+
+## State Update Patterns
+
+### Optimistic Updates
+```typescript
+const addMedicalRecord = async (record: MedicalRecord) => {
+  // Optimistically update UI
+  const optimisticRecord = { ...record, id: 'temp-id' }
+  addToLocalState(optimisticRecord)
+  
+  try {
+    // Perform actual update
+    const { data, error } = await supabase
+      .from('medical_records')
+      .insert(record)
+      .single()
+      
+    if (error) throw error
+    
+    // Update with real data
+    updateLocalState(data)
+  } catch (error) {
+    // Revert optimistic update
+    removeFromLocalState(optimisticRecord)
+    throw error
+  }
+}
+```
+
+## Performance Optimization
+
+### Memoization
+```typescript
+const MedicalRecordList: FC<Props> = memo(({ records }) => {
+  return (
+    <div>
+      {records.map(record => (
+        <MedicalRecordItem
+          key={record.id}
+          record={record}
+        />
+      ))}
+    </div>
+  )
+}, (prevProps, nextProps) => {
+  return isEqual(prevProps.records, nextProps.records)
+})
+```
+
+## Security Considerations
+
+### Sensitive Data Handling
+```typescript
+interface SensitiveData {
+  readonly [key: string]: unknown
+}
+
+const sanitizeState = (state: SensitiveData): SensitiveData => {
+  const sanitized = { ...state }
+  
+  // Remove sensitive fields
+  delete sanitized.ssn
+  delete sanitized.password
+  
+  return Object.freeze(sanitized)
+}
+``` 
