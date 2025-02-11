@@ -258,6 +258,226 @@ L279:
 - Impact: Maintains long-term project maintainability
 - Related: L278, E008
 
+L280:
+
+- Context: React Native authentication architecture
+- Insight: Combining Supabase Auth with native biometrics requires careful state management
+- Application: Created AuthContext with biometric and session handling
+- Impact: Enables secure native authentication with offline support
+- Related: L263, L264
+
+L281:
+
+- Context: Mobile-specific component adaptation
+- Insight: Platform-specific UI patterns require different component structures
+- Application: Migrated web components to React Native Paper with proper mobile UX
+- Impact: Better native feel and improved mobile user experience
+- Related: L258, L267
+
+L282:
+
+- Context: Mobile secure storage strategy
+- Insight: Different storage mechanisms needed for different security levels
+- Application: AsyncStorage for app data, SecureStore for sensitive info, SQLite for structured data
+- Impact: Proper security levels for different data types
+- Related: L280, L265
+
+L283:
+
+- Context: React Native navigation patterns
+- Insight: Stack-based navigation requires different state management approach
+- Application: Implemented conditional navigation stack with auth state
+- Impact: Smooth navigation flow with proper security boundaries
+- Related: L280, L281
+
+L284:
+
+- Context: Mobile form handling
+- Insight: Mobile forms require specific UX considerations
+- Application: Implemented KeyboardAvoidingView and proper input focus management
+- Impact: Better form usability on mobile devices
+- Related: L281, L264
+
+L285:
+
+- Context: Mobile error handling
+- Insight: Mobile error states need different presentation patterns
+- Application: Created mobile-specific error components with proper feedback
+- Impact: More user-friendly error handling on mobile
+- Related: L259, L281
+
+L286:
+
+- Context: Mobile vitals visualization
+- Insight: Victory Native charts require specific optimization for mobile performance
+- Application: Implemented responsive chart sizing and optimized data processing
+- Impact: Smooth chart rendering and better user experience on mobile devices
+- Related: L281, L254
+
+L287:
+
+- Context: Offline-first data management
+- Insight: Combining TanStack Query with AsyncStorage provides robust offline support
+- Application: Created persisted query cache with type-safe dehydration/rehydration
+- Impact: Seamless offline experience with proper data synchronization
+- Related: L282, L280
+
+L288:
+
+- Context: Mobile form validation
+- Insight: Zod schema validation with mobile-specific error handling improves UX
+- Application: Created reusable validation patterns with mobile-friendly error messages
+- Impact: Better user feedback and data integrity on mobile devices
+- Related: L284, L266
+
+L289:
+
+- Context: Mobile health data visualization
+- Insight: Health data requires specific visualization patterns for mobile screens
+- Application: Implemented warning systems and normal range indicators
+- Impact: Clear health status visualization on mobile devices
+- Related: L286, L281
+
+L290:
+
+- Context: Mobile optimistic updates
+- Insight: Mobile networks require robust optimistic update handling
+- Application: Implemented type-safe optimistic updates with proper rollback
+- Impact: Better perceived performance and data consistency
+- Related: L287, L260
+
+L291:
+
+- Context: Mobile health data types
+- Insight: Health data requires specific type validation and normalization
+- Application: Created comprehensive type system for vital signs
+- Impact: Consistent data handling and validation across the app
+- Related: L288, L274
+
+L292:
+
+- Context: Mobile chart interaction
+- Insight: Touch interactions require specific consideration for medical charts
+- Application: Implemented VictoryVoronoiContainer for better touch handling
+- Impact: More accurate and user-friendly chart interactions
+- Related: L286, L289
+
+L293:
+
+- Context: Mobile health data persistence
+- Insight: Health data requires specific persistence strategies
+- Application: Implemented selective persistence based on data sensitivity
+- Impact: Proper balance of offline availability and security
+- Related: L287, L282
+
+L294:
+
+- Context: Mobile health UI patterns
+- Insight: Health data visualization requires specific mobile UI patterns
+- Application: Created card-based layout with clear warning indicators
+- Impact: Better readability and understanding of health data
+- Related: L289, L281
+
+L295:
+
+- Context: Mobile chart performance
+- Insight: Victory Native charts require specific performance optimizations
+- Application: Implemented data processing and memoization strategies
+- Impact: Smooth chart rendering with large datasets
+- Related: L286, L254
+
+## Mobile Development Patterns
+
+### Authentication Flow
+```typescript
+// Secure credential storage pattern
+const storeCredentials = async (email: string, password: string) => {
+  if (await LocalAuthentication.hasHardwareAsync()) {
+    await SecureStore.setItemAsync(`credentials_${email}`, password);
+    await SecureStore.setItemAsync('biometricEnabled', 'true');
+  }
+};
+
+// Biometric authentication pattern
+const handleBiometricAuth = async () => {
+  const result = await LocalAuthentication.authenticateAsync({
+    promptMessage: 'Login with biometrics',
+    fallbackLabel: 'Use password',
+  });
+  
+  if (result.success) {
+    // Proceed with stored credentials
+    const credentials = await SecureStore.getItemAsync(`credentials_${email}`);
+    return credentials;
+  }
+  return null;
+};
+```
+
+### Mobile Form Pattern
+```typescript
+// Mobile-optimized form component
+const MobileForm = () => {
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView 
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.content}
+      >
+        {/* Form fields */}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+};
+
+// Platform-specific styles
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  content: {
+    padding: 20,
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+});
+```
+
+### Mobile Navigation Pattern
+```typescript
+// Conditional navigation stack
+const AppNavigator = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        {!user ? (
+          // Auth Stack
+          <>
+            <Stack.Screen name="Welcome" component={Welcome} />
+            <Stack.Screen name="Login" component={Login} />
+          </>
+        ) : (
+          // Main App Stack
+          <>
+            <Stack.Screen name="Dashboard" component={Dashboard} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
+```
+
 ## Type Safety Patterns
 
 ### Safe Database Response Transformation
