@@ -388,29 +388,34 @@ L295:
 
 ## Mobile Development Patterns
 
-### Authentication Flow
+### Patient Details Architecture
 ```typescript
-// Secure credential storage pattern
-const storeCredentials = async (email: string, password: string) => {
-  if (await LocalAuthentication.hasHardwareAsync()) {
-    await SecureStore.setItemAsync(`credentials_${email}`, password);
-    await SecureStore.setItemAsync('biometricEnabled', 'true');
-  }
-};
+// Centralized service pattern for patient details
+export const patientDetailsService = {
+  // Fetch all details with offline support
+  getDetails: async (patientId: number) => {
+    // Check offline cache first
+    const cachedData = await AsyncStorage.getItem(`patient-details-${patientId}`);
+    if (cachedData && !navigator.onLine) {
+      return JSON.parse(cachedData);
+    }
 
-// Biometric authentication pattern
-const handleBiometricAuth = async () => {
-  const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: 'Login with biometrics',
-    fallbackLabel: 'Use password',
-  });
-  
-  if (result.success) {
-    // Proceed with stored credentials
-    const credentials = await SecureStore.getItemAsync(`credentials_${email}`);
-    return credentials;
+    // Parallel data fetching
+    const [allergies, immunizations, labResults] = await Promise.all([
+      fetchAllergies(patientId),
+      fetchImmunizations(patientId),
+      fetchLabResults(patientId),
+    ]);
+
+    // Cache successful response
+    const details = { allergies, immunizations, labResults };
+    await AsyncStorage.setItem(
+      `patient-details-${patientId}`,
+      JSON.stringify(details)
+    );
+
+    return details;
   }
-  return null;
 };
 ```
 
@@ -477,6 +482,148 @@ const AppNavigator = () => {
   );
 };
 ```
+
+## Learnings
+
+L296:
+- Context: Mobile patient details architecture
+- Insight: Parallel data fetching with offline support improves performance and UX
+- Application: Created centralized service with offline-first approach
+- Impact: Better performance and offline reliability
+- Related: L287, L280
+
+L297:
+- Context: Mobile form handling
+- Insight: Platform-specific keyboard handling is crucial for mobile UX
+- Application: Created reusable KeyboardAvoidingView pattern
+- Impact: Consistent form behavior across platforms
+- Related: L284, L281
+
+L298:
+- Context: Mobile navigation architecture
+- Insight: Conditional navigation stacks improve auth flow and security
+- Application: Implemented separate stacks for auth and main app
+- Impact: Better security boundaries and navigation flow
+- Related: L283, L280
+
+L299:
+- Context: Mobile data synchronization
+- Insight: Optimistic updates with proper rollback improve perceived performance
+- Application: Implemented type-safe optimistic updates with error recovery
+- Impact: Better user experience with immediate feedback
+- Related: L290, L287
+
+L300:
+- Context: Mobile component architecture
+- Insight: Shared component patterns improve maintainability
+- Application: Created reusable patterns for lists, forms, and details views
+- Impact: Faster development and consistent UX
+- Related: L281, L258
+
+L301:
+- Context: Mobile offline strategy
+- Insight: Combining AsyncStorage with SQLite provides robust offline support
+- Application: Created hybrid storage strategy for different data types
+- Impact: Better offline reliability and performance
+- Related: L282, L287
+
+L302:
+- Context: Mobile performance optimization
+- Insight: FlashList with proper configuration significantly improves list performance
+- Application: Implemented virtualized lists with optimized configurations
+- Impact: Smooth scrolling and better memory usage
+- Related: L295, L254
+
+L303:
+- Context: Mobile error handling
+- Insight: Mobile-specific error states need different presentation patterns
+- Application: Created mobile-specific error components with proper feedback
+- Impact: Better error handling and user experience
+- Related: L285, L259
+
+L304:
+- Context: Mobile chart optimization
+- Insight: Victory Native charts require specific optimization for mobile
+- Application: Implemented responsive chart sizing and data processing
+- Impact: Better chart performance on mobile devices
+- Related: L295, L292
+
+L305:
+- Context: Mobile security patterns
+- Insight: Mobile security requires platform-specific considerations
+- Application: Implemented secure storage and biometric authentication
+- Impact: Better security on mobile devices
+- Related: L280, L282
+
+L306:
+- Context: Patient details component organization
+- Insight: Separating patient details into specialized components improves maintainability
+- Application: Created separate components for each medical data type (allergies, immunizations, etc.)
+- Impact: Better code organization and easier maintenance
+- Related: L300, L281
+
+L307:
+- Context: Medical data visualization
+- Insight: Different medical data types require specialized visualization patterns
+- Application: Implemented specific card layouts and warning systems for each data type
+- Impact: Better data comprehension and clinical decision support
+- Related: L289, L294
+
+L308:
+- Context: Patient details navigation
+- Insight: Tabbed navigation with FAB provides efficient mobile interaction
+- Application: Created context-aware floating action buttons for each section
+- Impact: Improved user efficiency and data entry workflow
+- Related: L298, L283
+
+L309:
+- Context: Medical data synchronization
+- Insight: Different medical data types require different sync priorities
+- Application: Implemented priority-based sync queue for medical data
+- Impact: Better offline reliability for critical data
+- Related: L301, L287
+
+L310:
+- Context: Medical data validation
+- Insight: Each medical data type requires specific validation rules
+- Application: Created specialized Zod schemas for each medical data type
+- Impact: Better data integrity and compliance
+- Related: L288, L291
+
+L311:
+- Context: Patient details state management
+- Insight: Centralized state management improves data consistency
+- Application: Created unified patient details service with type-safe methods
+- Impact: Better data consistency and reduced code duplication
+- Related: L299, L290
+
+L312:
+- Context: Medical data error handling
+- Insight: Different medical data types require specific error handling
+- Application: Implemented context-aware error components for each section
+- Impact: More informative error messages and better error recovery
+- Related: L303, L285
+
+L313:
+- Context: Patient details performance
+- Insight: Medical data requires efficient list rendering and caching
+- Application: Implemented virtualized lists and selective data persistence
+- Impact: Better performance with large medical datasets
+- Related: L302, L295
+
+L314:
+- Context: Medical data offline access
+- Insight: Different medical data types have different offline requirements
+- Application: Created priority-based caching strategy for medical data
+- Impact: Better offline availability for critical data
+- Related: L301, L293
+
+L315:
+- Context: Patient details security
+- Insight: Medical data requires section-specific access control
+- Application: Implemented granular permissions for different medical data types
+- Impact: Better security and HIPAA compliance
+- Related: L305, L280
 
 ## Type Safety Patterns
 

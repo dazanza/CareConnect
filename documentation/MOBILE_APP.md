@@ -3,33 +3,423 @@
 ## Overview
 CareConnect Mobile is a React Native application built with Expo, providing a native mobile experience for the CareConnect healthcare platform. The app enables healthcare providers and patients to manage medical records, appointments, and communications through a secure and user-friendly mobile interface.
 
+## Features
+
+### Medical Records System
+The medical records system provides comprehensive management of patient medical records with the following features:
+
+#### Core Functionality
+- **Record Management**: Create, view, edit, and delete medical records
+- **Categorization**: Organize records by type (lab, imaging, procedure, consultation, other)
+- **Search & Filter**: Advanced search with multiple filter options
+- **Attachment Support**: Upload and manage document attachments
+- **Version Control**: Track record changes and maintain version history
+
+#### Security & Permissions
+- Row Level Security (RLS) policies for data access
+- Role-based access control
+- Secure attachment storage
+- Audit logging for all operations
+- Data encryption at rest and in transit
+
+#### Components
+```typescript
+// Medical record list with filtering and sorting
+<MedicalRecordsList
+  patientId={number}
+  onRecordPress={(record: MedicalRecord) => void}
+/>
+
+// Detailed record view with attachment handling
+<MedicalRecordDetail
+  record={MedicalRecord}
+  onEdit={() => void}
+  onDelete={() => void}
+  onBack={() => void}
+/>
+
+// Create/edit form with validation
+<MedicalRecordForm
+  patientId={number}
+  record={MedicalRecord}
+  onSubmit={(record: MedicalRecord) => void}
+  onCancel={() => void}
+/>
+```
+
+#### Data Model
+```typescript
+interface MedicalRecord {
+  id: string;
+  patient_id: number;
+  category: 'lab' | 'imaging' | 'procedure' | 'consultation' | 'other';
+  title: string;
+  date: string;
+  provider: string;
+  status: 'active' | 'archived' | 'pending';
+  description?: string;
+  location?: string;
+  attachments: Array<{
+    id: string;
+    type: string;
+    url: string;
+    size: number;
+    name: string;
+    uploaded_at: string;
+  }>;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  updated_by?: string;
+}
+```
+
+### Patient Management
+- Patient profiles
+- Medical history
+- Appointment scheduling
+- Document management
+
+### Authentication System
+- Email/password authentication
+- Biometric authentication
+- Password reset functionality
+- Session management
+
+### Offline Support
+- Data caching
+- Background sync
+- Conflict resolution
+- Queue management
+
 ## Technical Architecture
 
 ### Core Technologies
 - **Framework**: React Native with Expo SDK
 - **Language**: TypeScript
-- **State Management**: TanStack Query (React Query)
-- **UI Framework**: React Native Paper
-- **Navigation**: React Navigation 6.x
-- **Backend**: Supabase
+- **State Management**: TanStack Query
+- **Database**: Supabase
 - **Authentication**: Supabase Auth + Expo SecureStore
-- **Local Storage**: AsyncStorage + SQLite
-- **Testing**: Jest + Detox
+- **UI Components**: React Native Paper
+- **Navigation**: React Navigation 6.x
+- **Form Handling**: React Hook Form + Zod
+- **File Handling**: Expo Document Picker + FileSystem
 
 ### Project Structure
 ```
 src/
-├── components/     # Reusable UI components
-├── screens/        # Screen components
-├── navigation/     # Navigation configuration
-├── contexts/       # React contexts
-├── hooks/         # Custom hooks
-├── services/      # API and service functions
-├── utils/         # Utility functions
-├── types/         # TypeScript definitions
-├── constants/     # Constants and configuration
-└── theme/         # Theming and styling
+├── components/
+│   ├── medical-records/
+│   │   ├── MedicalRecordsList.tsx
+│   │   ├── MedicalRecordDetail.tsx
+│   │   └── MedicalRecordForm.tsx
+│   └── ui/
+├── screens/
+├── services/
+│   └── medicalRecords.ts
+├── types/
+│   └── medicalRecords.ts
+├── hooks/
+├── utils/
+└── lib/
 ```
+
+### Database Schema
+```sql
+CREATE TABLE medical_records (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    patient_id INTEGER NOT NULL REFERENCES patients(id),
+    category TEXT NOT NULL,
+    title TEXT NOT NULL,
+    date TIMESTAMP WITH TIME ZONE NOT NULL,
+    provider TEXT NOT NULL,
+    status TEXT NOT NULL,
+    description TEXT,
+    location TEXT,
+    attachments JSONB DEFAULT '[]'::jsonb,
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_by UUID REFERENCES auth.users(id),
+    updated_by UUID REFERENCES auth.users(id)
+);
+```
+
+## Security Measures
+
+### Data Protection
+- End-to-end encryption
+- Secure file storage
+- Access control policies
+- Audit logging
+
+### Authentication
+- Multi-factor authentication
+- Biometric support
+- Session management
+- Token refresh
+
+### Compliance
+- HIPAA compliance
+- Data privacy
+- Security auditing
+- Access monitoring
+
+## Development Guidelines
+
+### Code Standards
+- TypeScript for type safety
+- ESLint for code quality
+- Prettier for formatting
+- Jest for testing
+
+### Component Guidelines
+- Functional components
+- React hooks
+- Proper error handling
+- Loading states
+
+### State Management
+- React Query for server state
+- Context for app state
+- Proper caching
+- Optimistic updates
+
+## Testing Strategy
+
+### Unit Testing
+- Component tests
+- Service tests
+- Utility tests
+- Form validation
+
+### Integration Testing
+- API integration
+- Navigation flows
+- Data persistence
+- Offline functionality
+
+### E2E Testing
+- User flows
+- Authentication
+- Data management
+- File handling
+
+## Deployment
+
+### Build Process
+- Expo EAS Build
+- App signing
+- Asset optimization
+- Version management
+
+### App Store
+- iOS App Store
+- Google Play Store
+- Beta distribution
+- Update management
+
+## Monitoring
+
+### Performance
+- Load times
+- Memory usage
+- Network calls
+- Error rates
+
+### Analytics
+- User engagement
+- Feature usage
+- Error tracking
+- Performance metrics
+
+## Support
+
+### Documentation
+- API reference
+- Component library
+- Setup guide
+- User manual
+
+### Troubleshooting
+- Common issues
+- Error codes
+- Debug tools
+- Support contacts
+
+## Features
+
+### Authentication
+- Email/password login
+- Secure token storage
+- Session management
+- Password reset
+- Biometric authentication (planned)
+
+### Patient Management
+- Patient list with search and filters
+- Patient creation and editing
+- Comprehensive patient details view
+- Offline support
+- Image upload and management
+
+### Patient Details Components
+All components support offline functionality and optimistic updates:
+
+1. **PatientSummary**
+   - Contact information
+   - Medical overview
+   - Recent activity
+   - Latest lab results
+   - Quick stats
+
+2. **AllergiesList**
+   - Severity indicators
+   - Reaction tracking
+   - Status management
+   - Notes and history
+
+3. **ImmunizationsList**
+   - Vaccine tracking
+   - Dose management
+   - Schedule tracking
+   - Side effects monitoring
+
+4. **LabResultsList**
+   - Result visualization
+   - Reference ranges
+   - Status tracking
+   - Doctor annotations
+
+5. **MedicalHistoryList**
+   - Chronological timeline
+   - Event categorization
+   - Doctor attribution
+   - Detailed descriptions
+
+6. **DocumentsList**
+   - Document preview
+   - Version tracking
+   - Category organization
+   - Download management
+
+7. **MedicationsList**
+   - Active medications
+   - Dosage tracking
+   - Adherence monitoring
+   - Side effects tracking
+
+8. **NotesList**
+   - Clinical notes
+   - Voice recordings
+   - Transcriptions
+   - Event linking
+
+### Data Management
+- Offline-first architecture
+- Optimistic updates
+- Background sync
+- Conflict resolution
+- Data validation
+- Error handling
+
+### Upcoming Features
+
+#### Patient Interactions
+- Secure messaging
+- Appointment scheduling
+- Telemedicine support
+- Document sharing
+- Real-time notifications
+
+#### Search Capabilities
+- Advanced filters
+- Full-text search
+- Voice search
+- OCR for documents
+- Search history
+- Saved searches
+
+#### Performance
+- Lazy loading
+- Image caching
+- Query optimization
+- Request batching
+- Connection resilience
+
+#### Security
+- Biometric authentication
+- Audit logging
+- Session management
+- Data encryption
+- Access control
+- Rate limiting
+
+## Development Guidelines
+
+### Code Style
+- Use TypeScript for type safety
+- Follow React Native best practices
+- Implement proper error handling
+- Add comprehensive documentation
+- Write unit tests
+
+### Performance
+- Implement virtualized lists
+- Optimize image loading
+- Use proper caching
+- Minimize re-renders
+- Monitor memory usage
+
+### Security
+- Secure data storage
+- Encrypt sensitive data
+- Implement proper authentication
+- Add audit logging
+- Follow HIPAA guidelines
+
+### Testing
+- Unit tests for components
+- Integration tests
+- E2E testing with Detox
+- Performance testing
+- Security testing
+
+## Getting Started
+
+### Prerequisites
+- Node.js 16+
+- Expo CLI
+- iOS Simulator/Android Emulator
+- Supabase account
+
+### Installation
+1. Clone the repository
+2. Install dependencies
+3. Configure environment variables
+4. Start the development server
+
+### Development
+1. Follow TypeScript guidelines
+2. Use React Native Paper components
+3. Implement offline support
+4. Add proper error handling
+5. Write comprehensive tests
+
+## Deployment
+- Configure app signing
+- Set up CI/CD pipeline
+- Prepare store assets
+- Submit to app stores
+- Monitor performance
+
+## Support
+- Technical documentation
+- API references
+- Troubleshooting guides
+- Security guidelines
+- Contribution guide
 
 ## Authentication System
 
