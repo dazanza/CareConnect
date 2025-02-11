@@ -3,6 +3,232 @@
 ## Overview
 CareConnect Mobile is a React Native application built with Expo, providing a native mobile experience for the CareConnect healthcare platform. The app enables healthcare providers and patients to manage medical records, appointments, and communications through a secure and user-friendly mobile interface.
 
+## Architecture
+
+### Tech Stack
+- React Native with Expo
+- TypeScript
+- React Navigation
+- React Native Paper
+- Supabase
+- TanStack Query (React Query)
+- Zod for validation
+- Jest for testing
+
+### Project Structure
+```
+src/
+├── components/           # Reusable components
+│   ├── ui/              # Core UI components
+│   │   └── form/        # Form components
+│   ├── medical-records/ # Medical records components
+│   ├── appointments/    # Appointment components
+│   ├── vitals/         # Vitals tracking components
+│   └── patients/       # Patient management components
+├── screens/            # Screen components
+├── navigation/         # Navigation configuration
+├── services/          # API and data services
+├── hooks/             # Custom hooks
+├── utils/             # Utility functions
+├── types/             # TypeScript types
+└── lib/              # Core utilities
+```
+
+## Form Components
+
+### Core Components
+
+#### FormField
+Base component for form fields with common functionality:
+- Label with optional required indicator
+- Error message display
+- Touch state handling
+- Disabled state
+- Animation support
+
+#### FormInput
+Enhanced text input component:
+- Character count
+- Max length validation
+- Auto-complete support
+- Custom keyboard types
+- Platform-specific styling
+
+#### DatePicker
+Date selection component:
+- Min/max date validation
+- Custom date formats
+- Platform-specific pickers
+- Error validation
+- Optional time selection
+
+#### Select
+Dropdown selection component:
+- Search functionality
+- Option grouping
+- Custom rendering
+- Multi-select support
+- Loading states
+
+#### FileInput
+File upload component:
+- Image and document support
+- File type validation
+- Size restrictions
+- Preview functionality
+- Progress indicators
+
+#### CheckboxGroup
+Multiple selection component:
+- Nested options
+- Indeterminate state
+- Select all functionality
+- Custom styling
+- Disabled states
+
+#### RadioGroup
+Single selection component:
+- Custom styles
+- Option descriptions
+- Icon support
+- Layout direction
+- Size variants
+
+#### PasswordInput
+Secure password input:
+- Strength indicator
+- Requirements list
+- Show/hide toggle
+- Custom validation
+- Strength feedback
+
+#### TextArea
+Multi-line text input:
+- Auto-resize
+- Character count
+- Max height
+- Custom styling
+- Placeholder support
+
+#### SearchInput
+Search input component:
+- Debounced input
+- Clear button
+- Custom styling
+- Loading state
+
+#### PhoneInput
+Phone number input:
+- Format validation
+- Country codes
+- Auto-formatting
+- Error states
+
+### Form Validation
+- Zod schema validation
+- Custom validation rules
+- Real-time validation
+- Form-level validation
+- Field-level validation
+
+### State Management
+- React Query for server state
+- Local state with hooks
+- Form state management
+- Loading states
+- Error handling
+
+## Navigation
+
+### Stack Navigation
+- Authentication stack
+- Main app stack
+- Modal stack
+- Nested navigation
+
+### Screen Types
+- Authentication screens
+- Dashboard
+- Patient management
+- Medical records
+- Appointments
+- Vitals tracking
+
+## Data Management
+
+### Supabase Integration
+- Real-time subscriptions
+- Row Level Security
+- File storage
+- Authentication
+- Offline support
+
+### Caching Strategy
+- Query caching
+- Optimistic updates
+- Background sync
+- Persistence
+- Revalidation
+
+## Security
+
+### Authentication
+- Email/password
+- Biometric
+- Session management
+- Token refresh
+- Secure storage
+
+### Data Protection
+- End-to-end encryption
+- Secure file storage
+- HIPAA compliance
+- Audit logging
+- Access control
+
+## Testing
+
+### Unit Tests
+- Component tests
+- Hook tests
+- Utility tests
+- Service tests
+- Type tests
+
+### Integration Tests
+- Navigation flows
+- Form submission
+- API integration
+- Authentication
+- Error handling
+
+### Test Coverage
+- Component coverage
+- Service coverage
+- Utility coverage
+- Hook coverage
+- Type coverage
+
+## Performance
+
+### Optimization
+- Code splitting
+- Lazy loading
+- Image optimization
+- Query optimization
+- Bundle size
+
+### Monitoring
+- Performance metrics
+- Error tracking
+- Usage analytics
+- Network monitoring
+- Memory usage
+
+## Version Information
+Version: 1.0.0
+Last Updated: March 2024
+
 ## Features
 
 ### Medical Records System
