@@ -36,6 +36,51 @@
     "policy_type": "PERMISSIVE"
   },
   {
+    "policy_name": "Users can view their own access entries",
+    "table_name": "document_access",
+    "policy_role": "authenticated",
+    "command": "r",
+    "policy_expression": "(user_id = auth.uid())",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Document owners can manage access",
+    "table_name": "document_access",
+    "policy_role": "authenticated",
+    "command": "*",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM documents d\n  WHERE ((d.id = document_access.document_id) AND (d.user_id = auth.uid()))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users with admin access can manage access",
+    "table_name": "document_access",
+    "policy_role": "authenticated",
+    "command": "*",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM document_access da\n  WHERE ((da.document_id = da.document_id) AND (da.user_id = auth.uid()) AND (da.access_level = 'admin'::document_access_level) AND ((da.expires_at IS NULL) OR (da.expires_at > now())) AND (da.revoked_at IS NULL))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Document owners can view audit logs",
+    "table_name": "document_audit_logs",
+    "policy_role": "authenticated",
+    "command": "r",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM documents d\n  WHERE ((d.id = document_audit_logs.document_id) AND (d.user_id = auth.uid()))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
+    "policy_name": "Users with admin access can view audit logs",
+    "table_name": "document_audit_logs",
+    "policy_role": "authenticated",
+    "command": "r",
+    "policy_expression": "(EXISTS ( SELECT 1\n   FROM document_access da\n  WHERE ((da.document_id = da.document_id) AND (da.user_id = auth.uid()) AND (da.access_level = 'admin'::document_access_level) AND ((da.expires_at IS NULL) OR (da.expires_at > now())) AND (da.revoked_at IS NULL))))",
+    "with_check_expression": null,
+    "policy_type": "PERMISSIVE"
+  },
+  {
     "policy_name": "Users can insert share notifications",
     "table_name": "notifications",
     "policy_role": null,

@@ -89,7 +89,7 @@ export async function fetchDashboardData(
   try {
     // Get user stats from materialized view
     const { data: stats, error: statsError } = await supabase
-      .from('mv_user_stats')
+      .from('user_stats')
       .select('*')
       .eq('user_id', userId)
       .single()
