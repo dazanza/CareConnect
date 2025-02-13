@@ -386,105 +386,6 @@ L295:
 - Impact: Smooth chart rendering with large datasets
 - Related: L286, L254
 
-## Mobile Development Patterns
-
-### Patient Details Architecture
-```typescript
-// Centralized service pattern for patient details
-export const patientDetailsService = {
-  // Fetch all details with offline support
-  getDetails: async (patientId: number) => {
-    // Check offline cache first
-    const cachedData = await AsyncStorage.getItem(`patient-details-${patientId}`);
-    if (cachedData && !navigator.onLine) {
-      return JSON.parse(cachedData);
-    }
-
-    // Parallel data fetching
-    const [allergies, immunizations, labResults] = await Promise.all([
-      fetchAllergies(patientId),
-      fetchImmunizations(patientId),
-      fetchLabResults(patientId),
-    ]);
-
-    // Cache successful response
-    const details = { allergies, immunizations, labResults };
-    await AsyncStorage.setItem(
-      `patient-details-${patientId}`,
-      JSON.stringify(details)
-    );
-
-    return details;
-  }
-};
-```
-
-### Mobile Form Pattern
-```typescript
-// Mobile-optimized form component
-const MobileForm = () => {
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView 
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.content}
-      >
-        {/* Form fields */}
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-};
-
-// Platform-specific styles
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    padding: 20,
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-});
-```
-
-### Mobile Navigation Pattern
-```typescript
-// Conditional navigation stack
-const AppNavigator = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <LoadingScreen />;
-  }
-
-  return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        {!user ? (
-          // Auth Stack
-          <>
-            <Stack.Screen name="Welcome" component={Welcome} />
-            <Stack.Screen name="Login" component={Login} />
-          </>
-        ) : (
-          // Main App Stack
-          <>
-            <Stack.Screen name="Dashboard" component={Dashboard} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-};
-```
-
-## Learnings
-
 L296:
 - Context: Mobile patient details architecture
 - Insight: Parallel data fetching with offline support improves performance and UX
@@ -624,6 +525,30 @@ L315:
 - Application: Implemented granular permissions for different medical data types
 - Impact: Better security and HIPAA compliance
 - Related: L305, L280
+
+L276: Context: Document access control component architecture
+Insight: Separating access control into distinct components (dialog, panel, audit) improves maintainability
+Application: Created reusable components for grant access, management panel, and audit log viewing
+Impact: Reduced code duplication and improved component reusability
+Related: L270, L272
+
+L277: Context: User search implementation pattern
+Insight: Combining debounced search with recent/suggested results provides better UX
+Application: Implemented useEnhancedUserSearch hook with integrated functionality
+Impact: Improved search performance and user experience
+Related: L271, L275
+
+L278: Context: Access control type safety
+Insight: Using discriminated unions for access levels and audit actions ensures type safety
+Application: Created strict types for AccessLevel and DocumentAuditAction
+Impact: Caught potential type errors at compile time
+Related: L274, L272
+
+L279: Context: Document audit logging pattern
+Insight: Using a centralized audit service with standardized action types improves tracking
+Application: Implemented comprehensive audit logging with typed actions and metadata
+Impact: Better tracking and analysis of document access patterns
+Related: L272, L275
 
 ## Type Safety Patterns
 
